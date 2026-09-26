@@ -10,19 +10,20 @@ import javax.swing.*;
  * Button that the user can use to draw a card (or more).
  * TODO: Rotate the button asset to be fancy.
  */
-class DrawButton extends JComponent {
+class UnoButton extends JComponent {
 	private static final long serialVersionUID = 1L;
 	private static int width = 240;
 	private static int height = 240;
 	
 	private Game game;
-	private Image buttonUp = Util.getImage(getClass().getResource("Assets/draw.gif"));
-	private Image buttonDown = Util.getImage(getClass().getResource("Assets/draw_down.gif"));
+	private Image buttonUp = Util.getImage(getClass().getResource("Assets/uno.gif"));
+	private Image buttonDown = Util.getImage(getClass().getResource("Assets/uno_down.gif"));
 	private Image button = buttonUp;
 
-	DrawButton(Game game) {
+	UnoButton(Game game) {
 		super();
 		this.game = game;
+		setVisible(false);
 		addMouseListener(new ClickListener());
 	}
 	
@@ -39,7 +40,7 @@ class DrawButton extends JComponent {
 	private class ClickListener extends MouseAdapter {
 		public void mouseClicked(MouseEvent e) {
 			if (!game.isInterrupted()) {
-				game.getRuleSet().onDraw();
+				game.callUno(0);
 			}
 		}
 		

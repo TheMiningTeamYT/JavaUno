@@ -8,7 +8,7 @@ import java.io.*;
  * A lightweight representation of the Uno game state, fit to be transmitted over the network.
  */
 class GameState implements Serializable {
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -21,6 +21,7 @@ class GameState implements Serializable {
 	private int turnOrder = 0;
 	private int moves = 0;
 	private int players = 0;
+	private boolean uno = false;
 
 	GameState() {};
 
@@ -78,12 +79,17 @@ class GameState implements Serializable {
 	}
 	
 	void move() {
+		uno = false;
 		rotate();
 		if (turnOrder == 0) {
 			moves++;
 		} else {
 			moves--;
 		}
+	}
+	
+	void doUno() {
+		uno = true;
 	}
 	
 	void applyAction(Action a) {
@@ -158,6 +164,9 @@ class GameState implements Serializable {
 						}
 					}
 				}
+				break;
+			case Action.UNO:
+				uno = true;
 				break;
 			default:
 				break;

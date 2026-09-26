@@ -29,12 +29,12 @@ class NetworkGameClient extends Game {
 	private int player = 0;
 	private String[] names;
 
-	NetworkGameClient(Deck deck, String name, String server, int port) {
-		super(deck);
+	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
+		super(deck, handler);
 		try {
 			socket = new Socket(server, port);
 		} catch (IOException e) {
-			showErrorMessage(e.getMessage());
+			handleError(e);
 			return;
 		}
 		onResize();
@@ -118,6 +118,17 @@ class NetworkGameClient extends Game {
 
 		synchronized(outQueue) {
 			outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
+		}
+	}
+	
+	void callUno(int player) {
+		if (player == 0) {
+			super.callUno(0);
+			state.doUno();
+			
+			synchronized(outQueue) {
+				outQueue.addElement(Action.uno(state));
+			}
 		}
 	}
 	
@@ -268,22 +279,46 @@ class NetworkGameClient extends Game {
 				netGameUI.start(player, getPlayers());
 				start();
 				break;
-			} default:
+			} 
+			case Action.UNO:
+				if (isHand0Player()) {
+					super.callUno(1);
+				} else {
+					super.callUno(0);
+				}
+				break;
+			default:
 				break;
 		}
 	}
 
-	void showErrorMessage(String msg) {
-		JPanel customUISpace = getCustomUISpace();
-		JLabel errorMsg = new JLabel(msg, SwingConstants.CENTER);
-		
-		errorMsg.setForeground(new Color(0, 0, 0));
-		customUISpace.removeAll();
-		customUISpace.setLayout(new GridLayout(1, 1));
-		customUISpace.add(errorMsg);
-		customUISpace.setVisible(true);
-		
-		interrupt();
+
+	void handleError(Exception err) {
+		if (!getEnded()) {
+			String msg = err.getMessage();
+			if (msg == null) {
+				msg = "A networking error occured.";
+				err.printStackTrace();
+			}
+			onEnd(msg);
+			if (inThread != null) {
+				inThread.interrupt();
+				inThread = null;
+			}
+			if (outThread != null) {
+				outThread.interrupt();
+				outThread = null;
+			}
+			try {
+				if (socket != null) {
+					socket.close();
+					socket = null;
+				}
+			} catch (IOException e) {}
+			
+			netGameUI.setVisible(false);
+			interrupt();
+		}
 	}
 	
 	protected void onResize() {
@@ -292,6 +327,24 @@ class NetworkGameClient extends Game {
 			netGameUI.setBounds(0, 0, bounds.width, bounds.height);
 		}
 		super.onResize();
+	}
+	
+	protected void gameOver() {
+		if (inThread != null) {
+			inThread.interrupt();
+			inThread = null;
+		}
+		if (outThread != null) {
+			outThread.interrupt();
+			outThread = null;
+		}
+		try {
+			if (socket != null) {
+				socket.close();
+				socket = null;
+			}
+		} catch (IOException e) {}
+		super.gameOver();
 	}
 	
 	void requestStart() {
@@ -367,10 +420,19 @@ class NetworkGameClient extends Game {
 						inQueue.addElement(received);
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(0);
+					try {
+						in.close();
+					} catch (IOException e2) {
+						handleError(e2);
+					}
+					handleError(e);
 				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
+					try {
+						in.close();
+					} catch (IOException e2) {
+						handleError(e2);
+					}
+					handleError(e);
 				}
 			}
 		}
@@ -397,8 +459,12 @@ class NetworkGameClient extends Game {
 							out.reset();
 							out.flush();
 						} catch (IOException e) {
-							e.printStackTrace();
-							continue;
+							try {
+								out.close();
+							} catch (IOException e2) {
+								handleError(e2);
+							}
+							handleError(e);
 						}
 
 						outQueue.removeAllElements();
@@ -406,7 +472,12 @@ class NetworkGameClient extends Game {
 						try {
 							outQueue.wait();
 						} catch (InterruptedException e) {
-							e.printStackTrace();
+							try {
+								out.close();
+							} catch (IOException e2) {
+								handleError(e2);
+							}
+							handleError(e);
 						}
 					}
 				}

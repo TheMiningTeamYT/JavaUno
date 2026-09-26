@@ -12,11 +12,12 @@ import java.util.Vector;
  * TODO: Add indicators for whose turn it is currently.
  * TODO: Add a way for the owner of the game object to know when the game's over.
  */
-class Game extends JLayeredPane {
+class Game extends JLayeredPane implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	private static final double arcRatio = 0.13962634;
 	private static final Color arcColor = new Color(0, 220, 255);
 
+	private GameHandler handler;
 	private RuleSet rules = new RuleSet.Standard(this);
 	protected Hand[] hands = {
 			new Hand(this, 0, 360, 640, 120, 0, true, true),
@@ -27,6 +28,7 @@ class Game extends JLayeredPane {
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
 	private Hand[] screenOrderedHands;
 	private DrawButton draw = new DrawButton(this);
+	private UnoButton unoButton = new UnoButton(this);
 	private int turnOrder = clockwise;
 	private Deck deck;
 	private JPanel customUISpace = new JPanel();
@@ -39,15 +41,19 @@ class Game extends JLayeredPane {
 	private int frame = 0;
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
-	Rectangle arcBounds = new Rectangle((int)(640 / 4 - (30 * scaleFactor)), (int)(480 / 4 - (30 * scaleFactor)), (int)(640 / 2 + (60 * scaleFactor)), (int)(480 / 2 + (60*scaleFactor)));
+	private Rectangle arcBounds = new Rectangle((int)(640 / 4 - (30 * scaleFactor)), (int)(480 / 4 - (30 * scaleFactor)), (int)(640 / 2 + (60 * scaleFactor)), (int)(480 / 2 + (60*scaleFactor)));
 	private int players = 1;
+	private boolean drew = false;
+	private boolean uno = false;
+	private boolean ended = false;
 
 	static final int clockwise = 0;
 	static final int counterClockwise = 1;
 	
-	Game(Deck deck) {
+	Game(Deck deck, GameHandler handler) {
 		super();
 		this.deck = deck;
+		this.handler = handler;
 		screenOrderedHands = (Hand[])hands.clone();
 
 		customUISpace.setVisible(false);
@@ -65,6 +71,7 @@ class Game extends JLayeredPane {
 	
 	void start() {
 		add(draw, 0);
+		add(unoButton, 0);
 	}
 	
 	void deal() {
@@ -250,6 +257,22 @@ class Game extends JLayeredPane {
 		return defaultFont;
 	}
 	
+	void drew() {
+		drew = true;
+	}
+	
+	boolean getDrew() {
+		return drew;
+	}
+	
+	boolean getEnded() {
+		return ended;
+	}
+	
+	public void actionPerformed(ActionEvent e) {
+		gameOver();
+	}
+	
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
 	void drawToHand(int hand) {
@@ -281,15 +304,64 @@ class Game extends JLayeredPane {
 	
 	void onTurn() {
 		hands[0].setPlayable(false);
+		unoButton.setVisible(false);
+		drew = false;
+		uno = false;
 		if (hands[0].numCards() == 0) {
 			onWin();
 		} else {
 			rotate();
+			if (hands[0].numCards() == 1) {
+				unoButton.setVisible(true);
+			}
 		}
 	}
 	
-	void onWin() {
+	void onEnd(String msg) {
+		JButton endButton = new JButton("Exit");
+		JLabel label = new JLabel();
 		interrupt();
+		for (int i = 0; i < players; i++) {
+			hands[i].setUp(true);
+		}
+
+		customUISpace.removeAll();
+		customUISpace.setLayout(new BoxLayout(customUISpace, BoxLayout.Y_AXIS));
+		
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		label.setAlignmentX(Component.CENTER_ALIGNMENT);
+		label.setVerticalAlignment(SwingConstants.BOTTOM);
+		label.setFont(defaultFont);
+		label.setForeground(new Color(255, 255, 255));
+		label.setText(msg);
+		
+		endButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+		endButton.addActionListener(this);
+		endButton.setFont(defaultFont);
+		
+		customUISpace.add(label);
+		customUISpace.add(endButton);
+		customUISpace.setVisible(true);
+		ended = true;
+	}
+	
+	void onWin() {
+		onEnd((isHand0Player()) ? "You Win!" : "You Lose");
+	}
+	
+	void callUno(int player) {
+		if (!uno) {
+			if (player != 0 && hands[0].numCards() == 1) {
+				drawToHand(0);
+				drawToHand(0);
+			}
+			unoButton.setVisible(false);
+			uno = true;
+		}
+	}
+	
+	protected void gameOver() {
+		handler.gameOver();
 	}
 	
 	protected void onResize() {
@@ -300,13 +372,12 @@ class Game extends JLayeredPane {
 		defaultFont = new Font("Arial", Font.PLAIN, (int)(20 * scaleFactor));
 		Card.setWidth(cardWidth);
 		Card.setHeight(cardHeight);
-		DrawButton.setWidth(cardHeight);
-		DrawButton.setHeight(cardHeight);
 		
 		resizeHands();
 		discardHand.onResize((size.width - cardWidth)/2, (size.height - cardHeight)/2, cardWidth, cardHeight);
 		customUISpace.setBounds(0, cardHeight, size.width, size.height - cardHeight * 2);
 		draw.setBounds(0, 0, cardHeight, cardHeight);
+		unoButton.setBounds(size.width - cardHeight, 0, cardHeight, cardHeight);
 		
 		backgroundBounds = scaleAndCrop(new Rectangle(0, 0, 1024, 1024));
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
@@ -376,8 +447,10 @@ class Game extends JLayeredPane {
 	
 	private class TimerListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			frame = (frame + 1) % 360;
-			repaint(arcBounds);
+			if (!isInterrupted()) {
+				frame = (frame + 1) % 360;
+				repaint(arcBounds);
+			}
 		}
 	}
 	private class ResizeListener extends ComponentAdapter {

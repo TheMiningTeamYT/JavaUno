@@ -4,8 +4,8 @@ import java.awt.event.*;
 import java.applet.Applet;
 import javax.swing.*;
 
-public class UnoGame extends JApplet implements ItemListener {
-	private static Game gameState = new NetworkGameClient(new Deck.UnoCorns(), "Player", "127.0.0.1", 23770);
+public class UnoGame extends JApplet implements ItemListener, GameHandler {
+	private static Game gameState = new NetworkGameClient(new Deck.UnoCorns(), new UnoGame(), "Player4", "127.0.0.1", 23770);
 	
 	public static void startGame() {
 		gameState.setBounds(0, 0, 640, 480);
@@ -17,6 +17,10 @@ public class UnoGame extends JApplet implements ItemListener {
 		setLayout(null);
 		startGame();
 		add(gameState);
+	}
+	
+	public void gameOver() {
+		System.exit(0);
 	}
 	
 	public void itemStateChanged(ItemEvent e) {

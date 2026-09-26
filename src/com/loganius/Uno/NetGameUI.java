@@ -43,19 +43,24 @@ class NetGameUI extends JPanel implements ActionListener {
 	}
 	
 	void start(int player, int numPlayers) {
-		int adjustment = -player;
+		int adjustment = player;
 		JLabel temp1;
 		JLabel temp2;
 
 		if (adjustment != 0) {
 			for (int i = 0; i < adjustment; i++) {
-				temp1 = players[0];
-				for (int j = numPlayers - 1; j >= 0; j--) {
+				temp1 = players[numPlayers - 1];
+				for (int j = 0; j < numPlayers; j++) {
 					temp2 = players[j];
 					players[j] = temp1;
 					temp1 = temp2;
 				}
 			}
+
+			players[0].setHorizontalAlignment(SwingConstants.CENTER);
+			players[1].setHorizontalAlignment(SwingConstants.LEFT);
+			players[2].setHorizontalAlignment(SwingConstants.CENTER);
+			players[3].setHorizontalAlignment(SwingConstants.RIGHT);
 			onResize();
 		}
 

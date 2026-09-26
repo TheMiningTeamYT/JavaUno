@@ -24,6 +24,7 @@ class Action implements Serializable {
 	static final int REQUEST_START = 9;
 	static final int START_GAME = 10;
 	static final int HELLO = 11;
+	static final int UNO = 12;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -134,6 +135,15 @@ class Action implements Serializable {
 	static Action hello(String name) {
 		try {
 			return new Action(HELLO, name, null);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	static Action uno(GameState finalState) {
+		try {
+			return new Action(UNO, null, finalState);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;

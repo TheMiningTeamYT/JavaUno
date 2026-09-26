@@ -21,7 +21,6 @@ abstract class RuleSet {
 	// TODO: Figure out A: if overriding the turn action is ever necessary and B: if so, how to do that.
 	void onTurn() {};
 
-	// TODO: Checks to make sure that the user is allowed to draw.
 	abstract void onDraw();
 	
 	RuleSet getFallback() {
@@ -49,10 +48,12 @@ abstract class RuleSet {
 		}
 
 		void onDraw() {
-			if (game.getHandPlayable(0) && !game.canBePlayed()) {
-				int deckLength = game.getDeck().getLength();
+			if (game.getHandPlayable(0) && !game.getDrew()) {
 				game.drawToHand(0);
-				game.onTurn();
+				game.drew();
+				if (!game.canBePlayed()) {
+					game.onTurn();
+				}
 			}
 		}
 		
