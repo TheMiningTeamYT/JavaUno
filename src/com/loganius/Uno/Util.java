@@ -1,12 +1,16 @@
 package com.loganius.Uno;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import java.net.*;
 
 public class Util {
-	private static byte[] buf = new byte[1000000];
+	private static Font scaledFont = new Font("Arial", Font.PLAIN, 20);
+	private static double scaleFactor = 1;
+	private static Util.Resizer ResizeListener = new Util.Resizer(); 
+
 	public static Image rotate(Image img, int deg) {
 		RotateFilter rotate = new RotateFilter(deg * Math.PI / 180);
 		ImageProducer producer = new FilteredImageSource(img.getSource(), rotate);
@@ -14,25 +18,7 @@ public class Util {
 	}
 	
 	public static Image getImage(URL path) {
-		try {
-			InputStream in = path.openStream();
-			int index = 0;
-			int read;
-			byte[] buf2;
-
-			synchronized(buf) {
-				while ((read = in.read(buf, index, buf.length - index)) != -1) {
-					index += read;
-				}
-				buf2 = new byte[index];
-				System.arraycopy(buf, 0, buf2, 0, index);
-			}
-
-			return bufferImage(Toolkit.getDefaultToolkit().createImage(buf2));
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
+		return bufferImage(Toolkit.getDefaultToolkit().getImage(path));
 	}
 	
 	public static Image bufferScaledImage(Image img, int width, int height) {
@@ -59,5 +45,40 @@ public class Util {
 	
 	public static URL getResource(String path) {
 		return Util.class.getResource(path);
+	}
+	
+	public static void onResize(int width, int height) {
+		scaleFactor = (double)height / 480;
+		scaledFont = new Font("Arial", Font.PLAIN, (int)(20 * scaleFactor));
+	}
+	
+	public static double getScaleFactor() {
+		return scaleFactor;
+	}
+	
+	public static double scale(double val) {
+		return val*scaleFactor;
+	}
+	
+	public static Font getScaledFont() {
+		return scaledFont;
+	}
+	
+	public static ComponentListener getTextResizeListener() {
+		return ResizeListener;
+	}
+	
+	private static class Resizer extends ComponentAdapter {
+		public void componentResized(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
+
+		public void componentMoved(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
+
+		public void componentShown(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
 	}
 }

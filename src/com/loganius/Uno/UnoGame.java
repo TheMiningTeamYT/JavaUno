@@ -39,11 +39,19 @@ public class UnoGame extends JApplet implements ItemListener, GameHandler {
 		frame.getContentPane().setLayout(new GridLayout(1, 1));
 		frame.setVisible(true);
 		frame.addWindowListener(new WindowListener());
+		frame.addComponentListener(new ResizeListener());
 	}
 	
 	private static class WindowListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
+		}
+	}
+	
+	private static class ResizeListener extends ComponentAdapter {
+		public void componentResized(ComponentEvent e) {
+			Rectangle bounds = e.getComponent().getBounds();
+			Util.onResize(bounds.width, bounds.height);
 		}
 	}
 }

@@ -16,39 +16,37 @@ class Game extends JLayeredPane implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	private static final double arcRatio = 0.13962634;
 	private static final Color arcColor = new Color(0, 220, 255);
+	static final int clockwise = 0;
+	static final int counterClockwise = 1;
 
 	private GameHandler handler;
 	private RuleSet rules = new RuleSet.Standard(this);
 	protected Hand[] hands = {
-			new Hand(this, 0, 360, 640, 120, 0, true, true),
-			new Hand(this, 0, 130, 120, 220, 270, false, true),
-			new Hand(this, 0, 0, 400, 120, 180, false, true),
-			new Hand(this, 520, 130, 120, 220, 90, false, true),
+			new Hand(this, 0, 360, 640, 120, 0, true, false),
+			new Hand(this, 0, 130, 120, 220, 270, false, false),
+			new Hand(this, 0, 0, 400, 120, 180, false, false),
+			new Hand(this, 520, 130, 120, 220, 90, false, false),
 	};
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
-	private Hand[] screenOrderedHands;
+	protected Hand[] screenOrderedHands;
+	private Deck deck;
+	private int turnOrder = clockwise;
+	private int players = 1;
+	private boolean drew = false;
+	private boolean uno = false;
+	private boolean ended = false;
+	
 	private DrawButton draw = new DrawButton(this);
 	private UnoButton unoButton = new UnoButton(this);
-	private int turnOrder = clockwise;
-	private Deck deck;
 	private JPanel customUISpace = new JPanel();
 	private Vector interruptQueue = new Vector();
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
 	private Image background;
 	private Rectangle backgroundBounds;
-	private Font defaultFont = new Font("Arial", Font.PLAIN, 20);
-	private double scaleFactor = 1;
-	private int frame = 0;
+	private Rectangle arcBounds = new Rectangle((int)(640 / 4 - 30), (int)(480 / 4 - 30), (int)(640 / 2 + 60), (int)(480 / 2 + 60));
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
-	private Rectangle arcBounds = new Rectangle((int)(640 / 4 - (30 * scaleFactor)), (int)(480 / 4 - (30 * scaleFactor)), (int)(640 / 2 + (60 * scaleFactor)), (int)(480 / 2 + (60*scaleFactor)));
-	private int players = 1;
-	private boolean drew = false;
-	private boolean uno = false;
-	private boolean ended = false;
-
-	static final int clockwise = 0;
-	static final int counterClockwise = 1;
+	private int frame = 0;
 	
 	Game(Deck deck, GameHandler handler) {
 		super();
@@ -124,7 +122,7 @@ class Game extends JLayeredPane implements ActionListener {
 			turnOrder = clockwise;
 		}
 		
-		repaint((int)(bounds.width / 4 - (30 * scaleFactor)), (int)(bounds.height / 4 - (30 * scaleFactor)), (int)(bounds.width / 2 + (60 * scaleFactor)), (int)(bounds.height / 2 + (60*scaleFactor)));
+		repaint(arcBounds);
 	}
 	
 	Deck getDeck() {
@@ -249,14 +247,6 @@ class Game extends JLayeredPane implements ActionListener {
 		}
 	}
 	
-	double getScaleFactor() {
-		return scaleFactor;
-	}
-	
-	Font getDefaultFont() {
-		return defaultFont;
-	}
-	
 	void drew() {
 		drew = true;
 	}
@@ -331,13 +321,15 @@ class Game extends JLayeredPane implements ActionListener {
 		label.setHorizontalAlignment(SwingConstants.CENTER);
 		label.setAlignmentX(Component.CENTER_ALIGNMENT);
 		label.setVerticalAlignment(SwingConstants.BOTTOM);
-		label.setFont(defaultFont);
+		label.setFont(Util.getScaledFont());
 		label.setForeground(new Color(255, 255, 255));
 		label.setText(msg);
+		label.addComponentListener(Util.getTextResizeListener());
 		
 		endButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+		endButton.setFont(Util.getScaledFont());
 		endButton.addActionListener(this);
-		endButton.setFont(defaultFont);
+		endButton.addComponentListener(Util.getTextResizeListener());
 		
 		customUISpace.add(label);
 		customUISpace.add(endButton);
@@ -366,10 +358,8 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	protected void onResize() {
 		Rectangle size = getBounds();
-		scaleFactor= ((double)size.height)/480;
-		int cardWidth = (int)(80 * scaleFactor);
-		int cardHeight = (int)(120 * scaleFactor);
-		defaultFont = new Font("Arial", Font.PLAIN, (int)(20 * scaleFactor));
+		int cardWidth = (int)(Util.scale(80));
+		int cardHeight = (int)(Util.scale(120));
 		Card.setWidth(cardWidth);
 		Card.setHeight(cardHeight);
 		
@@ -381,7 +371,7 @@ class Game extends JLayeredPane implements ActionListener {
 		
 		backgroundBounds = scaleAndCrop(new Rectangle(0, 0, 1024, 1024));
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
-		arcBounds = new Rectangle((int)(size.width / 4 - (30 * scaleFactor)), (int)(size.height / 4 - (30 * scaleFactor)), (int)(size.width / 2 + (60 * scaleFactor)), (int)(size.height / 2 + (60*scaleFactor)));
+		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
 
 		validate();
 	}
@@ -412,32 +402,32 @@ class Game extends JLayeredPane implements ActionListener {
 				for (int i = 0; i < 20; i++) {
 					arcX[i] = (int)(Math.cos((i + frame)*arcRatio)*(bounds.height / 4)) + bounds.width / 2;
 					arcY[i] = (int)(Math.sin((i + frame)*arcRatio)*(bounds.height / 4)) + bounds.height / 2;
-					arcX[42 - i] = (int)(Math.cos((i + frame)*arcRatio)*((bounds.height / 4) - 20*scaleFactor)) + bounds.width / 2;
-					arcY[42 - i] = (int)(Math.sin((i + frame)*arcRatio)*((bounds.height / 4) - 20*scaleFactor)) + bounds.height / 2;
+					arcX[42 - i] = (int)(Math.cos((i + frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
+					arcY[42 - i] = (int)(Math.sin((i + frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
 				}
 				
 				// Draw a triangle.
-				arcX[20] = arcX[19] - (int)(Math.cos((19 + frame)*arcRatio)*40*scaleFactor);
-				arcY[20] = arcY[19] - (int)(Math.sin((19 + frame)*arcRatio)*40*scaleFactor);
-				arcX[21] = arcX[19] + (int)((Math.cos((19 + frame)*arcRatio)*-10*scaleFactor) - (Math.sin((19 + frame)*arcRatio)*51.962*scaleFactor));
-				arcY[21] = arcY[19] + (int)((Math.sin((19 + frame)*arcRatio)*-10*scaleFactor) + (Math.cos((19 + frame)*arcRatio)*51.962*scaleFactor));
-				arcX[22] = arcX[19] + (int)(Math.cos((19 + frame)*arcRatio)*20*scaleFactor);
-				arcY[22] = arcY[19] + (int)(Math.sin((19 + frame)*arcRatio)*20*scaleFactor);
+				arcX[20] = arcX[19] - (int)(Math.cos((19 + frame)*arcRatio)*Util.scale(40));
+				arcY[20] = arcY[19] - (int)(Math.sin((19 + frame)*arcRatio)*Util.scale(40));
+				arcX[21] = arcX[19] + (int)((Math.cos((19 + frame)*arcRatio)*Util.scale(-10)) - (Math.sin((19 + frame)*arcRatio)*Util.scale(51.962)));
+				arcY[21] = arcY[19] + (int)((Math.sin((19 + frame)*arcRatio)*Util.scale(-10)) + (Math.cos((19 + frame)*arcRatio)*Util.scale(51.962)));
+				arcX[22] = arcX[19] + (int)(Math.cos((19 + frame)*arcRatio)*Util.scale(20));
+				arcY[22] = arcY[19] + (int)(Math.sin((19 + frame)*arcRatio)*Util.scale(20));
 			} else {
 				for (int i = 0; i < 20; i++) {
 					arcX[i] = (int)(Math.cos((i - frame)*arcRatio)*(bounds.height / 4)) + bounds.width / 2;
 					arcY[i] = (int)(Math.sin((i - frame)*arcRatio)*(bounds.height / 4)) + bounds.height / 2;
-					arcX[39 - i] = (int)(Math.cos((i - frame)*arcRatio)*((bounds.height / 4) - 20*scaleFactor)) + bounds.width / 2;
-					arcY[39 - i] = (int)(Math.sin((i - frame)*arcRatio)*((bounds.height / 4) - 20*scaleFactor)) + bounds.height / 2;
+					arcX[39 - i] = (int)(Math.cos((i - frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
+					arcY[39 - i] = (int)(Math.sin((i - frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
 				}
 				
 				// Draw a triangle.
-				arcX[40] = arcX[0] - (int)(Math.cos((frame)*arcRatio)*40*scaleFactor);
-				arcY[40] = arcY[0] + (int)(Math.sin((frame)*arcRatio)*40*scaleFactor);
-				arcX[41] = arcX[0] + (int)((Math.cos((frame)*arcRatio)*-10*scaleFactor) - (Math.sin((frame)*arcRatio)*51.962*scaleFactor));
-				arcY[41] = arcY[0] - (int)((Math.sin((frame)*arcRatio)*-10*scaleFactor) + (Math.cos((frame)*arcRatio)*51.962*scaleFactor));
-				arcX[42] = arcX[0] + (int)(Math.cos((frame)*arcRatio)*20*scaleFactor);
-				arcY[42] = arcY[0] - (int)(Math.sin((frame)*arcRatio)*20*scaleFactor);
+				arcX[40] = arcX[0] - (int)(Math.cos((frame)*arcRatio)*Util.scale(40));
+				arcY[40] = arcY[0] + (int)(Math.sin((frame)*arcRatio)*Util.scale(40));
+				arcX[41] = arcX[0] + (int)((Math.cos((frame)*arcRatio)*Util.scale(-10)) - (Math.sin((frame)*arcRatio)*Util.scale(51.962)));
+				arcY[41] = arcY[0] - (int)((Math.sin((frame)*arcRatio)*Util.scale(-10)) + (Math.cos((frame)*arcRatio)*Util.scale(51.962)));
+				arcX[42] = arcX[0] + (int)(Math.cos((frame)*arcRatio)*Util.scale(20));
+				arcY[42] = arcY[0] - (int)(Math.sin((frame)*arcRatio)*Util.scale(20));
 			}
 	
 			g.fillPolygon(arcX, arcY, 43);

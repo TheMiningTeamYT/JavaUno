@@ -22,11 +22,14 @@ class NetGameUI extends JPanel implements ActionListener {
 		
 		for (int i = 0; i < players.length; i++) {
 			players[i].setForeground(new Color(240, 240, 240));
+			players[i].addComponentListener(Util.getTextResizeListener());
 			add(players[i]);
 		}
 
 		startButton.setVisible(false);
+		startButton.addComponentListener(null);
 		startButton.addActionListener(this);
+		startButton.addComponentListener(Util.getTextResizeListener());
 		add(startButton);
 
 		addComponentListener(new ResizeListener());
@@ -76,18 +79,12 @@ class NetGameUI extends JPanel implements ActionListener {
 	
 	private void onResize() {
 		Rectangle bounds = getBounds();
-		double scaleFactor = parent.getScaleFactor();
 		int cardHeight = Card.getHeight(0);
-		
-		for (int i = 0; i < players.length; i++) {
-			players[i].setFont(parent.getDefaultFont());
-		}
-		startButton.setFont(parent.getDefaultFont());
 
-		players[0].setBounds(0, bounds.height - cardHeight - (int)(20*scaleFactor) - 50, bounds.width, 100);
-		players[1].setBounds(cardHeight + (int)(10*scaleFactor), bounds.height / 2 - 50, bounds.width / 2, 100);
-		players[2].setBounds(0, cardHeight + (int)(20*scaleFactor) - 50, bounds.width, 100);
-		players[3].setBounds(bounds.width - cardHeight - (int)(10*scaleFactor) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
+		players[0].setBounds(0, bounds.height - cardHeight - (int)(Util.scale(20)) - 50, bounds.width, 100);
+		players[1].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
+		players[2].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
+		players[3].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
 		startButton.setBounds(bounds.width / 2 - (bounds.height * 3) / 32, (bounds.height * 7) / 16, (bounds.height * 3) / 16, bounds.height / 8);
 	}
 	

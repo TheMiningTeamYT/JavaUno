@@ -276,6 +276,7 @@ class NetworkGameClient extends Game {
 					}
 					resizeHands();
 				}
+				screenOrderedHands[0].setUp(true);
 				netGameUI.start(player, getPlayers());
 				start();
 				break;
