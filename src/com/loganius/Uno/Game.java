@@ -55,13 +55,12 @@ class Game extends JLayeredPane implements ActionListener {
 		screenOrderedHands = (Hand[])hands.clone();
 
 		customUISpace.setVisible(false);
-		customUISpace.setBounds(0, 120, 640, 240);
 		customUISpace.setOpaque(false);
 
 		setLayout(null);
 		add(customUISpace, MODAL_LAYER);
 		addComponentListener(new ResizeListener());
-		setBounds(0, 0, 640, 480);
+		onResize();
 		
 		new Timer(33, new TimerListener()).start();
 	}
@@ -300,7 +299,6 @@ class Game extends JLayeredPane implements ActionListener {
 			onWin();
 		} else {
 			rotate();
-			System.out.println("Num cards: " + hands[0].numCards() + " can be played: " + canBePlayed());
 			if (hands[0].numCards() == 2 && canBePlayed()) {
 				unoButton.setVisible(true);
 			}
@@ -335,8 +333,6 @@ class Game extends JLayeredPane implements ActionListener {
 		customUISpace.add(endButton);
 		customUISpace.setVisible(true);
 		ended = true;
-		
-		repaint();
 	}
 	
 	void onWin() {
@@ -374,8 +370,6 @@ class Game extends JLayeredPane implements ActionListener {
 		backgroundBounds = Util.scaleAndCrop(new Rectangle(0, 0, 1024, 1024), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
-
-		validate();
 	}
 	
 	public void paintComponent(Graphics g) {

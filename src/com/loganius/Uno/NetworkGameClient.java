@@ -31,13 +31,16 @@ class NetworkGameClient extends Game {
 
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
+		Rectangle bounds = getBounds();
+
 		try {
 			socket = new Socket(server, port);
 		} catch (IOException e) {
 			handleError(e);
 			return;
 		}
-		onResize();
+		
+		netGameUI.setBounds(0, 0, bounds.width, bounds.height);
 		names = new String[] {name};
 		outQueue.addElement(Action.hello(name));
 

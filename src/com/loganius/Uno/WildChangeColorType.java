@@ -29,6 +29,9 @@ class WildChangeColorType extends CardType {
 		buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
 		
 		instruction.setForeground(new java.awt.Color(0, 0, 0));
+		instruction.setFont(Util.getScaledFont());
+		instruction.addComponentListener(Util.getTextResizeListener());
+
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weightx = 1;
@@ -67,7 +70,10 @@ class WildChangeColorType extends CardType {
 		ColorButton(int color, String text) {
 			super(text);
 			this.color = color;
+			
+			setFont(Util.getScaledFont());
 			addActionListener(this);
+			addComponentListener(Util.getTextResizeListener());
 		}
 		
 		public void actionPerformed(ActionEvent e) {

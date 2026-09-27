@@ -4,6 +4,7 @@ import java.awt.event.*;
 import java.applet.Applet;
 import javax.swing.*;
 
+// TODO: Handle scaling the game from the get go rather than starting at 640x480
 public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	private static Game gameState;
 	private static JLabel loading = new JLabel("Loading assets, please wait...", SwingConstants.CENTER);
@@ -56,6 +57,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		timer.stop();
 		frame.getContentPane().remove(loading);
 		frame.getContentPane().add(gameState);
+		frame.validate();
 		frame.repaint();
 	}
 	
