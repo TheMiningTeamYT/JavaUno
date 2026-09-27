@@ -4,10 +4,13 @@ import java.awt.event.*;
 import java.applet.Applet;
 import javax.swing.*;
 
-public class UnoGame extends JApplet implements ItemListener, GameHandler {
-	private static Game gameState = new NetworkGameClient(new Deck.UnoCorns(), new UnoGame(), "Player4", "127.0.0.1", 23770);
+public class UnoGame extends JApplet implements GameHandler, ActionListener {
+	private static Game gameState;
+	private static JLabel loading = new JLabel("Loading assets, please wait...", SwingConstants.CENTER);
+	private int frame = 0;
 	
 	public static void startGame() {
+		gameState = new NetworkGameClient(new Deck.UnoCorns(), new UnoGame(), "Player4", "100.68.9.96", 23770);
 		gameState.setBounds(0, 0, 640, 480);
 	}
 	
@@ -23,23 +26,37 @@ public class UnoGame extends JApplet implements ItemListener, GameHandler {
 		System.exit(0);
 	}
 	
-	public void itemStateChanged(ItemEvent e) {
-		if (e.getStateChange() == ItemEvent.SELECTED) {
-			System.out.println("Selected");
+	public void actionPerformed(ActionEvent e) {
+		String text = "Loading assets, please wait.";
+		for (int i = 0; i < frame; i++) {
+			text += ".";
 		}
+		loading.setText(text);
+		frame = (frame + 1) % 3;
 	}
 
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("Uno!");
+		Timer timer = new Timer(1000, new UnoGame());
+
+		frame.getContentPane().setLayout(new GridLayout(1, 1));
+		frame.setSize(640, 480);
+
+		loading.setFont(Util.getScaledFont());
+		loading.addComponentListener(Util.getTextResizeListener());
+
+		frame.getContentPane().add(loading);
+		frame.addWindowListener(new WindowListener());
+		frame.addComponentListener(new ResizeListener());
+		frame.setVisible(true);
+		timer.start();
 		
 		startGame();
 		
+		timer.stop();
+		frame.getContentPane().remove(loading);
 		frame.getContentPane().add(gameState);
-		frame.setSize(640, 480);
-		frame.getContentPane().setLayout(new GridLayout(1, 1));
-		frame.setVisible(true);
-		frame.addWindowListener(new WindowListener());
-		frame.addComponentListener(new ResizeListener());
+		frame.repaint();
 	}
 	
 	private static class WindowListener extends WindowAdapter {

@@ -59,7 +59,7 @@ class WildChangeColorType extends CardType {
 	
 	// TODO: Add colored wild cards to the deck and set this properly.
 	protected void cardAction(Card parent, int color) {
-		parent.setType(Deck.RED_DRAW4 + color);
+		parent.setType(Deck.RED_CHANGE_COLOR + color);
 	};
 	
 	private class ColorButton extends JButton implements ActionListener {

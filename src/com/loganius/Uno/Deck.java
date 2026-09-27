@@ -115,9 +115,9 @@ abstract class Deck {
 			cards = (CardType[])deck.clone();
 		}
 
-		private static final Image[] back = CardType.generateImageList(Util.getImage(Util.getResource("Assets/UnoCorns/0.gif")));
+		private final Image[] back = CardType.generateImageList(Util.getImage(Util.getResource("Assets/UnoCorns/0.gif")));
 		
-		private static final CardType[] deck = {
+		private final CardType[] deck = {
 			new CardType(Util.getResource("Assets/UnoCorns/r0.gif"), back, Color.RED, 0, true),
 			new CardType(Util.getResource("Assets/UnoCorns/r1.gif"), back, Color.RED, 1, true),
 			new CardType(Util.getResource("Assets/UnoCorns/r2.gif"), back, Color.RED, 2, true),
@@ -171,15 +171,15 @@ abstract class Deck {
 			new SkipCardType(Util.getResource("Assets/UnoCorns/bs.gif"), back, Color.BLUE),
 			new ReverseCardType(Util.getResource("Assets/UnoCorns/br.gif"), back, Color.BLUE),
 			new WildChangeColorType(Util.getResource("Assets/UnoCorns/wtc.gif"), back),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.RED, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.YELLOW, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.GREEN, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.BLUE, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/rtc.gif"), back, Color.RED, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/ytc.gif"), back, Color.YELLOW, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/gtc.gif"), back, Color.GREEN, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/btc.gif"), back, Color.BLUE, -1, false),
 			new WildDraw4Type(Util.getResource("Assets/UnoCorns/w+4.gif"), back),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.RED, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.YELLOW, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.GREEN, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/w+4.gif"), back, Color.BLUE, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/r+4.gif"), back, Color.RED, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/y+4.gif"), back, Color.YELLOW, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/g+4.gif"), back, Color.GREEN, -1, false),
+			new CardType(Util.getResource("Assets/UnoCorns/b+4.gif"), back, Color.BLUE, -1, false),
 		};
 	}
 }

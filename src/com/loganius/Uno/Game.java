@@ -41,8 +41,8 @@ class Game extends JLayeredPane implements ActionListener {
 	private JPanel customUISpace = new JPanel();
 	private Vector interruptQueue = new Vector();
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image background;
-	private Rectangle backgroundBounds;
+	private Image background = bgSource;
+	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
 	private Rectangle arcBounds = new Rectangle((int)(640 / 4 - 30), (int)(480 / 4 - 30), (int)(640 / 2 + 60), (int)(480 / 2 + 60));
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
@@ -59,7 +59,6 @@ class Game extends JLayeredPane implements ActionListener {
 		customUISpace.setOpaque(false);
 
 		setLayout(null);
-		setOpaque(false);
 		add(customUISpace, MODAL_LAYER);
 		addComponentListener(new ResizeListener());
 		setBounds(0, 0, 640, 480);
@@ -301,7 +300,8 @@ class Game extends JLayeredPane implements ActionListener {
 			onWin();
 		} else {
 			rotate();
-			if (hands[0].numCards() == 1) {
+			System.out.println("Num cards: " + hands[0].numCards() + " can be played: " + canBePlayed());
+			if (hands[0].numCards() == 2 && canBePlayed()) {
 				unoButton.setVisible(true);
 			}
 		}
@@ -335,6 +335,8 @@ class Game extends JLayeredPane implements ActionListener {
 		customUISpace.add(endButton);
 		customUISpace.setVisible(true);
 		ended = true;
+		
+		repaint();
 	}
 	
 	void onWin() {
@@ -343,7 +345,7 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void callUno(int player) {
 		if (!uno) {
-			if (player != 0 && hands[0].numCards() == 1) {
+			if (player != 0 && hands[0].numCards() == 2 && canBePlayed()) {
 				drawToHand(0);
 				drawToHand(0);
 			}
@@ -369,31 +371,16 @@ class Game extends JLayeredPane implements ActionListener {
 		draw.setBounds(0, 0, cardHeight, cardHeight);
 		unoButton.setBounds(size.width - cardHeight, 0, cardHeight, cardHeight);
 		
-		backgroundBounds = scaleAndCrop(new Rectangle(0, 0, 1024, 1024));
+		backgroundBounds = Util.scaleAndCrop(new Rectangle(0, 0, 1024, 1024), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
 
 		validate();
 	}
 	
-	private Rectangle scaleAndCrop(Rectangle original) {
-		Rectangle bounds = getBounds();
-		double widthRatio = (double)bounds.width / original.width;
-		double heightRatio = (double)bounds.height / original.height;
-		if (widthRatio > heightRatio) {
-			original.width *= widthRatio;
-			original.height *= widthRatio;
-			original.y = (bounds.height - original.height) / 2;
-		} else {
-			original.width *= heightRatio;
-			original.height *= heightRatio;
-			original.x = (bounds.width - original.width) / 2;
-		}
-		return original;
-	}
-	
 	public void paintComponent(Graphics g) {
 		Rectangle bounds = getBounds();
+		
 		g.drawImage(background, backgroundBounds.x, backgroundBounds.y, backgroundBounds.width, backgroundBounds.height, this);
 		if (arcBounds.intersects(g.getClipBounds())) {
 			g.setColor(arcColor);

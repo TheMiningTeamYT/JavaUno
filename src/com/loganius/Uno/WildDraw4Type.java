@@ -12,7 +12,7 @@ final class WildDraw4Type extends WildChangeColorType {
 	}
 	
 	protected void cardAction(Card parentCard, int color) {
-		super.cardAction(parentCard, color);
+		parentCard.setType(Deck.RED_DRAW4 + color);
 		for (int i = 0; i < 4; i++) {
 			parentCard.getGame().drawToHand(1);
 		}

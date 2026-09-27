@@ -45,7 +45,7 @@ class NetworkGameClient extends Game {
 		outThread = new OutputWorker();
 		inThread.start();
 		outThread.start();
-		new Timer(100, new TimerListener()).start();
+		new Timer(20, new TimerListener()).start();
 	}
 	
 	void start() {
@@ -297,11 +297,11 @@ class NetworkGameClient extends Game {
 	void handleError(Exception err) {
 		if (!getEnded()) {
 			String msg = err.getMessage();
+
 			if (msg == null) {
 				msg = "A networking error occured.";
 				err.printStackTrace();
 			}
-			onEnd(msg);
 			if (inThread != null) {
 				inThread.interrupt();
 				inThread = null;
@@ -318,7 +318,7 @@ class NetworkGameClient extends Game {
 			} catch (IOException e) {}
 			
 			netGameUI.setVisible(false);
-			interrupt();
+			onEnd(msg);
 		}
 	}
 	

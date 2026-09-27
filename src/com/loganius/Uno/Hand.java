@@ -145,9 +145,6 @@ class Hand {
 	 */
 	boolean canBePlayed() {
 		RuleSet rules = game.getRuleSet();
-		if (!playable) {
-			return false;
-		}
 		for (int i = 0; i < cards.size(); i++) {
 			if (rules.isLegal((Card)cards.elementAt(i))) {
 				return true;

@@ -68,6 +68,21 @@ public class Util {
 		return ResizeListener;
 	}
 	
+	public static Rectangle scaleAndCrop(Rectangle original, Rectangle bounds) {
+		double widthRatio = (double)bounds.width / original.width;
+		double heightRatio = (double)bounds.height / original.height;
+		if (widthRatio > heightRatio) {
+			original.width *= widthRatio;
+			original.height *= widthRatio;
+			original.y = (bounds.height - original.height) / 2;
+		} else {
+			original.width *= heightRatio;
+			original.height *= heightRatio;
+			original.x = (bounds.width - original.width) / 2;
+		}
+		return original;
+	}
+	
 	private static class Resizer extends ComponentAdapter {
 		public void componentResized(ComponentEvent e) {
 			e.getComponent().setFont(scaledFont);
