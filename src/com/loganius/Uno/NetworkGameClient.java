@@ -443,7 +443,6 @@ class NetworkGameClient extends Game {
 					} catch (IOException e2) {
 						handleError(e2);
 					}
-					handleError(e);
 					return;
 				}
 			}
@@ -457,7 +456,7 @@ class NetworkGameClient extends Game {
 			try {
 				out = new ObjectOutputStream(socket.getOutputStream());
 			} catch (IOException e) {
-				e.printStackTrace();
+				handleError(e);
 				out = null;
 			}
 			while (true) {
@@ -476,7 +475,6 @@ class NetworkGameClient extends Game {
 							} catch (IOException e2) {
 								handleError(e2);
 							}
-							handleError(e);
 							return;
 						}
 
@@ -490,7 +488,6 @@ class NetworkGameClient extends Game {
 							} catch (IOException e2) {
 								handleError(e2);
 							}
-							handleError(e);
 							return;
 						}
 					}

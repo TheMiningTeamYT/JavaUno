@@ -27,7 +27,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		Timer loadingAnimationTimer = new Timer(1000, this);
 		mainScreen = new JPanel() {
 			public void paintComponent(Graphics g) {
-				g.drawImage(bgImage, bgBounds.x, bgBounds.y, bgBounds.width, bgBounds.height, null);
+				g.drawImage(bgImage, bgBounds.x, bgBounds.y, null);
 			}
 		};
 
@@ -49,6 +49,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			}
 		});
 
+		parent.removeAll();
 		parent.add(mainScreen);
 		parent.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
@@ -69,7 +70,6 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		mainScreen.add(new JoinMenu(), "join");
 		mainScreen.add(new HostMenu(), "host");
 		parent.validate();
-		parent.repaint();
 	}
 	
 	public void gameOver() {
@@ -95,6 +95,8 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	// TODO: Work on the Applet part, make sure it works properly
 	public void init() {
 		setSize(640, 480);
+		setLayout(new GridLayout(1, 1));
+		add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
 		setVisible(true);
 		init(this);
 	}
@@ -107,6 +109,8 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			}
 		});
 		frame.setSize(640, 480);
+		frame.getContentPane().setLayout(new GridLayout(1, 1));
+		frame.getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
 		frame.setVisible(true);
 		new UnoGame().init(frame.getContentPane());
 	}
@@ -114,11 +118,11 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	private class MainMenu extends JPanel {
 		private Image UnoLogo = Util.getImage(Util.getResource("Assets/UnoLogo.gif"));
 		private ImageIcon icon = new ImageIcon(UnoLogo.getScaledInstance(-1, 160, Image.SCALE_FAST));
-		
+		private JPanel main = new JPanel();
+		private JPanel innerMain = new JPanel();
 
 		MainMenu() {
 			JPanel start = new JPanel();
-			JPanel main = new JPanel();
 			JLabel logo = new JLabel(icon);
 			JLabel text = new JLabel(
 					"for Java",
@@ -128,66 +132,72 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			JLabel host = new JLabel("Host a Game", SwingConstants.CENTER);
 			JLabel exit = new JLabel("Exit", SwingConstants.CENTER);
 			JLabel copyright = new JLabel(
-					"<html>(C) Copyright 2026 Logan C. GPLv3 or later.<br>" +
-					"Not produced by, licensed by, or associated with Mattel, Inc.</html>",
+					"(C) Copyright 2026 Logan C. GPLv3 or later." +
+					"Not produced by, licensed by, or associated with Mattel, Inc.",
 					SwingConstants.LEFT
 			);
-			Component filler = Box.createVerticalStrut(20);
 			final Color blue = new Color(151, 213, 252);
+			
+			Util.commonComponentInit(text, Util.WHITE);
+			Util.commonComponentInit(join, blue);
+			Util.commonComponentInit(host, blue);
+			Util.commonComponentInit(exit, blue);
 
 			setLayout(new BorderLayout());
 			start.setLayout(new BoxLayout(start, BoxLayout.Y_AXIS));
-			main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
+			innerMain.setLayout(new BoxLayout(innerMain, BoxLayout.Y_AXIS));
 
 			logo.setAlignmentX(CENTER_ALIGNMENT);
 			start.add(logo);
 
-			text.setForeground(Util.WHITE);
 			text.setAlignmentX(CENTER_ALIGNMENT);
-			text.setFont(Util.getScaledFont());
-			text.addComponentListener(Util.getTextResizeListener());
 			start.add(text);
 			
 			start.setOpaque(false);
 			add(start, BorderLayout.NORTH);
 
-			main.add(filler);
-			
-			join.setForeground(blue);
+			innerMain.add(Box.createVerticalGlue());
+
 			join.setAlignmentX(CENTER_ALIGNMENT);
-			join.setFont(Util.getScaledFont());
-			join.addComponentListener(Util.getTextResizeListener());
 			join.addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					layout.show(mainScreen, "join");
 				}
 			});
-			main.add(join);
-			
-			host.setForeground(blue);
+			innerMain.add(join);
+
 			host.setAlignmentX(CENTER_ALIGNMENT);
-			host.setFont(Util.getScaledFont());
-			host.addComponentListener(Util.getTextResizeListener());
 			host.addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					layout.show(mainScreen, "host");
 				}
 			});
-			main.add(host);
-			
-			exit.setForeground(blue);
+			innerMain.add(host);
+
 			exit.setAlignmentX(CENTER_ALIGNMENT);
-			exit.setFont(Util.getScaledFont());
-			exit.addComponentListener(Util.getTextResizeListener());
 			exit.addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					System.exit(0);
 				}
 			});
-			main.add(exit);
+			innerMain.add(exit);
+			
+			innerMain.add(Box.createVerticalGlue());
 
+			innerMain.setOpaque(false);
+			innerMain.doLayout();
+			
 			main.setOpaque(false);
-			main.doLayout();
+			main.setLayout(null);
+			main.add(innerMain);
+			main.addComponentListener(new ComponentAdapter() {
+				public void componentResized(ComponentEvent e) {
+					Rectangle outerBounds = getBounds();
+					Rectangle innerBounds = main.getBounds();
+					innerMain.setBounds(outerBounds.width / 4 - innerBounds.x, (outerBounds.height / 4) - innerBounds.y, outerBounds.width / 2, outerBounds.height / 2);
+					main.validate();
+				}
+			});
 			add(main, BorderLayout.CENTER);
 			
 			copyright.setFont(Util.getSmallFont());
@@ -214,110 +224,118 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	
 	// TODO: Find a way to make it so that you can't enter a non number for the port.
 	private class JoinMenu extends JPanel {
-		JTextField player = new JTextField(40);
-		JTextField host = new JTextField(40);
-		JTextField port = new JTextField("23770", 6);
+		private JTextField player = new JTextField(40);
+		private JTextField host = new JTextField(40);
+		private JLabel error = new JLabel("", SwingConstants.CENTER);
 
 		JoinMenu() {
+			JPanel inner = new JPanel(new GridBagLayout());
 			JLabel playerLabel = new JLabel("Name", SwingConstants.CENTER);
 			JLabel hostLabel = new JLabel("Server", SwingConstants.CENTER);
-			JLabel portLabel = new JLabel("Port", SwingConstants.CENTER);
 			JButton start = new JButton("Join");
 			JButton back = new JButton("Back");
 			GridBagConstraints c = new GridBagConstraints();
 
-			setLayout(new GridBagLayout());
+			Util.commonComponentInit(hostLabel, Util.WHITE);
+			Util.commonComponentInit(playerLabel, Util.WHITE);
+			Util.commonComponentInit(player, Util.BLACK);
+			Util.commonComponentInit(host, Util.BLACK);
+			Util.commonComponentInit(start, Util.BLACK);
+			Util.commonComponentInit(back, Util.BLACK);
+			Util.commonComponentInit(error, Util.WHITE);
+
+			setLayout(null);
+			setOpaque(false);
+			addComponentListener(new Util.Centering(inner));
 
 			c.gridx = 0;
 			c.gridy = 0;
-			c.gridwidth = 3;
+			c.gridwidth = 2;
 			c.gridheight = 1;
 			c.weightx = 1;
 			c.fill = GridBagConstraints.BOTH;
-			playerLabel.setForeground(Util.WHITE);
-			playerLabel.setFont(Util.getScaledFont());
-			playerLabel.addComponentListener(Util.getTextResizeListener());
-			add(playerLabel, c);
+			inner.add(playerLabel, c);
 
 			c.gridy++;
-			player.setFont(Util.getScaledFont());
-			player.addComponentListener(Util.getTextResizeListener());
-			add(player, c);
+			inner.add(player, c);
 
 			c.gridy++;
-			c.gridwidth = 2;
-			hostLabel.setForeground(Util.WHITE);
-			hostLabel.setFont(Util.getScaledFont());
-			hostLabel.addComponentListener(Util.getTextResizeListener());
-			add(hostLabel, c);
-			
-			c.gridx += 2;
-			c.gridwidth = 1;
-			portLabel.setForeground(Util.WHITE);
-			portLabel.setFont(Util.getScaledFont());
-			portLabel.addComponentListener(Util.getTextResizeListener());
-			add(portLabel, c);
-			
-			c.gridx = 0;
+			inner.add(hostLabel, c);
+
 			c.gridy++;
-			c.gridwidth = 2;
-			host.setFont(Util.getScaledFont());
-			host.addComponentListener(Util.getTextResizeListener());
-			add(host, c);
-			
-			c.gridx += 2;
-			c.gridwidth = 1;
-			port.setFont(Util.getScaledFont());
-			port.addComponentListener(Util.getTextResizeListener());
-			add(port, c);
-			
-			c.gridx = 0;
+			inner.add(host, c);
+
 			c.gridy++;
-			c.gridwidth = 2;
-			start.setFont(Util.getScaledFont());
-			start.addComponentListener(Util.getTextResizeListener());
+			c.gridwidth = 1;
 			start.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					if (host.getText() == null) {
+						error.setText("Missing server hostname!");
+						return;
+					}
 					String name = player.getText();
-					String hostname = host.getText();
-					int portNum = Integer.parseInt(port.getText());
-					if (name != null && hostname != null && name.length() != 0 && hostname.length() != 0) {
-						gameState = new NetworkGameClient(deck, unoGame, player.getText(), host.getText(), portNum);
+					String[] splitHost = Util.splitBy(host.getText(), ":");
+					int port;
+
+					try {
+						port = (splitHost[1] == null) ? 23770 : Integer.parseInt(splitHost[1]);
+					} catch (NumberFormatException e2) {
+						error.setText("Invalid port number!");
+						return;
+					}
+
+					if (name != null && splitHost[0] != null && name.length() != 0 && splitHost[0].length() != 0) {
+						gameState = new NetworkGameClient(deck, unoGame, name, splitHost[0], port);
 						parentContainer.remove(mainScreen);
 						parentContainer.add(gameState);
 						parentContainer.validate();
 					}
 				}
 			});
-			add(start, c);
+			inner.add(start, c);
 			
-			c.gridx += 2;
-			c.gridwidth = 1;
-			back.setFont(Util.getScaledFont());
-			back.addComponentListener(Util.getTextResizeListener());
+			c.gridx++;
 			back.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					layout.show(mainScreen, "main");
 				}
 			});
-			add(back, c);
+			inner.add(back, c);
 			
-			setOpaque(false);
+			c.gridx = 0;
+			c.gridy++;
+			c.gridwidth = 2;
+			inner.add(error, c);
+
+			inner.setOpaque(false);
+			add(inner);
 		}
 	}
 	
 	private class HostMenu extends JPanel {
-		JTextField player = new JTextField(40);
-		JTextField port = new JTextField("23770", 6);
-
+		private JTextField player = new JTextField(40);
+		private JTextField port = new JTextField("23770", 6);
+		private JLabel error = new JLabel("", SwingConstants.CENTER);
+		
 		HostMenu() {
+			JPanel inner = new JPanel(new GridBagLayout());
 			JLabel playerLabel = new JLabel("Name", SwingConstants.CENTER);
 			JLabel portLabel = new JLabel("Port", SwingConstants.CENTER);
 			JButton start = new JButton("Host");
 			JButton back = new JButton("Back");
 			GridBagConstraints c = new GridBagConstraints();
 
-			setLayout(new GridBagLayout());
+			Util.commonComponentInit(portLabel, Util.WHITE);
+			Util.commonComponentInit(playerLabel, Util.WHITE);
+			Util.commonComponentInit(player, Util.BLACK);
+			Util.commonComponentInit(port, Util.BLACK);
+			Util.commonComponentInit(start, Util.BLACK);
+			Util.commonComponentInit(back, Util.BLACK);
+			Util.commonComponentInit(error, Util.WHITE);
+
+			setLayout(null);
+			setOpaque(false);
+			addComponentListener(new Util.Centering(inner));
 
 			c.gridx = 0;
 			c.gridy = 0;
@@ -325,32 +343,20 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			c.gridheight = 1;
 			c.weightx = 1;
 			c.fill = GridBagConstraints.BOTH;
-			playerLabel.setForeground(Util.WHITE);
-			playerLabel.setFont(Util.getScaledFont());
-			playerLabel.addComponentListener(Util.getTextResizeListener());
-			add(playerLabel, c);
+			inner.add(playerLabel, c);
 
 			c.gridy++;
-			player.setFont(Util.getScaledFont());
-			player.addComponentListener(Util.getTextResizeListener());
-			add(player, c);
+			inner.add(player, c);
 
 			c.gridy++;
-			portLabel.setForeground(Util.WHITE);
-			portLabel.setFont(Util.getScaledFont());
-			portLabel.addComponentListener(Util.getTextResizeListener());
-			add(portLabel, c);
+			inner.add(portLabel, c);
 
 			c.gridy++;
-			port.setFont(Util.getScaledFont());
-			port.addComponentListener(Util.getTextResizeListener());
-			add(port, c);
+			inner.add(port, c);
 
 			c.gridx = 0;
 			c.gridy++;
 			c.gridwidth = 1;
-			start.setFont(Util.getScaledFont());
-			start.addComponentListener(Util.getTextResizeListener());
 			start.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					String name = player.getText();
@@ -368,19 +374,23 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 					}
 				}
 			});
-			add(start, c);
+			inner.add(start, c);
 			
 			c.gridx++;
-			back.setFont(Util.getScaledFont());
-			back.addComponentListener(Util.getTextResizeListener());
 			back.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					layout.show(mainScreen, "main");
 				}
 			});
-			add(back, c);
+			inner.add(back, c);
 			
-			setOpaque(false);
+			c.gridx = 0;
+			c.gridy++;
+			c.gridwidth = 2;
+			inner.add(error);
+			
+			inner.setOpaque(false);
+			add(inner);
 		}
 	}
 }

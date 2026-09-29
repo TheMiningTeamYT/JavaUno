@@ -36,7 +36,6 @@ class NetGameUI extends JPanel implements ActionListener {
 		add(startButton);
 
 		addComponentListener(new ResizeListener());
-		onResize();
 
 		this.parent.add(this, JLayeredPane.MODAL_LAYER);
 	}

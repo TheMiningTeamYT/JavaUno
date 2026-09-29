@@ -10,12 +10,7 @@ class WildChangeColorType extends CardType {
 	private static final long serialVersionUID = 1L;
 	private Card parentCard;
 	private JPanel buttonSpace = new JPanel();
-	private ComponentAdapter listener = new ComponentAdapter() {
-		public void componentResized(ComponentEvent e) {
-			Rectangle size = e.getComponent().getBounds();
-			buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
-		}
-	};
+	private ComponentAdapter listener = new Util.Centering(buttonSpace);
 
 	WildChangeColorType(URL front, Image[] back) {
 		super(front, back, Color.WILD, Value.CHANGE_COLOR, true);
@@ -30,12 +25,10 @@ class WildChangeColorType extends CardType {
 		GridBagConstraints c = new GridBagConstraints();
 		this.parentCard = parent;
 		
+		Util.commonComponentInit(instruction, Util.BLACK);
+		
 		buttonSpace.removeAll();
 		buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
-		
-		instruction.setForeground(new java.awt.Color(0, 0, 0));
-		instruction.setFont(Util.getScaledFont());
-		instruction.addComponentListener(Util.getTextResizeListener());
 
 		c.gridx = 0;
 		c.weightx = 1;

@@ -11,6 +11,8 @@ public class Util {
 	private static Font smallFont = new Font("Arial", Font.PLAIN, 10);
 	private static double scaleFactor = 1;
 	public static final Color WHITE = new Color(255, 255, 255);
+	public static final Color BLACK = new Color(0, 0, 0);
+
 	private static ComponentAdapter ResizeListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
 			e.getComponent().setFont(scaledFont);
@@ -24,6 +26,7 @@ public class Util {
 			e.getComponent().setFont(scaledFont);
 		}
 	};
+
 	private static ComponentAdapter SmallResizeListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
 			e.getComponent().setFont(smallFont);
@@ -104,6 +107,12 @@ public class Util {
 		return SmallResizeListener;
 	}
 	
+	public static void commonComponentInit(Component comp, Color color) {
+		comp.setForeground(color);
+		comp.setFont(Util.getScaledFont());
+		comp.addComponentListener(Util.getTextResizeListener());
+	}
+	
 	public static Rectangle scaleAndCrop(Rectangle original, Rectangle bounds) {
 		double widthRatio = (double)bounds.width / original.width;
 		double heightRatio = (double)bounds.height / original.height;
@@ -117,6 +126,34 @@ public class Util {
 			original.x = (bounds.width - original.width) / 2;
 		}
 		return original;
+	}
+	
+	public static String[] splitBy(String src, String split) {
+		String[] result = new String[2];
+		int index;
+		if ((index = src.indexOf(split)) != -1) {
+			result[0] = src.substring(0, index);
+			result[1] = src.substring(index + 1);
+		} else {
+			result[0] = src;
+			result[1] = null;
+		}
+		return result;
+	}
+	
+	// TODO: Make this a layout manager?
+	public static class Centering extends ComponentAdapter {
+		private Component child;
+		
+		Centering(Component child) {
+			this.child = child;
+		}
+		
+		public void componentResized(ComponentEvent e) {
+			Rectangle bounds = e.getComponent().getBounds();
+			child.setBounds(bounds.width / 4, bounds.height / 4, bounds.width / 2, bounds.height / 2);
+			e.getComponent().validate();
+		}
 	}
 	
 	private static class Resizer extends ComponentAdapter {
