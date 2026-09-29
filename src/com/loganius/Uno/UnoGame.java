@@ -133,7 +133,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 					SwingConstants.LEFT
 			);
 			Component filler = Box.createVerticalStrut(20);
-			final Color blue = new Color(104, 137, 255);
+			final Color blue = new Color(151, 213, 252);
 
 			setLayout(new BorderLayout());
 			start.setLayout(new BoxLayout(start, BoxLayout.Y_AXIS));
