@@ -84,7 +84,6 @@ class NetGameUI extends JPanel implements ActionListener {
 		players[activePlayer].setForeground(inactivePlayerColor);
 		players[player].setForeground(activePlayerColor);
 		activePlayer = player;
-		System.out.println(player);
 		repaint();
 	}
 	

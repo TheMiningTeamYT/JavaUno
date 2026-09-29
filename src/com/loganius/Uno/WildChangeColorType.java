@@ -40,7 +40,7 @@ class WildChangeColorType extends CardType {
 		c.gridx = 0;
 		c.weightx = 1;
 		c.weighty = 1;
-		c.gridwidth = 4;
+		c.gridwidth = 2;
 		c.gridheight = 1;
 		c.fill = GridBagConstraints.BOTH;
 		buttonSpace.add(instruction, c);
@@ -50,7 +50,8 @@ class WildChangeColorType extends CardType {
 		buttonSpace.add(new ColorButton(Color.RED, "Red"), c);
 		c.gridx++;
 		buttonSpace.add(new ColorButton(Color.YELLOW, "Yellow"), c);
-		c.gridx++;
+		c.gridx = 0;
+		c.gridy++;
 		buttonSpace.add(new ColorButton(Color.GREEN, "Green"), c);
 		c.gridx++;
 		buttonSpace.add(new ColorButton(Color.BLUE, "Blue"), c);
