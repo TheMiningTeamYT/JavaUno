@@ -28,6 +28,7 @@ class NetworkGameClient extends Game {
 	private int moves = 0;
 	private int player = 0;
 	private String[] names;
+	private Timer queueHandler = new Timer(20, new TimerListener());
 
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
@@ -48,7 +49,7 @@ class NetworkGameClient extends Game {
 		outThread = new OutputWorker();
 		inThread.start();
 		outThread.start();
-		new Timer(20, new TimerListener()).start();
+		queueHandler.start();
 	}
 	
 	void start() {
@@ -56,6 +57,7 @@ class NetworkGameClient extends Game {
 		if (player == 0) {
 			deal();
 		}
+		netGameUI.setActivePlayer(findScreenHand(0));
 		onResize();
 	}
 	
@@ -118,6 +120,7 @@ class NetworkGameClient extends Game {
 		}
 		
 		hands[0].setPlayable(isHand0Player());
+		netGameUI.setActivePlayer(findScreenHand(0));
 
 		synchronized(outQueue) {
 			outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
@@ -236,6 +239,7 @@ class NetworkGameClient extends Game {
 				new Card(arg.intValue(), discardHand);
 				super.onTurn();
 				hands[0].setPlayable(isHand0Player());
+				netGameUI.setActivePlayer(findScreenHand(0));
 				break;
 			case Action.SET_STATE:
 				if (a.getArgument().getClass() != GameState.class) {
@@ -299,12 +303,14 @@ class NetworkGameClient extends Game {
 
 	void handleError(Exception err) {
 		if (!getEnded()) {
-			String msg = err.getMessage();
+			final String msg = (err.getMessage() == null) ? "A networking error occured." : err.getMessage();
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					onEnd(msg);
+				}
+			});
+			err.printStackTrace();
 
-			if (msg == null) {
-				msg = "A networking error occured.";
-				err.printStackTrace();
-			}
 			if (inThread != null) {
 				inThread.interrupt();
 				inThread = null;
@@ -321,7 +327,7 @@ class NetworkGameClient extends Game {
 			} catch (IOException e) {}
 			
 			netGameUI.setVisible(false);
-			onEnd(msg);
+			queueHandler.stop();
 		}
 	}
 	
@@ -430,6 +436,7 @@ class NetworkGameClient extends Game {
 						handleError(e2);
 					}
 					handleError(e);
+					return;
 				} catch (ClassNotFoundException e) {
 					try {
 						in.close();
@@ -437,6 +444,7 @@ class NetworkGameClient extends Game {
 						handleError(e2);
 					}
 					handleError(e);
+					return;
 				}
 			}
 		}
@@ -469,6 +477,7 @@ class NetworkGameClient extends Game {
 								handleError(e2);
 							}
 							handleError(e);
+							return;
 						}
 
 						outQueue.removeAllElements();
@@ -482,6 +491,7 @@ class NetworkGameClient extends Game {
 								handleError(e2);
 							}
 							handleError(e);
+							return;
 						}
 					}
 				}

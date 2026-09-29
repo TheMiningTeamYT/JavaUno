@@ -6,6 +6,8 @@ import java.awt.event.*;
 
 // TODO: Add all the net game UI elements and methods.
 class NetGameUI extends JPanel implements ActionListener {
+	private static Color inactivePlayerColor = new Color(240, 240, 240);
+	private static Color activePlayerColor = new Color(0, 208, 1);
 	private NetworkGameClient parent;
 	private JLabel[] players = {
 			new JLabel("Player", SwingConstants.CENTER),
@@ -14,6 +16,7 @@ class NetGameUI extends JPanel implements ActionListener {
 			new JLabel("Waiting...", SwingConstants.RIGHT),
 	};
 	private JButton startButton = new JButton("Start");
+	private int activePlayer = 0;
 
 	NetGameUI(NetworkGameClient parent) {
 		this.parent = parent;
@@ -21,7 +24,7 @@ class NetGameUI extends JPanel implements ActionListener {
 		setOpaque(false);
 		
 		for (int i = 0; i < players.length; i++) {
-			players[i].setForeground(new Color(240, 240, 240));
+			players[i].setForeground(inactivePlayerColor);
 			players[i].addComponentListener(Util.getTextResizeListener());
 			add(players[i]);
 		}
@@ -75,6 +78,14 @@ class NetGameUI extends JPanel implements ActionListener {
 	
 	void showStartButton() {
 		startButton.setVisible(true);
+	}
+	
+	void setActivePlayer(int player) {
+		players[activePlayer].setForeground(inactivePlayerColor);
+		players[player].setForeground(activePlayerColor);
+		activePlayer = player;
+		System.out.println(player);
+		repaint();
 	}
 	
 	private void onResize() {

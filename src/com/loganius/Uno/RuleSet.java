@@ -51,7 +51,9 @@ abstract class RuleSet {
 			if (game.getHandPlayable(0) && !game.getDrew()) {
 				game.drawToHand(0);
 				game.drew();
-				if (!game.canBePlayed()) {
+				if (game.canBePlayed()) {
+					game.checkUno();
+				} else {
 					game.onTurn();
 				}
 			}

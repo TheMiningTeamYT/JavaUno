@@ -8,8 +8,35 @@ import java.net.*;
 
 public class Util {
 	private static Font scaledFont = new Font("Arial", Font.PLAIN, 20);
+	private static Font smallFont = new Font("Arial", Font.PLAIN, 10);
 	private static double scaleFactor = 1;
-	private static Util.Resizer ResizeListener = new Util.Resizer(); 
+	public static final Color WHITE = new Color(255, 255, 255);
+	private static ComponentAdapter ResizeListener = new ComponentAdapter() {
+		public void componentResized(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
+
+		public void componentMoved(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
+
+		public void componentShown(ComponentEvent e) {
+			e.getComponent().setFont(scaledFont);
+		}
+	};
+	private static ComponentAdapter SmallResizeListener = new ComponentAdapter() {
+		public void componentResized(ComponentEvent e) {
+			e.getComponent().setFont(smallFont);
+		}
+
+		public void componentMoved(ComponentEvent e) {
+			e.getComponent().setFont(smallFont);
+		}
+
+		public void componentShown(ComponentEvent e) {
+			e.getComponent().setFont(smallFont);
+		}
+	}; 
 
 	public static Image rotate(Image img, int deg) {
 		RotateFilter rotate = new RotateFilter(deg * Math.PI / 180);
@@ -50,6 +77,7 @@ public class Util {
 	public static void onResize(int width, int height) {
 		scaleFactor = (double)height / 480;
 		scaledFont = new Font("Arial", Font.PLAIN, (int)(20 * scaleFactor));
+		smallFont = new Font("Arial", Font.PLAIN, (int)(10 * scaleFactor));
 	}
 	
 	public static double getScaleFactor() {
@@ -64,8 +92,16 @@ public class Util {
 		return scaledFont;
 	}
 	
+	public static Font getSmallFont() {
+		return smallFont;
+	}
+	
 	public static ComponentListener getTextResizeListener() {
 		return ResizeListener;
+	}
+	
+	public static ComponentListener getSmallTextResizeListener() {
+		return SmallResizeListener;
 	}
 	
 	public static Rectangle scaleAndCrop(Rectangle original, Rectangle bounds) {

@@ -43,7 +43,7 @@ class Game extends JLayeredPane implements ActionListener {
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
 	private Image background = bgSource;
 	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
-	private Rectangle arcBounds = new Rectangle((int)(640 / 4 - 30), (int)(480 / 4 - 30), (int)(640 / 2 + 60), (int)(480 / 2 + 60));
+	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
 	private int frame = 0;
@@ -51,6 +51,7 @@ class Game extends JLayeredPane implements ActionListener {
 	Game(Deck deck, GameHandler handler) {
 		super();
 		this.deck = deck;
+		this.rules = rules;
 		this.handler = handler;
 		screenOrderedHands = (Hand[])hands.clone();
 
@@ -60,7 +61,6 @@ class Game extends JLayeredPane implements ActionListener {
 		setLayout(null);
 		add(customUISpace, MODAL_LAYER);
 		addComponentListener(new ResizeListener());
-		onResize();
 		
 		new Timer(33, new TimerListener()).start();
 	}
@@ -184,8 +184,19 @@ class Game extends JLayeredPane implements ActionListener {
 		hands[hand].setPlayable(playable);
 	}
 	
+	protected int findScreenHand(int hand) {
+		for (int i = 0; i < screenOrderedHands.length; i++) {
+			if (hands[hand] == screenOrderedHands[i]) {
+				return i;
+			}
+		}
+		
+		// Should be unreachable.
+		return -1;
+	}
+	
 	protected boolean isHand0Player() {
-		return (hands[0] == screenOrderedHands[0]);
+		return (findScreenHand(0) == 0);
 	}
 	
 	protected void resizeHands() {
@@ -290,6 +301,12 @@ class Game extends JLayeredPane implements ActionListener {
 		resizeHands();
 	}
 	
+	void checkUno() {
+		if (hands[0].numCards() == 2 && canBePlayed()) {
+			unoButton.setVisible(true);
+		}
+	}
+	
 	void onTurn() {
 		hands[0].setPlayable(false);
 		unoButton.setVisible(false);
@@ -299,14 +316,12 @@ class Game extends JLayeredPane implements ActionListener {
 			onWin();
 		} else {
 			rotate();
-			if (hands[0].numCards() == 2 && canBePlayed()) {
-				unoButton.setVisible(true);
-			}
+			checkUno();
 		}
 	}
 	
 	void onEnd(String msg) {
-		JButton endButton = new JButton("Exit");
+		JButton endButton = new JButton("Leave");
 		JLabel label = new JLabel();
 		interrupt();
 		for (int i = 0; i < players; i++) {
@@ -333,6 +348,8 @@ class Game extends JLayeredPane implements ActionListener {
 		customUISpace.add(endButton);
 		customUISpace.setVisible(true);
 		ended = true;
+		validate();
+		repaint();
 	}
 	
 	void onWin() {
@@ -367,11 +384,12 @@ class Game extends JLayeredPane implements ActionListener {
 		draw.setBounds(0, 0, cardHeight, cardHeight);
 		unoButton.setBounds(size.width - cardHeight, 0, cardHeight, cardHeight);
 		
-		backgroundBounds = Util.scaleAndCrop(new Rectangle(0, 0, 1024, 1024), size);
+		backgroundBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
+		repaint();
 	}
-	
+
 	public void paintComponent(Graphics g) {
 		Rectangle bounds = getBounds();
 		
@@ -413,7 +431,6 @@ class Game extends JLayeredPane implements ActionListener {
 	
 			g.fillPolygon(arcX, arcY, 43);
 		}
-		super.paintComponent(g);
 	}
 	
 	private class TimerListener implements ActionListener {

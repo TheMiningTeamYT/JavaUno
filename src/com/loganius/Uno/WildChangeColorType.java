@@ -10,7 +10,12 @@ class WildChangeColorType extends CardType {
 	private static final long serialVersionUID = 1L;
 	private Card parentCard;
 	private JPanel buttonSpace = new JPanel();
-	private ComponentListener listener = new ResizeListener();
+	private ComponentAdapter listener = new ComponentAdapter() {
+		public void componentResized(ComponentEvent e) {
+			Rectangle size = e.getComponent().getBounds();
+			buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
+		}
+	};
 
 	WildChangeColorType(URL front, Image[] back) {
 		super(front, back, Color.WILD, Value.CHANGE_COLOR, true);
@@ -33,14 +38,12 @@ class WildChangeColorType extends CardType {
 		instruction.addComponentListener(Util.getTextResizeListener());
 
 		c.gridx = 0;
-		c.gridy = 0;
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = 4;
 		c.gridheight = 1;
 		c.fill = GridBagConstraints.BOTH;
 		buttonSpace.add(instruction, c);
-		c.gridx = 0;
 		c.gridy = 1;
 		c.gridwidth = 1;
 		c.gridheight = 1;
@@ -84,13 +87,6 @@ class WildChangeColorType extends CardType {
 
 			cardAction(parentCard, color);
 			parentCard.getGame().onTurn();
-		}
-	}
-	
-	private class ResizeListener extends ComponentAdapter {
-		public void componentResized(ComponentEvent e) {
-			Rectangle size = e.getComponent().getBounds();
-			buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
 		}
 	}
 }

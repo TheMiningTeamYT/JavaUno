@@ -5,11 +5,9 @@ import java.io.*;
 import java.util.Vector;
 import java.lang.Thread;
 
-// TODO: Make this a reusable class
-// TODO: Use threads for the different clients to avoid blocking.
 public class UnoServer {
 	private ServerSocket server = null;
-	private Socket[] socket = new Socket[4];
+	private Socket[] sockets = new Socket[] {null, null, null, null};
 	private volatile Vector[] inQueue = new Vector[] {
 			new Vector(),
 			new Vector(),
@@ -23,10 +21,10 @@ public class UnoServer {
 			new Vector(),
 	};
 	private Thread[][] workers = {
-			new Thread[2],
-			new Thread[2],
-			new Thread[2],
-			new Thread[2],
+			new Thread[] {null, null},
+			new Thread[] {null, null},
+			new Thread[] {null, null},
+			new Thread[] {null, null},
 	};
 	private String[] names = {
 			"",
@@ -34,21 +32,59 @@ public class UnoServer {
 			"",
 			"",
 	};
-	private Thread gameWorker;
+	private Thread gameWorker = null;
 	private volatile boolean start = false;
 	private volatile int players = 0;
-	private volatile int playersReady = 0;
+	private volatile boolean ended = false;
 	
-	UnoServer() throws IOException {
-		server = new ServerSocket(23770, 4, InetAddress.getByName("0.0.0.0"));
+	public UnoServer(int port) throws IOException {
+		server = new ServerSocket(port, 4, InetAddress.getByName("0.0.0.0"));
 		server.setSoTimeout(500);
 		gameWorker = new GameWorker();
 		gameWorker.start();
 	}
 	
+	public void stop() {
+		ended = true;
+		cleanup();
+	}
+
 	private void handleError(Exception e) {
-		e.printStackTrace();
-		System.exit(1);
+		if (!ended) {
+			System.out.println("error");
+			ended = true;
+			e.printStackTrace();
+			cleanup();
+		}
+	}
+	
+	private void cleanup() {
+		if (gameWorker != null) {
+			gameWorker.interrupt();
+			gameWorker = null;
+		}
+		for (int i = 0; i < players; i++) {
+			if (workers[i][0] != null) {
+				workers[i][0].interrupt();
+				workers[i][0] = null;
+			}
+			if (workers[i][1] != null) {
+				workers[i][1].interrupt();
+				workers[i][1] = null;
+			}
+			if (sockets[i] != null) {
+				try {
+					sockets[i].close();
+				} catch (IOException e2) {};
+				sockets[i] = null;
+			}
+		}
+		if (server != null) {
+			try {
+				server.close();
+			} catch (IOException e2) {};
+			server = null;
+		}
 	}
 	
 	private class GameWorker extends Thread {
@@ -67,7 +103,6 @@ public class UnoServer {
 						for (int action = 0; action < actionSet.length; action++) {
 							Action priorAction = a;
 							a = actionSet[action];
-							System.out.println("Action type " + a.getType() + " sent by " + client);
 							switch (a.getType()) {
 								case Action.SEND_STATE:
 									synchronized(outQueue[client]) {
@@ -76,7 +111,6 @@ public class UnoServer {
 									a = priorAction;
 									break;
 								case Action.HELLO: {
-									System.out.println("Hello " + client + "!");
 									Object received = a.getArgument();
 									if (received.getClass() != String.class) {
 										break;
@@ -94,7 +128,6 @@ public class UnoServer {
 											outQueue[i].addElement(Action.welcome(currentNames, i, players));
 										}
 									}
-									playersReady++;
 									a = priorAction;
 									break;
 								}
@@ -156,14 +189,14 @@ public class UnoServer {
 				while (players == 0 || !start) {
 					if (players < 4) {
 						try {
-							socket[players] = server.accept();
+							sockets[players] = server.accept();
 						} catch (InterruptedIOException e) {
 							processQueue();
 							continue;
 						}
 	
-						workers[players][0] = new InputWorker(socket[players], players);
-						workers[players][1] = new OutputWorker(socket[players], players);
+						workers[players][0] = new InputWorker(sockets[players], players);
+						workers[players][1] = new OutputWorker(sockets[players], players);
 						workers[players][0].start();
 						workers[players][1].start();
 						players++;
@@ -180,7 +213,9 @@ public class UnoServer {
 
 			try {
 				Thread.sleep(100);
-			} catch (InterruptedException e) {}
+			} catch (InterruptedException e) {
+				return;
+			}
 			processQueue();
 
 			for (int i = 0; i < players; i++) {
@@ -189,13 +224,13 @@ public class UnoServer {
 				}
 			}
 
-			while (true) {
+			while (!ended) {
 				processQueue();
 				synchronized(inQueue) {
 					try {
 						inQueue.wait();
 					} catch (InterruptedException e) {
-						handleError(e);
+						return;
 					}
 				}
 			}
@@ -217,7 +252,13 @@ public class UnoServer {
 			try {
 				in = new ObjectInputStream(socket.getInputStream());
 			} catch (IOException e) {
+				try {
+					in.close();
+				} catch (IOException e2) {
+					handleError(e2);
+				}
 				handleError(e);
+				return;
 			}
 			while (true) {
 				try {
@@ -235,9 +276,21 @@ public class UnoServer {
 						inQueue.notify();
 					}
 				} catch (IOException e) {
+					try {
+						in.close();
+					} catch (IOException e2) {
+						handleError(e2);
+					}
 					handleError(e);
+					return;
 				} catch (ClassNotFoundException e) {
+					try {
+						in.close();
+					} catch (IOException e2) {
+						handleError(e2);
+					}
 					handleError(e);
+					return;
 				}
 			}
 		}
@@ -258,7 +311,13 @@ public class UnoServer {
 				out = new ObjectOutputStream(socket.getOutputStream());
 				out.flush();
 			} catch (IOException e) {
+				try {
+					out.close();
+				} catch (IOException e2) {
+					handleError(e2);
+				}
 				handleError(e);
+				return;
 			}
 			while (true) {
 				synchronized(outQueue[id]) {
@@ -271,16 +330,27 @@ public class UnoServer {
 							out.reset();
 							out.flush();
 						} catch (IOException e) {
+							try {
+								out.close();
+							} catch (IOException e2) {
+								handleError(e2);
+							}
 							handleError(e);
+							return;
 						}
 
 						outQueue[id].removeAllElements();
-						System.out.println("Sent action type " + queue[0].getType() + " to " + id);
 					} else {
 						try {
 							outQueue[id].wait();
 						} catch (InterruptedException e) {
+							try {
+								out.close();
+							} catch (IOException e2) {
+								handleError(e2);
+							}
 							handleError(e);
+							return;
 						}
 					}
 				}
@@ -290,7 +360,11 @@ public class UnoServer {
 
 	public static void main(String[] args) {
 		try {
-			new UnoServer();
+			int port = 23770;
+			if (args.length > 0) {
+				port = Integer.parseInt(args[0]);
+			}
+			new UnoServer(port);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
