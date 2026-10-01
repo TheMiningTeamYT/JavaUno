@@ -3,11 +3,8 @@ package com.loganius.Uno;
 import java.net.*;
 import java.io.*;
 import java.awt.*;
-import java.lang.*;
 import java.awt.event.*;
 import javax.swing.*;
-
-import com.loganius.Uno.Action;
 
 import java.util.Vector;
 
@@ -61,12 +58,12 @@ class NetworkGameClient extends Game {
 		onResize();
 	}
 	
-	void drawToHand(int hand, int type) {
-		super.drawToHand(hand, type);
+	Card drawToHand(int hand, int type) {
 		state.drawToHand(hand, type);
 		synchronized(outQueue) {
 			outQueue.addElement(Action.drawToHand(hand, type, state));
 		}
+		return super.drawToHand(hand, type);
 	}
 	
 	void removeFromHand(int hand, Card card) {

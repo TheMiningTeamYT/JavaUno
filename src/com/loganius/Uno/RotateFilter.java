@@ -18,14 +18,12 @@ package com.loganius.Uno;
 
 import java.awt.image.ColorModel;
 import java.awt.image.ImageFilter;
-import java.util.Hashtable;
 import java.awt.Rectangle;
 
 public class RotateFilter extends ImageFilter {
 
     private static ColorModel defaultRGB = ColorModel.getRGBdefault();
 
-    private double angle;
     private double sin;
     private double cos;
     private double coord[] = new double[2];
@@ -36,7 +34,6 @@ public class RotateFilter extends ImageFilter {
     private int dstW, dstH;
 
     public RotateFilter(double angle) {
-        this.angle = angle;
         sin = Math.sin(angle);
         cos = Math.cos(angle);
     }

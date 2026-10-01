@@ -1,7 +1,6 @@
 package com.loganius.Uno;
 
 import java.io.*;
-import java.util.zip.CRC32;
 
 /**
  * A game action (such as drawing a card or reversing the turn order

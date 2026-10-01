@@ -20,7 +20,7 @@ class Game extends JLayeredPane implements ActionListener {
 	static final int counterClockwise = 1;
 
 	private GameHandler handler;
-	private RuleSet rules = new RuleSet.Standard(this);
+	private RuleSet rules = new RuleSet.Standard();
 	protected Hand[] hands = {
 			new Hand(this, 0, 360, 640, 120, 0, true, false),
 			new Hand(this, 0, 130, 120, 220, 270, false, false),
@@ -51,7 +51,6 @@ class Game extends JLayeredPane implements ActionListener {
 	Game(Deck deck, GameHandler handler) {
 		super();
 		this.deck = deck;
-		this.rules = rules;
 		this.handler = handler;
 		screenOrderedHands = (Hand[])hands.clone();
 
@@ -105,7 +104,6 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	private void doReverse() {
-		Rectangle bounds = getBounds();
 		rotate();
 
 		for (int i = 0; i < players / 2; i++) {
@@ -182,6 +180,14 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void setHandPlayable(boolean playable, int hand) {
 		hands[hand].setPlayable(playable);
+	}
+	
+	boolean isLegal(Card card) {
+		return rules.isLegal(card, this);
+	}
+	
+	void onDraw() {
+		rules.onDraw(this);
 	}
 	
 	protected int findScreenHand(int hand) {
@@ -274,12 +280,12 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
-	void drawToHand(int hand) {
-		drawToHand(hand, deck.random());
+	Card drawToHand(int hand) {
+		return drawToHand(hand, deck.random());
 	}
 
-	void drawToHand(int hand, int type) {
-		new Card(type, hands[hand]);
+	Card drawToHand(int hand, int type) {
+		return new Card(type, hands[hand]);
 	}
 	
 	void removeFromHand(int hand, Card card) {

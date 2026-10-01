@@ -1,6 +1,5 @@
 package com.loganius.Uno;
 import java.awt.*;
-import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
 
@@ -15,12 +14,14 @@ class Card extends JComponent {
 	private Hand parent;
 	private static int width = 80;
 	private static int height = 120;
+	private boolean playable;
 	private Card card = this;
 
 	Card(int type, Hand parent) {
 		super();
 		this.type = type;
 		this.parent = parent;
+		playable = parent.getPlayable();
 		
 		DragListener listener = new DragListener();
 		addMouseListener(listener);
@@ -33,6 +34,7 @@ class Card extends JComponent {
 	void transfer(Hand destination) {
 		parent.remove(this);
 		destination.add(this);
+		playable = destination.getPlayable();
 		this.parent = destination;
 	}
 	
@@ -72,8 +74,12 @@ class Card extends JComponent {
 		Card.height = height;
 	}
 	
+	void setPlayable(boolean playable) {
+		this.playable = playable;
+	}
+	
 	boolean getPlayable() {
-		return parent.getPlayable();
+		return playable;
 	}
 	
 	Game getGame() {
@@ -112,7 +118,7 @@ class Card extends JComponent {
 		private Rectangle startBounds = null;
 
 		public void mouseDragged(MouseEvent e) {
-			if (parent.getPlayable()) {
+			if (playable) {
 				if (active) {
 					Rectangle bounds = getBounds();
 					bounds.x += e.getX() - startX;
@@ -130,14 +136,14 @@ class Card extends JComponent {
 		}
 		
 		public void mouseReleased(MouseEvent e) {
-			if (parent.getPlayable()) {
+			if (playable) {
 				active = false;
 				Rectangle bounds = getBounds();
 				Rectangle discardBounds = parent.getGame().getDiscardHandBounds();
 				parent.getGame().setLayer(card, startLayer);
 				if (e.getX() + bounds.x >= discardBounds.x - 10 && e.getX() + bounds.x <= discardBounds.x + discardBounds.width + 10 &&
 					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10) {
-					if (parent.getGame().getRuleSet().isLegal(card)) {
+					if (parent.getGame().isLegal(card)) {
 						card.played();
 						return;
 					}
@@ -150,12 +156,5 @@ class Card extends JComponent {
 		}
 		
 		public void mouseMoved(MouseEvent e) {}
-	}
-	
-	public Dimension getPreferredSize() {
-		if (parent.getOrientation() == 90 || parent.getOrientation() == 270) {
-			return new Dimension(384, 256);
-		}
-		return new Dimension(384, 256);
 	}
 }

@@ -78,22 +78,6 @@ class Hand {
 		onResize();
 	}
 	
-	int getX() {
-		return x;
-	}
-	
-	int getY() {
-		return y;
-	}
-	
-	int getWidth() {
-		return width;
-	}
-	
-	int getHeight() {
-		return height;
-	}
-	
 	Rectangle getBounds() {
 		return new Rectangle(x, y, width, height);
 	}
@@ -112,6 +96,9 @@ class Hand {
 	
 	void setPlayable(boolean playable) {
 		this.playable = playable;
+		for (int i = 0; i < cards.size(); i++) {
+			((Card) cards.elementAt(i)).setPlayable(playable);
+		}
 	}
 	
 	boolean getUp() {
@@ -144,9 +131,8 @@ class Hand {
 	 * @return
 	 */
 	boolean canBePlayed() {
-		RuleSet rules = game.getRuleSet();
 		for (int i = 0; i < cards.size(); i++) {
-			if (rules.isLegal((Card)cards.elementAt(i))) {
+			if (game.isLegal((Card)cards.elementAt(i))) {
 				return true;
 			}
 		}

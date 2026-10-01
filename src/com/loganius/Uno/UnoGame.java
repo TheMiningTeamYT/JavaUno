@@ -1,7 +1,6 @@
 package com.loganius.Uno;
 import java.awt.*;
 import java.awt.event.*;
-import java.applet.Applet;
 import javax.swing.*;
 import java.io.*;
 
@@ -94,11 +93,10 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	
 	// TODO: Work on the Applet part, make sure it works properly
 	public void init() {
-		setSize(640, 480);
-		setLayout(new GridLayout(1, 1));
-		add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
+		getContentPane().setLayout(new GridLayout(1, 1));
+		getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
 		setVisible(true);
-		init(this);
+		init(getContentPane());
 	}
 
 	public static void main(String[] args) {

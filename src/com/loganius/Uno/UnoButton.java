@@ -2,8 +2,6 @@ package com.loganius.Uno;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.*;
-import java.net.URL;
 import javax.swing.*;
 
 /**

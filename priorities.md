@@ -3,6 +3,7 @@
  * Implement house rules
  * Implement wild card challenges
  * Implement custom decks
+ * Fix applet loading screen
  * Server-side turn validation
  * Server daemon
  * Full code audit

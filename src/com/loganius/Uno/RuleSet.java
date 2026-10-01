@@ -9,37 +9,31 @@ package com.loganius.Uno;
 
 abstract class RuleSet {
 	protected RuleSet fallback;
-	protected Game game;
 
-	RuleSet(RuleSet fallback, Game game) {
+	RuleSet(RuleSet fallback) {
 		this.fallback = fallback;
-		this.game = game;
 	}
 	// Determine if it's legal to play a particular card under the given ruleset.
-	abstract boolean isLegal(Card card);
+	abstract boolean isLegal(Card card, Game game);
 
 	// TODO: Figure out A: if overriding the turn action is ever necessary and B: if so, how to do that.
-	void onTurn() {};
+	void onTurn(Game game) {};
 
-	abstract void onDraw();
+	abstract void onDraw(Game game);
 	
 	RuleSet getFallback() {
 		return this.fallback;
-	}
-	
-	void fallback() {
-		game.setRuleSet(getFallback());
 	}
 	
 	/**
 	 * An implementation of the standard ruleset for Uno.
 	 */
 	static class Standard extends RuleSet {
-		Standard(Game game) {
-			super(null, game);
+		Standard() {
+			super(null);
 		}
 
-		boolean isLegal(Card card) {
+		boolean isLegal(Card card, Game game) {
 			Card lastPlayed = game.getLastPlayed();
 			return (card.getCardType().color == CardType.Color.WILD ||
 				card.getCardType().color == lastPlayed.getCardType().color ||
@@ -47,11 +41,14 @@ abstract class RuleSet {
 				card.getCardType().value == lastPlayed.getCardType().value));
 		}
 
-		void onDraw() {
+		void onDraw(Game game) {
 			if (game.getHandPlayable(0) && !game.getDrew()) {
-				game.drawToHand(0);
+				Card card;
+				game.setHandPlayable(false);
+				card = game.drawToHand(0);
 				game.drew();
-				if (game.canBePlayed()) {
+				if (game.isLegal(card)) {
+					card.setPlayable(true);
 					game.checkUno();
 				} else {
 					game.onTurn();

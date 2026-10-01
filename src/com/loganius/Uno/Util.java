@@ -3,7 +3,6 @@ package com.loganius.Uno;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
-import java.io.*;
 import java.net.*;
 
 public class Util {
@@ -153,20 +152,6 @@ public class Util {
 			Rectangle bounds = e.getComponent().getBounds();
 			child.setBounds(bounds.width / 4, bounds.height / 4, bounds.width / 2, bounds.height / 2);
 			e.getComponent().validate();
-		}
-	}
-	
-	private static class Resizer extends ComponentAdapter {
-		public void componentResized(ComponentEvent e) {
-			e.getComponent().setFont(scaledFont);
-		}
-
-		public void componentMoved(ComponentEvent e) {
-			e.getComponent().setFont(scaledFont);
-		}
-
-		public void componentShown(ComponentEvent e) {
-			e.getComponent().setFont(scaledFont);
 		}
 	}
 }

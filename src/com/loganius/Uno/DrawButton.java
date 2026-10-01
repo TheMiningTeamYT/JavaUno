@@ -2,8 +2,6 @@ package com.loganius.Uno;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.*;
-import java.net.URL;
 import javax.swing.*;
 
 /**
@@ -12,9 +10,7 @@ import javax.swing.*;
  */
 class DrawButton extends JComponent {
 	private static final long serialVersionUID = 1L;
-	private static int width = 240;
-	private static int height = 240;
-	
+
 	private Game game;
 	private Image buttonUp = Util.getImage(getClass().getResource("Assets/draw.gif"));
 	private Image buttonDown = Util.getImage(getClass().getResource("Assets/draw_down.gif"));
@@ -31,15 +27,11 @@ class DrawButton extends JComponent {
 		g.drawImage(button, 0, 0, bounds.width, bounds.height, this);
 	}
 	
-	public Dimension getPreferredSize() {
-		return new Dimension(width, height);
-	}
-	
 	// TODO: Animate the draw button.
 	private class ClickListener extends MouseAdapter {
 		public void mouseClicked(MouseEvent e) {
 			if (!game.isInterrupted()) {
-				game.getRuleSet().onDraw();
+				game.onDraw();
 			}
 		}
 		
