@@ -1,13 +1,10 @@
 package com.loganius.Uno;
 import java.awt.*;
 import java.net.URL;
-import java.io.*;
 
 // TODO: Figure out how to send a card type over the network in a way I'm happy with.
 // TODO: Pre-scale images for better performance?
-class CardType implements Serializable {
-	private static final long serialVersionUID = 1L;
-	
+class CardType {
 	static final class Color {
 		static final int RED = 0;
 		static final int YELLOW = 1;
@@ -24,24 +21,36 @@ class CardType implements Serializable {
 		static final int DRAW_4 = -6;
 	}
 
-	private Image[] originalFace;
-	private Image[] originalBack;
+	protected Image[] originalFace;
+	protected Image[] originalBack;
 	protected Image[] face;
 	protected Image[] back;
 	private int width = -1;
 	private int height = -1;
 	protected int color;
-	protected int value = -1;
+	protected int value;
 	protected boolean drawable;
 
 	CardType(URL front, Image[] back, int color, int value, boolean drawable) {
 		originalFace = generateImageList(Util.getImage(front));
-		face = (Image[])originalFace.clone();
+		face = (Image[]) originalFace.clone();
 		originalBack = back;
 		this.back = (Image[])back.clone();
 		this.color = color;
 		this.value = value;
 		this.drawable = drawable;
+	}
+	
+	CardType(CardType parent) {
+		originalFace = parent.originalFace;
+		originalBack = parent.originalBack;
+		face = (Image[]) parent.face.clone();
+		back = (Image[]) parent.back.clone();
+		width = parent.width;
+		height = parent.height;
+		color = parent.color;
+		value = parent.value;
+		drawable = parent.drawable;
 	}
 	
 	Image[] getFace() {
@@ -103,8 +112,6 @@ class CardType implements Serializable {
 	};
 	
 	static final class SkipCardType extends CardType {
-		private static final long serialVersionUID = 1L;
-
 		SkipCardType(URL front, Image[] back, int color) {
 			super(front, back, color, Value.SKIP, true);
 		}
@@ -117,8 +124,6 @@ class CardType implements Serializable {
 	}
 	
 	static final class ReverseCardType extends CardType {
-		private static final long serialVersionUID = 1L;
-
 		ReverseCardType(URL front, Image[] back, int color) {
 			super(front, back, color, Value.REVERSE, true);
 		}
@@ -131,8 +136,6 @@ class CardType implements Serializable {
 	}
 	
 	static final class DrawTwoCardType extends CardType {
-		private static final long serialVersionUID = 1L;
-
 		DrawTwoCardType(URL front, Image[] back, int color) {
 			super(front, back, color, Value.PLUS2, true);
 		}
@@ -142,8 +145,8 @@ class CardType implements Serializable {
 			Game game = parent.getGame();
 			game.drawToHand(1);
 			game.drawToHand(1);
-			parent.getGame().onTurn();
-			parent.getGame().onTurn();
+			game.onTurn();
+			game.onTurn();
 		};
 	}
 }

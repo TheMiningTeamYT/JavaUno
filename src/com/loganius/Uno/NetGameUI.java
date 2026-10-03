@@ -35,7 +35,11 @@ class NetGameUI extends JPanel implements ActionListener {
 		startButton.addComponentListener(Util.getTextResizeListener());
 		add(startButton);
 
-		addComponentListener(new ResizeListener());
+		addComponentListener(new ComponentAdapter() {
+			public void componentResized(ComponentEvent e) {
+				onResize();
+			}
+		});
 
 		this.parent.add(this, JLayeredPane.MODAL_LAYER);
 	}
@@ -99,11 +103,5 @@ class NetGameUI extends JPanel implements ActionListener {
 	
 	public void actionPerformed(ActionEvent e) {
 		parent.requestStart();
-	}
-	
-	private class ResizeListener extends ComponentAdapter {
-		public void componentResized(ComponentEvent e) {
-			onResize();
-		}
 	}
 }

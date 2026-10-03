@@ -26,6 +26,7 @@ class NetworkGameClient extends Game {
 	private int player = 0;
 	private String[] names;
 	private Timer queueHandler = new Timer(20, new TimerListener());
+	private boolean handlingMessages = false;
 
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
@@ -59,89 +60,129 @@ class NetworkGameClient extends Game {
 	}
 	
 	Card drawToHand(int hand, int type) {
-		state.drawToHand(hand, type);
-		synchronized(outQueue) {
-			outQueue.addElement(Action.drawToHand(hand, type, state));
+		if (!handlingMessages) {
+			state.drawToHand(hand, type);
+			synchronized(outQueue) {
+				outQueue.addElement(Action.drawToHand(hand, type, state));
+			}
 		}
+
 		return super.drawToHand(hand, type);
 	}
 	
 	void removeFromHand(int hand, Card card) {
 		super.removeFromHand(hand, card);
-		state.removeFromHand(hand, card.getType());
-		synchronized(outQueue) {
-			outQueue.addElement(Action.removeFromHand(hand, card.getType(), state));
+
+		if (!handlingMessages) {
+			synchronized(outQueue) {
+				state.removeFromHand(hand, card.getType());
+				outQueue.addElement(Action.removeFromHand(hand, card.getType(), state));
+			}
 		}
 	}
 	
 	void discard(Card card) {
 		super.discard(card);
-		state.discard(card.getType());
-		synchronized(outQueue) {
-			outQueue.addElement(Action.discard(card.getType(), state));
+
+		if (!handlingMessages) {
+			synchronized(outQueue) {
+				state.discard(card.getType());
+				outQueue.addElement(Action.discard(card.getType(), state));
+			}
 		}
 	}
 	
 	void reverse() {
 		super.reverse();
-		state.reverse();
-		synchronized(outQueue) {
-			outQueue.addElement(Action.reverse(state));
+		
+		if (!handlingMessages) {
+			state.reverse();
+			synchronized(outQueue) {
+				outQueue.addElement(Action.reverse(state));
+			}
 		}
 	}
 	
 	void rotateHands() {
 		super.rotateHands();
-		state.move();
-
-		if (getTurnOrder() == 0) {
-			moves++;
-		} else {
-			moves--;
-		}
-
-		synchronized(outQueue) {
-			outQueue.addElement(Action.rotateHands(state));
+		move();
+		
+		if (!handlingMessages) {
+			state.move();
+			synchronized(outQueue) {
+				outQueue.addElement(Action.rotateHands(state));
+			}
 		}
 	}
 	
 	void onTurn() {
 		super.onTurn();
-		state.move();
-		state.setLastPlayed(getLastPlayed().getType());
-
-		if (getTurnOrder() == 0) {
-			moves++;
-		} else {
-			moves--;
-		}
+		move();
 		
-		hands[0].setPlayable(isHand0Player());
-		netGameUI.setActivePlayer(findScreenHand(0));
-
-		synchronized(outQueue) {
-			outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
+		if (!handlingMessages) {
+			state.move();
+			state.setLastPlayed(getLastPlayed().getType());
+			synchronized(outQueue) {
+				outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
+			}
 		}
 	}
 	
 	void callUno(int player) {
 		if (player == 0) {
 			super.callUno(0);
-			state.doUno();
 			
+			if (!handlingMessages) {
+				state.doUno();
+				synchronized(outQueue) {
+					outQueue.addElement(Action.uno(state));
+				}
+			}
+		}
+	}
+	
+	void stackingCardPlayed(int[] types, int value) {
+		super.stackingCardPlayed(types, value);
+
+		if (isHand0Player()) {
+			hands[0].setPlayable(false);
+			for (int i = 0; i < types.length; i++) {
+				hands[0].setTypePlayable(types[i], true);
+			}
+		}
+		move();
+		
+		if (!handlingMessages) {
+			state.stackingCardPlayed(value);
 			synchronized(outQueue) {
-				outQueue.addElement(Action.uno(state));
+				outQueue.addElement(Action.stackingCardPlayed(state, types, value));
 			}
 		}
 	}
 	
 	void deal() {
+		// Bit of a hack
+		boolean handlingBefore = handlingMessages;
+
+		handlingMessages = false;
 		super.deal();
+		handlingMessages = true;
+
 		state.setLastPlayed(getLastPlayed().getType());
 		synchronized(outQueue) {
 			outQueue.removeAllElements();
 			outQueue.addElement(Action.setState(state));
 		}
+	}
+	
+	private void move() {
+		if (getTurnOrder() == 0) {
+			moves++;
+		} else {
+			moves--;
+		}
+		hands[0].setPlayable(isHand0Player());
+		netGameUI.setActivePlayer(findScreenHand(0));
 	}
 	
 	private void removeFromHand(int hand, int cardType) {
@@ -165,6 +206,7 @@ class NetworkGameClient extends Game {
 
 		for (int i = 0; i < getPlayers(); i++) {
 			hands[i].removeAll();
+			hands[i].setPlayable(false);
 		}
 
 		if (adjustMoves < 0) {
@@ -177,9 +219,10 @@ class NetworkGameClient extends Game {
 		for (int i = 0; i < adjustMoves; i++) {
 			rotate();
 		}
-		hands[0].setPlayable(isHand0Player());
 		moves = newState.getMoves();
-		
+		cardsToDraw = newState.getCardsToDraw();
+		hands[0].setPlayable(isHand0Player());
+		netGameUI.setActivePlayer(findScreenHand(0));
 		
 		for (int i = 0; i < getPlayers(); i++) {
 			for (int j = 0; j < newHands[i].length; j++) {
@@ -200,7 +243,7 @@ class NetworkGameClient extends Game {
 					break;
 				}
 				args = (int[]) a.getArgument();
-				super.drawToHand(args[0], args[1]);
+				drawToHand(args[0], args[1]);
 				break;
 			case Action.REMOVE_FROM_HAND:
 				if (a.getArgument().getClass() != int[].class) {
@@ -220,13 +263,13 @@ class NetworkGameClient extends Game {
 				if (a.getArgument() != null) {
 					break;
 				}
-				super.reverse();
+				reverse();
 				break;
 			case Action.ROTATE_HANDS:
 				if (a.getArgument() != null) {
 					break;
 				}
-				super.rotateHands();
+				rotateHands();
 				break;
 			case Action.TURN:
 				if (a.getArgument().getClass() != Integer.class) {
@@ -234,9 +277,7 @@ class NetworkGameClient extends Game {
 				}
 				arg = (Integer) a.getArgument();
 				new Card(arg.intValue(), discardHand);
-				super.onTurn();
-				hands[0].setPlayable(isHand0Player());
-				netGameUI.setActivePlayer(findScreenHand(0));
+				onTurn();
 				break;
 			case Action.SET_STATE:
 				if (a.getArgument().getClass() != GameState.class) {
@@ -287,11 +328,22 @@ class NetworkGameClient extends Game {
 			} 
 			case Action.UNO:
 				if (isHand0Player()) {
-					super.callUno(1);
+					callUno(1);
 				} else {
-					super.callUno(0);
+					callUno(0);
 				}
 				break;
+			case Action.STACKING_CARD_PLAYED: 
+				if (a.getArgument().getClass() != int[].class) {
+					break;
+				}
+				{
+					int[] types;
+					args = (int[]) a.getArgument();
+					types = new int[args.length - 1];
+					System.arraycopy(args, 1, types, 0, args.length - 1);
+					stackingCardPlayed(types, args[0]);
+				} 
 			default:
 				break;
 		}
@@ -380,6 +432,7 @@ class NetworkGameClient extends Game {
 
 				if (a != null && a.verify(state)) {
 					synchronized(inQueue) {
+						handlingMessages = true;
 						do {
 							Action[] acts = (Action[]) inQueue.firstElement();
 							for (int i = 0; i < acts.length; i++) {
@@ -387,6 +440,7 @@ class NetworkGameClient extends Game {
 							}
 							inQueue.removeElementAt(0);
 						} while (inQueue.size() > 0);
+						handlingMessages = false;
 					}
 				} else {
 					synchronized(outQueue) {

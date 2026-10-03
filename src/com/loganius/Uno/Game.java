@@ -7,10 +7,7 @@ import java.util.Vector;
 
 /**
  * Represents the space in which a game of Uno is played.
- * TODO: Add a background
- * TODO: Add turn direction indicators.
- * TODO: Add indicators for whose turn it is currently.
- * TODO: Add a way for the owner of the game object to know when the game's over.
+ * TODO: Add safety checks
  */
 class Game extends JLayeredPane implements ActionListener {
 	private static final long serialVersionUID = 1L;
@@ -20,7 +17,7 @@ class Game extends JLayeredPane implements ActionListener {
 	static final int counterClockwise = 1;
 
 	private GameHandler handler;
-	private RuleSet rules = new RuleSet.Standard();
+	private RuleSet rules = new RuleSet.Composite(new Rule[] {new Stacking(), new DrawToMatch(), new ForcePlay()});
 	protected Hand[] hands = {
 			new Hand(this, 0, 360, 640, 120, 0, true, false),
 			new Hand(this, 0, 130, 120, 220, 270, false, false),
@@ -32,6 +29,7 @@ class Game extends JLayeredPane implements ActionListener {
 	private Deck deck;
 	private int turnOrder = clockwise;
 	private int players = 1;
+	protected int cardsToDraw = 0;
 	private boolean drew = false;
 	private boolean uno = false;
 	private boolean ended = false;
@@ -53,15 +51,28 @@ class Game extends JLayeredPane implements ActionListener {
 		this.deck = deck;
 		this.handler = handler;
 		screenOrderedHands = (Hand[])hands.clone();
+		deck.reset();
+		rules.bind(this);
 
 		customUISpace.setVisible(false);
 		customUISpace.setOpaque(false);
 
 		setLayout(null);
 		add(customUISpace, MODAL_LAYER);
-		addComponentListener(new ResizeListener());
+		addComponentListener(new ComponentAdapter() {
+			public void componentResized(ComponentEvent e) {
+				onResize();
+			}
+		});
 		
-		new Timer(33, new TimerListener()).start();
+		new Timer(33, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (!isInterrupted()) {
+					frame = (frame + 1) % 360;
+					repaint(arcBounds);
+				}
+			}
+		}).start();
 	}
 	
 	void start() {
@@ -90,6 +101,8 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void setRuleSet(RuleSet ruleset) {
 		rules = ruleset;
+		deck.reset();
+		rules.bind(this);
 	}
 	
 	int getTurnOrder() {
@@ -278,6 +291,10 @@ class Game extends JLayeredPane implements ActionListener {
 		gameOver();
 	}
 	
+	boolean handContains(int hand, int cardType) {
+		return hands[hand].contains(cardType);
+	}
+
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
 	Card drawToHand(int hand) {
@@ -313,7 +330,11 @@ class Game extends JLayeredPane implements ActionListener {
 		}
 	}
 	
-	void onTurn() {
+	int getCardsToDraw() {
+		return cardsToDraw;
+	}
+	
+	private void doTurn() {
 		hands[0].setPlayable(false);
 		unoButton.setVisible(false);
 		drew = false;
@@ -324,6 +345,18 @@ class Game extends JLayeredPane implements ActionListener {
 			rotate();
 			checkUno();
 		}
+	}
+	
+	/* Only here because we need to send this over the network */
+	void stackingCardPlayed(int[] types, int value) {
+		doTurn();
+		cardsToDraw += value;
+	}
+	
+	void onTurn() {
+		doTurn();
+		rules.onTurn(this);
+		cardsToDraw = 0;
 	}
 	
 	void onEnd(String msg) {
@@ -436,20 +469,6 @@ class Game extends JLayeredPane implements ActionListener {
 			}
 	
 			g.fillPolygon(arcX, arcY, 43);
-		}
-	}
-	
-	private class TimerListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			if (!isInterrupted()) {
-				frame = (frame + 1) % 360;
-				repaint(arcBounds);
-			}
-		}
-	}
-	private class ResizeListener extends ComponentAdapter {
-		public void componentResized(ComponentEvent e) {
-			onResize();
 		}
 	}
 }

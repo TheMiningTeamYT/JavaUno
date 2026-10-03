@@ -129,7 +129,7 @@ class Card extends JComponent {
 					startX = e.getX();
 					startY = e.getY();
 					startBounds = getBounds();
-					startLayer = parent.getGame().getLayer(card);
+					startLayer = parent.getGame().getLayer((Component)card);
 					parent.getGame().setLayer(card, JLayeredPane.DRAG_LAYER.intValue());
 				}
 			}

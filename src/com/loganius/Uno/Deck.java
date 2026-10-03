@@ -105,6 +105,10 @@ abstract class Deck {
 		}
 	}
 	
+	void reset() {
+		cards = (CardType[]) originalDeck.clone();
+	}
+	
 	int getLength() {
 		return cards.length;
 	}

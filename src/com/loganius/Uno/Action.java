@@ -24,6 +24,7 @@ class Action implements Serializable {
 	static final int START_GAME = 10;
 	static final int HELLO = 11;
 	static final int UNO = 12;
+	static final int STACKING_CARD_PLAYED = 13;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -33,130 +34,76 @@ class Action implements Serializable {
 	private long finalState;
 	
 	static Action drawToHand(int hand, int type, GameState finalState) {
-		try {
-			return new Action(DRAW_TO_HAND, new int[] {hand, type}, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(DRAW_TO_HAND, new int[] {hand, type}, finalState);
 	}
 	
 	static Action removeFromHand(int hand, int type, GameState finalState) {
-		try {
-			return new Action(REMOVE_FROM_HAND, new int[] {hand, type}, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(REMOVE_FROM_HAND, new int[] {hand, type}, finalState);
 	}
 
 	static Action discard(int type, GameState finalState) {
-		try {
-			return new Action(DISCARD, new Integer(type), finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(DISCARD, new Integer(type), finalState);
 	}
 	
 	static Action reverse(GameState finalState) {
-		try {
-			return new Action(REVERSE, null, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(REVERSE, null, finalState);
 	}
 	
 	static Action rotateHands(GameState finalState) {
-		try {
-			return new Action(ROTATE_HANDS, null, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(ROTATE_HANDS, null, finalState);
 	}
 	
 	static Action turn(GameState finalState, int lastPlayed) {
-		try {
-			return new Action(TURN, new Integer(lastPlayed), finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(TURN, new Integer(lastPlayed), finalState);
 	}
 	
 	static Action setState(GameState finalState) {
-		try {
-			return new Action(SET_STATE, finalState, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(SET_STATE, finalState, finalState);
 	}
 	
 	static Action getState() {
-		try {
-			return new Action(SEND_STATE, null, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(SEND_STATE, null, null);
 	}
 	
 	static Action welcome(String[] names, int player, int numPlayers) {
-		try {
-			return new Action(WELCOME, new WelcomeAction(names, player, numPlayers), null);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(WELCOME, new WelcomeAction(names, player, numPlayers), null);
 	}
 	
 	static Action requestStart() {
-		try {
-			return new Action(REQUEST_START, null, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(REQUEST_START, null, null);
 	}
 	
 	static Action startGame() {
-		try {
-			return new Action(START_GAME, null, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(START_GAME, null, null);
 	}
 	
 	static Action hello(String name) {
-		try {
-			return new Action(HELLO, name, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(HELLO, name, null);
 	}
 	
 	static Action uno(GameState finalState) {
-		try {
-			return new Action(UNO, null, finalState);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return new Action(UNO, null, finalState);
 	}
 	
-	Action(int type, Object argument, GameState finalState) throws IOException {
-		this.type = type;
-		this.argument = argument;
-
-		if (finalState == null) {
-			this.finalState = 0;
-		} else {
-			this.finalState = finalState.getCRC32();
+	static Action stackingCardPlayed(GameState finalState, int[] types, int value) {
+		int[] arg = new int[types.length + 1];
+		arg[0] = value;
+		System.arraycopy(types, 0, arg, 1, types.length);
+		return new Action(STACKING_CARD_PLAYED, arg, finalState);
+	}
+	
+	Action(int type, Object argument, GameState finalState) {
+		try {
+			this.type = type;
+			this.argument = argument;
+	
+			if (finalState == null) {
+				this.finalState = 0;
+			} else {
+				this.finalState = finalState.getCRC32();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	

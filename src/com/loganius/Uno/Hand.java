@@ -119,6 +119,25 @@ class Hand {
 		return null;
 	}
 	
+	void setTypePlayable(int cardType, boolean playable) {
+		for (int i = 0; i < cards.size(); i++) {
+			Card card = (Card) cards.elementAt(i);
+			if (card.getType() == cardType) {
+				card.setPlayable(playable);
+			}
+		}
+	}
+	
+	boolean contains(int cardType) {
+		for (int i = 0; i < cards.size(); i++) {
+			Card card = (Card) cards.elementAt(i);
+			if (card.getType() == cardType) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	void removeAll() {
 		for (int i = 0; i < cards.size(); i++) {
 			game.remove((Card) cards.elementAt(i));

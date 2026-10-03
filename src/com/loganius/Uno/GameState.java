@@ -8,7 +8,7 @@ import java.io.*;
  * A lightweight representation of the Uno game state, fit to be transmitted over the network.
  */
 class GameState implements Serializable {
-	private static final long serialVersionUID = 4L;
+	private static final long serialVersionUID = 5L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -21,6 +21,7 @@ class GameState implements Serializable {
 	private int turnOrder = 0;
 	private int moves = 0;
 	private int players = 0;
+	private int cardsToDraw = 0;
 	private boolean uno = false;
 
 	GameState() {};
@@ -33,6 +34,8 @@ class GameState implements Serializable {
 		turnOrder = other.turnOrder;
 		moves = other.moves;
 		players = other.players;
+		cardsToDraw = other.cardsToDraw;
+		uno = other.uno;
 	}
 	
 	void setPlayers(int players) {
@@ -55,10 +58,10 @@ class GameState implements Serializable {
 	void reverse() {
 		rotate();
 
-		for (int i = 0; i < hands.length / 2; i++) {
+		for (int i = 0; i < players / 2; i++) {
             Vector temp = hands[i];
-            hands[i] = hands[hands.length - 1 - i];
-            hands[hands.length - 1 - i] = temp;
+            hands[i] = hands[players - 1 - i];
+            hands[players - 1 - i] = temp;
         }
 
 		if (turnOrder == 0) {
@@ -71,7 +74,7 @@ class GameState implements Serializable {
 	void rotate() {
 		Vector temp1 = hands[0];
 		Vector temp2;
-		for (int i = hands.length - 1; i >= 0; i--) {
+		for (int i = players - 1; i >= 0; i--) {
 			temp2 = hands[i];
 			hands[i] = temp1;
 			temp1 = temp2;
@@ -80,6 +83,7 @@ class GameState implements Serializable {
 	
 	void move() {
 		uno = false;
+		cardsToDraw = 0;
 		rotate();
 		if (turnOrder == 0) {
 			moves++;
@@ -90,6 +94,17 @@ class GameState implements Serializable {
 	
 	void doUno() {
 		uno = true;
+	}
+	
+	void stackingCardPlayed(int value) {
+		rotate();
+		uno = false;
+		if (turnOrder == 0) {
+			moves++;
+		} else {
+			moves--;
+		}
+		cardsToDraw += value;
 	}
 	
 	void applyAction(Action a) {
@@ -161,12 +176,23 @@ class GameState implements Serializable {
 							hands = state.hands;
 							lastPlayed = state.lastPlayed;
 							turnOrder = state.turnOrder;
+							moves = state.moves;
+							players = state.players;
+							cardsToDraw = state.cardsToDraw;
+							uno = state.uno;
 						}
 					}
 				}
 				break;
 			case Action.UNO:
 				uno = true;
+				break;
+			case Action.STACKING_CARD_PLAYED:
+				if (a.getArgument().getClass() != int[].class) {
+					break;
+				}
+				args = (int[]) a.getArgument();
+				stackingCardPlayed(args[0]);
 				break;
 			default:
 				break;
@@ -206,6 +232,10 @@ class GameState implements Serializable {
 		return players;
 	}
 	
+	int getCardsToDraw() {
+		return cardsToDraw;
+	}
+	
 	long getCRC32() throws IOException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		CRC32 sum = new CRC32();
@@ -227,6 +257,10 @@ class GameState implements Serializable {
 		out.writeInt(moves);
 		out.writeInt(-1);
 		out.writeInt(players);
+		out.writeInt(-1);
+		out.writeBoolean(uno);
+		out.writeInt(-1);
+		out.writeInt(cardsToDraw);
 		out.writeInt(-1);
 		
 		byte[] raw = bos.toByteArray();
