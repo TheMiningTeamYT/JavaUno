@@ -24,7 +24,6 @@ class Action implements Serializable {
 	static final int START_GAME = 10;
 	static final int HELLO = 11;
 	static final int UNO = 12;
-	static final int STACKING_CARD_PLAYED = 13;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -83,13 +82,6 @@ class Action implements Serializable {
 	
 	static Action uno(GameState finalState) {
 		return new Action(UNO, null, finalState);
-	}
-	
-	static Action stackingCardPlayed(GameState finalState, int[] types, int value) {
-		int[] arg = new int[types.length + 1];
-		arg[0] = value;
-		System.arraycopy(types, 0, arg, 1, types.length);
-		return new Action(STACKING_CARD_PLAYED, arg, finalState);
 	}
 	
 	Action(int type, Object argument, GameState finalState) {

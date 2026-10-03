@@ -7,6 +7,7 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import java.util.Vector;
+import java.util.Hashtable;
 
 /**
  * TODO: Add the ability for users to set usernames.
@@ -26,7 +27,9 @@ class NetworkGameClient extends Game {
 	private int player = 0;
 	private String[] names;
 	private Timer queueHandler = new Timer(20, new TimerListener());
+	private Hashtable actionHandlers;
 	private boolean handlingMessages = false;
+	private Game game = this;
 
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
@@ -141,25 +144,6 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void stackingCardPlayed(int[] types, int value) {
-		super.stackingCardPlayed(types, value);
-
-		if (isHand0Player()) {
-			hands[0].setPlayable(false);
-			for (int i = 0; i < types.length; i++) {
-				hands[0].setTypePlayable(types[i], true);
-			}
-		}
-		move();
-		
-		if (!handlingMessages) {
-			state.stackingCardPlayed(value);
-			synchronized(outQueue) {
-				outQueue.addElement(Action.stackingCardPlayed(state, types, value));
-			}
-		}
-	}
-	
 	void deal() {
 		// Bit of a hack
 		boolean handlingBefore = handlingMessages;
@@ -220,7 +204,6 @@ class NetworkGameClient extends Game {
 			rotate();
 		}
 		moves = newState.getMoves();
-		cardsToDraw = newState.getCardsToDraw();
 		hands[0].setPlayable(isHand0Player());
 		netGameUI.setActivePlayer(findScreenHand(0));
 		
@@ -234,26 +217,48 @@ class NetworkGameClient extends Game {
 		resizeHands();
 	}
 	
+	void registerAction(int type, ActionHandler handler) {
+		// Hack for the order in which Java initializes objects.
+		if (actionHandlers == null) {
+			actionHandlers = new Hashtable();
+		}
+		new CustomAction(type, handler);
+	}
+	
+	void sendAction(int type, Object arg) {
+		if (actionHandlers.containsKey(new Integer(type))) {
+			synchronized(outQueue) {
+				outQueue.addElement(new Action(type, arg, state));
+			}
+		}
+	}
+	
 	void applyAction(Action a) {
 		int[] args;
 		Integer arg;
+
+		if (actionHandlers.containsKey(new Integer(a.getType()))
+			&& ((CustomAction)actionHandlers.get(new Integer(a.getType()))).handleAction(a)) {
+			return;
+		}
+
 		switch (a.getType()) {
 			case Action.DRAW_TO_HAND:
-				if (a.getArgument().getClass() != int[].class) {
+				if (!(a.getArgument() instanceof int[])) {
 					break;
 				}
 				args = (int[]) a.getArgument();
 				drawToHand(args[0], args[1]);
 				break;
 			case Action.REMOVE_FROM_HAND:
-				if (a.getArgument().getClass() != int[].class) {
+				if (!(a.getArgument() instanceof int[])) {
 					break;
 				}
 				args = (int[]) a.getArgument();
 				removeFromHand(args[0], args[1]);
 				break;
 			case Action.DISCARD:
-				if (a.getArgument().getClass() != Integer.class) {
+				if (!(a.getArgument() instanceof Integer)) {
 					break;
 				}
 				arg = (Integer) a.getArgument();
@@ -272,7 +277,7 @@ class NetworkGameClient extends Game {
 				rotateHands();
 				break;
 			case Action.TURN:
-				if (a.getArgument().getClass() != Integer.class) {
+				if (!(a.getArgument() instanceof Integer)) {
 					break;
 				}
 				arg = (Integer) a.getArgument();
@@ -280,7 +285,7 @@ class NetworkGameClient extends Game {
 				onTurn();
 				break;
 			case Action.SET_STATE:
-				if (a.getArgument().getClass() != GameState.class) {
+				if (!(a.getArgument() instanceof GameState)) {
 					break;
 				}
 				{
@@ -289,7 +294,7 @@ class NetworkGameClient extends Game {
 				}
 				break;
 			case Action.WELCOME: {
-				if (a.getArgument().getClass() != Action.WelcomeAction.class) {
+				if (!(a.getArgument() instanceof Action.WelcomeAction)) {
 					break;
 				}
 				Action.WelcomeAction hello = (Action.WelcomeAction) a.getArgument();
@@ -333,17 +338,6 @@ class NetworkGameClient extends Game {
 					callUno(0);
 				}
 				break;
-			case Action.STACKING_CARD_PLAYED: 
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				{
-					int[] types;
-					args = (int[]) a.getArgument();
-					types = new int[args.length - 1];
-					System.arraycopy(args, 1, types, 0, args.length - 1);
-					stackingCardPlayed(types, args[0]);
-				} 
 			default:
 				break;
 		}
@@ -458,6 +452,25 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
+	private class CustomAction {
+		int type;
+		ActionHandler handler;
+
+		CustomAction(int type, ActionHandler handler) {
+			this.type = type;
+			this.handler = handler;
+			actionHandlers.put(new Integer(type), this);
+		}
+		
+		boolean handleAction(Action a) {
+			if (a.getType() == type) {
+				handler.handleAction(type, a.getArgument(), game);
+				return true;
+			}
+			return false;
+		}
+	}
+	
 	// TODO: Handle the errors that can occur with networking
 	private class InputWorker extends Thread {
 		private ObjectInputStream in;
@@ -473,7 +486,7 @@ class NetworkGameClient extends Game {
 				try {
 					Object received = in.readObject();
 
-					if (received == null || received.getClass() != Action[].class) {
+					if (received == null || !(received instanceof Action[])) {
 						continue;
 					}
 

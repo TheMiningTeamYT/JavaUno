@@ -29,7 +29,6 @@ class Game extends JLayeredPane implements ActionListener {
 	private Deck deck;
 	private int turnOrder = clockwise;
 	private int players = 1;
-	protected int cardsToDraw = 0;
 	private boolean drew = false;
 	private boolean uno = false;
 	private boolean ended = false;
@@ -294,6 +293,10 @@ class Game extends JLayeredPane implements ActionListener {
 	boolean handContains(int hand, int cardType) {
 		return hands[hand].contains(cardType);
 	}
+	
+	void setTypePlayable(int type, boolean playable) {
+		hands[0].setTypePlayable(type, playable);
+	}
 
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
@@ -330,11 +333,11 @@ class Game extends JLayeredPane implements ActionListener {
 		}
 	}
 	
-	int getCardsToDraw() {
-		return cardsToDraw;
+	private void doTurn() {
+		
 	}
 	
-	private void doTurn() {
+	void onTurn() {
 		hands[0].setPlayable(false);
 		unoButton.setVisible(false);
 		drew = false;
@@ -345,18 +348,8 @@ class Game extends JLayeredPane implements ActionListener {
 			rotate();
 			checkUno();
 		}
-	}
-	
-	/* Only here because we need to send this over the network */
-	void stackingCardPlayed(int[] types, int value) {
-		doTurn();
-		cardsToDraw += value;
-	}
-	
-	void onTurn() {
-		doTurn();
+		// TODO: Determine whether this is really necessary
 		rules.onTurn(this);
-		cardsToDraw = 0;
 	}
 	
 	void onEnd(String msg) {

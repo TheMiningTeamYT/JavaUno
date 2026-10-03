@@ -8,7 +8,7 @@ import java.io.*;
  * A lightweight representation of the Uno game state, fit to be transmitted over the network.
  */
 class GameState implements Serializable {
-	private static final long serialVersionUID = 5L;
+	private static final long serialVersionUID = 6L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -21,7 +21,6 @@ class GameState implements Serializable {
 	private int turnOrder = 0;
 	private int moves = 0;
 	private int players = 0;
-	private int cardsToDraw = 0;
 	private boolean uno = false;
 
 	GameState() {};
@@ -34,7 +33,6 @@ class GameState implements Serializable {
 		turnOrder = other.turnOrder;
 		moves = other.moves;
 		players = other.players;
-		cardsToDraw = other.cardsToDraw;
 		uno = other.uno;
 	}
 	
@@ -83,7 +81,6 @@ class GameState implements Serializable {
 	
 	void move() {
 		uno = false;
-		cardsToDraw = 0;
 		rotate();
 		if (turnOrder == 0) {
 			moves++;
@@ -94,17 +91,6 @@ class GameState implements Serializable {
 	
 	void doUno() {
 		uno = true;
-	}
-	
-	void stackingCardPlayed(int value) {
-		rotate();
-		uno = false;
-		if (turnOrder == 0) {
-			moves++;
-		} else {
-			moves--;
-		}
-		cardsToDraw += value;
 	}
 	
 	void applyAction(Action a) {
@@ -178,7 +164,6 @@ class GameState implements Serializable {
 							turnOrder = state.turnOrder;
 							moves = state.moves;
 							players = state.players;
-							cardsToDraw = state.cardsToDraw;
 							uno = state.uno;
 						}
 					}
@@ -186,13 +171,6 @@ class GameState implements Serializable {
 				break;
 			case Action.UNO:
 				uno = true;
-				break;
-			case Action.STACKING_CARD_PLAYED:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
-				stackingCardPlayed(args[0]);
 				break;
 			default:
 				break;
@@ -232,10 +210,6 @@ class GameState implements Serializable {
 		return players;
 	}
 	
-	int getCardsToDraw() {
-		return cardsToDraw;
-	}
-	
 	long getCRC32() throws IOException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		CRC32 sum = new CRC32();
@@ -259,8 +233,6 @@ class GameState implements Serializable {
 		out.writeInt(players);
 		out.writeInt(-1);
 		out.writeBoolean(uno);
-		out.writeInt(-1);
-		out.writeInt(cardsToDraw);
 		out.writeInt(-1);
 		
 		byte[] raw = bos.toByteArray();
