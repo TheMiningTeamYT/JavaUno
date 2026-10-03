@@ -348,8 +348,6 @@ class Game extends JLayeredPane implements ActionListener {
 			rotate();
 			checkUno();
 		}
-		// TODO: Determine whether this is really necessary
-		rules.onTurn(this);
 	}
 	
 	void onEnd(String msg) {
@@ -369,12 +367,12 @@ class Game extends JLayeredPane implements ActionListener {
 		label.setFont(Util.getScaledFont());
 		label.setForeground(new Color(255, 255, 255));
 		label.setText(msg);
-		label.addComponentListener(Util.getTextResizeListener());
+		label.addComponentListener(Util.ResizeListener);
 		
 		endButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 		endButton.setFont(Util.getScaledFont());
 		endButton.addActionListener(this);
-		endButton.addComponentListener(Util.getTextResizeListener());
+		endButton.addComponentListener(Util.ResizeListener);
 		
 		customUISpace.add(label);
 		customUISpace.add(endButton);

@@ -25,14 +25,14 @@ class NetGameUI extends JPanel implements ActionListener {
 		
 		for (int i = 0; i < players.length; i++) {
 			players[i].setForeground(inactivePlayerColor);
-			players[i].addComponentListener(Util.getTextResizeListener());
+			players[i].addComponentListener(Util.ResizeListener);
 			add(players[i]);
 		}
 
 		startButton.setVisible(false);
 		startButton.addComponentListener(null);
 		startButton.addActionListener(this);
-		startButton.addComponentListener(Util.getTextResizeListener());
+		startButton.addComponentListener(Util.ResizeListener);
 		add(startButton);
 
 		addComponentListener(new ComponentAdapter() {

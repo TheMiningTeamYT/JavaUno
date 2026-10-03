@@ -29,8 +29,6 @@ abstract class RuleSet implements Serializable {
 		return this.fallback;
 	}
 	
-	void onTurn(Game game) {};
-	
 	static void finalizeDraw(Game game) {
 		game.drew();
 		if (game.canBePlayed(0)) {
@@ -103,19 +101,25 @@ abstract class RuleSet implements Serializable {
 		}
 
 		boolean isLegal(Card card, Game game) {
+			int decision = Rule.ALLOW;
 			for (int i = 0; i < rules.length; i++) {
 				switch (rules[i].isLegal(card, game)) {
 					case Rule.ILLEGAL:
-						return false;
+						decision = Rule.ILLEGAL;
 					case Rule.LEGAL:
-						return true;
+						if (decision != Rule.ILLEGAL) {
+							decision = Rule.LEGAL;
+						}
 					case Rule.ALLOW:
-						break;
 					default:
 						break;
 				}
 			}
-			return fallback.isLegal(card, game);
+			if (decision == Rule.ALLOW) {
+				return fallback.isLegal(card, game);
+			} else {
+				return decision == Rule.LEGAL;
+			}
 		}
 		
 		void drawToHand(final int hand, final Game game) {
@@ -129,12 +133,6 @@ abstract class RuleSet implements Serializable {
 		Card getLastDrawn() {
 			return lastDrawn;
 		}
-		
-		void onTurn(Game game) {
-			for (int i = 0; i < rules.length; i++) {
-				rules[i].onTurn(game);
-			}
-		};
 		
 		void onDraw(final Game game) {
 			if (game.getHandPlayable(0) && !game.getDrew()) {

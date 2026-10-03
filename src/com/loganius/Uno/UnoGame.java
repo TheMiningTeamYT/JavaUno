@@ -36,7 +36,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 
 		loading.setFont(Util.getScaledFont());
 		loading.setForeground(Util.WHITE);
-		loading.addComponentListener(Util.getTextResizeListener());
+		loading.addComponentListener(Util.ResizeListener);
 		mainScreen.add(loading);
 
 		mainScreen.addComponentListener(new ComponentAdapter() {
@@ -199,7 +199,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			add(main, BorderLayout.CENTER);
 			
 			copyright.setFont(Util.getSmallFont());
-			copyright.addComponentListener(Util.getSmallTextResizeListener());
+			copyright.addComponentListener(Util.SmallResizeListener);
 			copyright.setForeground(Util.WHITE);
 
 			add(copyright, BorderLayout.SOUTH);

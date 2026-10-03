@@ -6,13 +6,28 @@ import java.awt.image.*;
 import java.net.*;
 
 public class Util {
+	private static Font largeFont = new Font("Arial", Font.PLAIN, 40);
 	private static Font scaledFont = new Font("Arial", Font.PLAIN, 20);
 	private static Font smallFont = new Font("Arial", Font.PLAIN, 10);
 	private static double scaleFactor = 1;
 	public static final Color WHITE = new Color(255, 255, 255);
 	public static final Color BLACK = new Color(0, 0, 0);
 
-	private static ComponentAdapter ResizeListener = new ComponentAdapter() {
+	public static final ComponentAdapter LargeResizeListener = new ComponentAdapter() {
+		public void componentResized(ComponentEvent e) {
+			e.getComponent().setFont(largeFont);
+		}
+
+		public void componentMoved(ComponentEvent e) {
+			e.getComponent().setFont(largeFont);
+		}
+
+		public void componentShown(ComponentEvent e) {
+			e.getComponent().setFont(largeFont);
+		}
+	};
+
+	public static final ComponentAdapter ResizeListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
 			e.getComponent().setFont(scaledFont);
 		}
@@ -26,7 +41,7 @@ public class Util {
 		}
 	};
 
-	private static ComponentAdapter SmallResizeListener = new ComponentAdapter() {
+	public static final ComponentAdapter SmallResizeListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
 			e.getComponent().setFont(smallFont);
 		}
@@ -78,6 +93,7 @@ public class Util {
 	
 	public static void onResize(int width, int height) {
 		scaleFactor = (double)height / 480;
+		largeFont = new Font("Arial", Font.BOLD, (int)(40 * scaleFactor));
 		scaledFont = new Font("Arial", Font.PLAIN, (int)(20 * scaleFactor));
 		smallFont = new Font("Arial", Font.PLAIN, (int)(10 * scaleFactor));
 	}
@@ -98,18 +114,10 @@ public class Util {
 		return smallFont;
 	}
 	
-	public static ComponentListener getTextResizeListener() {
-		return ResizeListener;
-	}
-	
-	public static ComponentListener getSmallTextResizeListener() {
-		return SmallResizeListener;
-	}
-	
 	public static void commonComponentInit(Component comp, Color color) {
 		comp.setForeground(color);
 		comp.setFont(Util.getScaledFont());
-		comp.addComponentListener(Util.getTextResizeListener());
+		comp.addComponentListener(Util.ResizeListener);
 	}
 	
 	public static Rectangle scaleAndCrop(Rectangle original, Rectangle bounds) {

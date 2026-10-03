@@ -493,20 +493,13 @@ class NetworkGameClient extends Game {
 					synchronized(inQueue) {
 						inQueue.addElement(received);
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					try {
 						in.close();
 					} catch (IOException e2) {
 						handleError(e2);
 					}
 					handleError(e);
-					return;
-				} catch (ClassNotFoundException e) {
-					try {
-						in.close();
-					} catch (IOException e2) {
-						handleError(e2);
-					}
 					return;
 				}
 			}

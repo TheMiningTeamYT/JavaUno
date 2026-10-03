@@ -276,15 +276,7 @@ public class UnoServer {
 					synchronized(inQueue) {
 						inQueue.notify();
 					}
-				} catch (IOException e) {
-					try {
-						in.close();
-					} catch (IOException e2) {
-						handleError(e2);
-					}
-					handleError(e);
-					return;
-				} catch (ClassNotFoundException e) {
+				} catch (Exception e) {
 					try {
 						in.close();
 					} catch (IOException e2) {

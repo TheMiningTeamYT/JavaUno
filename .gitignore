@@ -9,6 +9,8 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+Uno.jar
+uno.html
 
 # External tool builders
 .externalToolBuilders/

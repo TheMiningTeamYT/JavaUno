@@ -7,13 +7,18 @@ import java.awt.event.*;
 import javax.swing.*;
 
 class WildChangeColorType extends CardType {
-	private static final long serialVersionUID = 1L;
 	private Card parentCard;
 	private JPanel buttonSpace = new JPanel();
 	private ComponentAdapter listener = new Util.Centering(buttonSpace);
 
 	WildChangeColorType(URL front, Image[] back) {
 		super(front, back, Color.WILD, Value.CHANGE_COLOR, true);
+		buttonSpace.setLayout(new GridBagLayout());
+		buttonSpace.setOpaque(false);
+	}
+	
+	WildChangeColorType(CardType parent) {
+		super(parent);
 		buttonSpace.setLayout(new GridBagLayout());
 		buttonSpace.setOpaque(false);
 	}
@@ -25,7 +30,7 @@ class WildChangeColorType extends CardType {
 		GridBagConstraints c = new GridBagConstraints();
 		this.parentCard = parent;
 		
-		Util.commonComponentInit(instruction, Util.BLACK);
+		Util.commonComponentInit(instruction, Util.WHITE);
 		
 		buttonSpace.removeAll();
 		buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);
@@ -56,10 +61,10 @@ class WildChangeColorType extends CardType {
 		
 		parent.getGame().setHandPlayable(false);
 	}
-	
-	// TODO: Add colored wild cards to the deck and set this properly.
+
 	protected void cardAction(Card parent, int color) {
 		parent.setType(Deck.RED_CHANGE_COLOR + color);
+		parent.getGame().onTurn();
 	};
 	
 	private class ColorButton extends JButton implements ActionListener {
@@ -70,7 +75,7 @@ class WildChangeColorType extends CardType {
 			
 			setFont(Util.getScaledFont());
 			addActionListener(this);
-			addComponentListener(Util.getTextResizeListener());
+			addComponentListener(Util.ResizeListener);
 		}
 		
 		public void actionPerformed(ActionEvent e) {
@@ -78,9 +83,7 @@ class WildChangeColorType extends CardType {
 			customUISpace.removeAll();
 			customUISpace.removeComponentListener(listener);
 			customUISpace.setVisible(false);
-
 			cardAction(parentCard, color);
-			parentCard.getGame().onTurn();
 		}
 	}
 }

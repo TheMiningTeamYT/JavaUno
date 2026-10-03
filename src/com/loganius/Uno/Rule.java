@@ -31,8 +31,6 @@ abstract class Rule implements Serializable {
 	
 	int isLegal(Card card, Game game) {return ALLOW;};
 	
-	void onTurn(Game game) {};
-	
 	/* 
 	 * Return true to indicate the draw was handled and prevent further handling.
 	 * Note: if you return true, know that NO OTHER ONDRAW HANDLERS WILL BE CALLED
