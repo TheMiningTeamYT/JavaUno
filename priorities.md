@@ -2,17 +2,18 @@
 
  * Implement house rules
  	* Implement the rules themselves
- 	* Implement a composite ruleset comprised of individual rules
+ 	* Implement a composite ruleset comprised of individual rules (done)
  	* Synchronize rulesets over the network
  	* Allow configuring the ruleset through the UI
  	* House rules to implement:
  		* Jump In
  			* Will require bespoke code
  			* Will require new kind of action
- 		* 7-0
- 			* Will require overriding cards
- 			* Will require new kind of action
- 		* Stacking (WIP)
+ 			* Will require overriding turns (hrrrg)
+ 		* 7-0 (done)
+ 			* Will require overriding cards (done)
+ 			* Will require new kind of action (done)
+ 		* Stacking (done)
  			* Will require overriding cards
  			* Will require new kind of action
  		* Draw To Match (done)

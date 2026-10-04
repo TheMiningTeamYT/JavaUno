@@ -26,7 +26,7 @@ class Stacking extends Rule implements ActionHandler {
 	
 	Stacking() {
 		cardsToDrawLabel.setForeground(new Color(105, 0, 204));
-		cardsToDrawLabel.setFont(Util.getScaledFont());
+		cardsToDrawLabel.setFont(Util.getLargeFont());
 		cardsToDrawLabel.addComponentListener(Util.LargeResizeListener);
 	}
 

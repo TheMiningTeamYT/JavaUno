@@ -151,6 +151,7 @@ class Card extends JComponent {
 
 				if (startBounds != null) {
 					setBounds(startBounds);
+					repaint();
 				}
 			}
 		}

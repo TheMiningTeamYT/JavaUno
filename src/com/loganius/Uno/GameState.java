@@ -6,6 +6,7 @@ import java.io.*;
 
 /**
  * A lightweight representation of the Uno game state, fit to be transmitted over the network.
+ * TODO: More safety checks
  */
 class GameState implements Serializable {
 	private static final long serialVersionUID = 6L;
@@ -93,6 +94,12 @@ class GameState implements Serializable {
 		uno = true;
 	}
 	
+	void swapHands(int hand1, int hand2) {
+		Vector temp = hands[hand1];
+		hands[hand1] = hands[hand2];
+		hands[hand2] = temp;
+	}
+	
 	void applyAction(Action a) {
 		int[] args;
 		Integer arg;
@@ -172,6 +179,12 @@ class GameState implements Serializable {
 			case Action.UNO:
 				uno = true;
 				break;
+			case Action.SWAP:
+				if (!(a.getArgument() instanceof int[])) {
+					break;
+				}
+				args = (int[]) a.getArgument();
+				swapHands(args[0], args[1]);
 			default:
 				break;
 		}

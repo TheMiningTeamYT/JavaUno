@@ -17,7 +17,7 @@ class Game extends JLayeredPane implements ActionListener {
 	static final int counterClockwise = 1;
 
 	private GameHandler handler;
-	private RuleSet rules = new RuleSet.Composite(new Rule[] {new Stacking(), new DrawToMatch(), new ForcePlay()});
+	private RuleSet rules = new RuleSet.Composite(new Rule[] {new Stacking(), new DrawToMatch(), new ForcePlay(), new SevenZero(),});
 	protected Hand[] hands = {
 			new Hand(this, 0, 360, 640, 120, 0, true, false),
 			new Hand(this, 0, 130, 120, 220, 270, false, false),
@@ -25,7 +25,7 @@ class Game extends JLayeredPane implements ActionListener {
 			new Hand(this, 520, 130, 120, 220, 90, false, false),
 	};
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
-	protected Hand[] screenOrderedHands;
+	protected Hand[] screenHands;
 	private Deck deck;
 	private int turnOrder = clockwise;
 	private int players = 1;
@@ -49,7 +49,7 @@ class Game extends JLayeredPane implements ActionListener {
 		super();
 		this.deck = deck;
 		this.handler = handler;
-		screenOrderedHands = (Hand[])hands.clone();
+		screenHands = (Hand[])hands.clone();
 		deck.reset();
 		rules.bind(this);
 
@@ -203,8 +203,19 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	protected int findScreenHand(int hand) {
-		for (int i = 0; i < screenOrderedHands.length; i++) {
-			if (hands[hand] == screenOrderedHands[i]) {
+		for (int i = 0; i < screenHands.length; i++) {
+			if (hands[hand] == screenHands[i]) {
+				return i;
+			}
+		}
+		
+		// Should be unreachable.
+		return -1;
+	}
+	
+	protected int findHand(int hand) {
+		for (int i = 0; i < screenHands.length; i++) {
+			if (screenHands[hand] == hands[i]) {
 				return i;
 			}
 		}
@@ -221,47 +232,45 @@ class Game extends JLayeredPane implements ActionListener {
 		int cardHeight = Card.getHeight(0);
 		Rectangle size = getBounds();
 
-		screenOrderedHands[0].onResize(0, size.height - cardHeight, size.width, cardHeight);
-		screenOrderedHands[1].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
-		screenOrderedHands[2].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
-		screenOrderedHands[3].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		screenHands[0].onResize(0, size.height - cardHeight, size.width, cardHeight);
+		screenHands[1].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		screenHands[2].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
+		screenHands[3].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
 	}
 	
 	protected void rotateScreenHands(int direction) {
 		Hand temp1;
 		Hand temp2;
-		boolean playableBefore0 = hands[0].getPlayable();
-		boolean upBefore0 = hands[0].getUp();
-		boolean playableBefore3 = hands[3].getPlayable();
-		boolean upBefore3 = hands[3].getUp();
+		boolean[] playableBefore = {screenHands[0].getPlayable(), screenHands[players - 1].getPlayable()};
+		boolean[] upBefore = {screenHands[0].getUp(), screenHands[players - 1].getUp()};
 
 		if (direction == clockwise) {
 			int orientation = 90 * (players - 1);
-			temp1 = screenOrderedHands[0];
+			temp1 = screenHands[0];
 			for (int i = players - 1; i >= 0; i--) {
-				temp2 = screenOrderedHands[i];
-				screenOrderedHands[i] = temp1;
-				screenOrderedHands[i].setOrientation(orientation);
+				temp2 = screenHands[i];
+				screenHands[i] = temp1;
+				screenHands[i].setOrientation(orientation);
 				orientation -= 90;
 				temp1 = temp2;
 			}
 		} else {
 			int orientation = 0;
-			temp1 = screenOrderedHands[players - 1];
+			temp1 = screenHands[players - 1];
 			for (int i = 0; i < players; i++) {
-				temp2 = screenOrderedHands[i];
-				screenOrderedHands[i] = temp1;
-				screenOrderedHands[i].setOrientation(orientation);
+				temp2 = screenHands[i];
+				screenHands[i] = temp1;
+				screenHands[i].setOrientation(orientation);
 				orientation += 90;
 				temp1 = temp2;
 			}
 		}
 
-		hands[0].setPlayable(playableBefore0);
-		hands[0].setUp(upBefore0);
+		screenHands[0].setPlayable(playableBefore[0]);
+		screenHands[0].setUp(upBefore[0]);
 
-		hands[players - 1].setPlayable(playableBefore3);
-		hands[players - 1].setUp(upBefore3);
+		screenHands[players - 1].setPlayable(playableBefore[1]);
+		screenHands[players - 1].setUp(upBefore[1]);
 	}
 	
 	int getPlayers() {
@@ -333,8 +342,27 @@ class Game extends JLayeredPane implements ActionListener {
 		}
 	}
 	
-	private void doTurn() {
+	void swapHands(int hand1, int hand2) {
+		boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
+		boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
+		int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
+		int screenHand1 = findScreenHand(hand1);
+		int screenHand2 = findScreenHand(hand2);
+		Hand temp = hands[hand1];
 		
+		hands[hand1] = hands[hand2];
+		screenHands[screenHand1] = hands[hand2];
+		hands[hand2] = temp;
+		screenHands[screenHand2] = temp;
+		
+		hands[hand1].setPlayable(playableBefore[0]);
+		hands[hand1].setUp(upBefore[0]);
+		hands[hand1].setOrientation(orientationBefore[0]);
+		hands[hand2].setPlayable(playableBefore[1]);
+		hands[hand2].setUp(upBefore[1]);
+		hands[hand2].setOrientation(orientationBefore[1]);
+		
+		onResize();
 	}
 	
 	void onTurn() {
@@ -378,6 +406,11 @@ class Game extends JLayeredPane implements ActionListener {
 		customUISpace.add(endButton);
 		customUISpace.setVisible(true);
 		ended = true;
+		
+		for (int i = 0; i < players; i++) {
+			hands[i].setUp(true);
+		}
+
 		validate();
 		repaint();
 	}
@@ -428,35 +461,45 @@ class Game extends JLayeredPane implements ActionListener {
 			g.setColor(arcColor);
 			
 			if (turnOrder == clockwise) {
+				double sin = 0;
+				double cos = 0;
 				for (int i = 0; i < 20; i++) {
-					arcX[i] = (int)(Math.cos((i + frame)*arcRatio)*(bounds.height / 4)) + bounds.width / 2;
-					arcY[i] = (int)(Math.sin((i + frame)*arcRatio)*(bounds.height / 4)) + bounds.height / 2;
-					arcX[42 - i] = (int)(Math.cos((i + frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
-					arcY[42 - i] = (int)(Math.sin((i + frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
+					sin = Math.sin((i + frame)*arcRatio);
+					cos = Math.cos((i + frame)*arcRatio);
+					arcX[i] = (int)(cos*(bounds.height / 4)) + bounds.width / 2;
+					arcY[i] = (int)(sin*(bounds.height / 4)) + bounds.height / 2;
+					arcX[42 - i] = (int)(cos*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
+					arcY[42 - i] = (int)(sin*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
 				}
 				
 				// Draw a triangle.
-				arcX[20] = arcX[19] - (int)(Math.cos((19 + frame)*arcRatio)*Util.scale(40));
-				arcY[20] = arcY[19] - (int)(Math.sin((19 + frame)*arcRatio)*Util.scale(40));
-				arcX[21] = arcX[19] + (int)((Math.cos((19 + frame)*arcRatio)*Util.scale(-10)) - (Math.sin((19 + frame)*arcRatio)*Util.scale(51.962)));
-				arcY[21] = arcY[19] + (int)((Math.sin((19 + frame)*arcRatio)*Util.scale(-10)) + (Math.cos((19 + frame)*arcRatio)*Util.scale(51.962)));
-				arcX[22] = arcX[19] + (int)(Math.cos((19 + frame)*arcRatio)*Util.scale(20));
-				arcY[22] = arcY[19] + (int)(Math.sin((19 + frame)*arcRatio)*Util.scale(20));
+				arcX[20] = arcX[19] - (int)(cos*Util.scale(40));
+				arcY[20] = arcY[19] - (int)(sin*Util.scale(40));
+				arcX[21] = arcX[19] + (int)((cos*Util.scale(-10)) - (sin*Util.scale(51.962)));
+				arcY[21] = arcY[19] + (int)((sin*Util.scale(-10)) + (cos*Util.scale(51.962)));
+				arcX[22] = arcX[19] + (int)(cos*Util.scale(20));
+				arcY[22] = arcY[19] + (int)(sin*Util.scale(20));
 			} else {
+				double sin = 0;
+				double cos = 0;
 				for (int i = 0; i < 20; i++) {
-					arcX[i] = (int)(Math.cos((i - frame)*arcRatio)*(bounds.height / 4)) + bounds.width / 2;
-					arcY[i] = (int)(Math.sin((i - frame)*arcRatio)*(bounds.height / 4)) + bounds.height / 2;
-					arcX[39 - i] = (int)(Math.cos((i - frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
-					arcY[39 - i] = (int)(Math.sin((i - frame)*arcRatio)*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
+					sin = Math.sin((i - frame)*arcRatio);
+					cos = Math.cos((i - frame)*arcRatio);
+					arcX[i] = (int)(cos*(bounds.height / 4)) + bounds.width / 2;
+					arcY[i] = (int)(sin*(bounds.height / 4)) + bounds.height / 2;
+					arcX[39 - i] = (int)(cos*((bounds.height / 4) - Util.scale(20))) + bounds.width / 2;
+					arcY[39 - i] = (int)(sin*((bounds.height / 4) - Util.scale(20))) + bounds.height / 2;
 				}
 				
 				// Draw a triangle.
-				arcX[40] = arcX[0] - (int)(Math.cos((frame)*arcRatio)*Util.scale(40));
-				arcY[40] = arcY[0] + (int)(Math.sin((frame)*arcRatio)*Util.scale(40));
-				arcX[41] = arcX[0] + (int)((Math.cos((frame)*arcRatio)*Util.scale(-10)) - (Math.sin((frame)*arcRatio)*Util.scale(51.962)));
-				arcY[41] = arcY[0] - (int)((Math.sin((frame)*arcRatio)*Util.scale(-10)) + (Math.cos((frame)*arcRatio)*Util.scale(51.962)));
-				arcX[42] = arcX[0] + (int)(Math.cos((frame)*arcRatio)*Util.scale(20));
-				arcY[42] = arcY[0] - (int)(Math.sin((frame)*arcRatio)*Util.scale(20));
+				sin = Math.sin(frame*arcRatio);
+				cos = Math.cos(frame*arcRatio);
+				arcX[40] = arcX[0] - (int)(cos*Util.scale(40));
+				arcY[40] = arcY[0] + (int)(sin*Util.scale(40));
+				arcX[41] = arcX[0] + (int)((cos*Util.scale(-10)) - (sin*Util.scale(51.962)));
+				arcY[41] = arcY[0] - (int)((sin*Util.scale(-10)) + (cos*Util.scale(51.962)));
+				arcX[42] = arcX[0] + (int)(cos*Util.scale(20));
+				arcY[42] = arcY[0] - (int)(sin*Util.scale(20));
 			}
 	
 			g.fillPolygon(arcX, arcY, 43);

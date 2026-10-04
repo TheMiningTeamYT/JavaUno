@@ -8,6 +8,7 @@ class DrawToMatch extends Rule {
 	private static final long serialVersionUID = 1L;
 
 	int onDraw(Game game, RuleSet.Composite ruleset) {
+		Card card;
 		do {
 			ruleset.drawToHand(0, game);
 			try {
@@ -16,6 +17,9 @@ class DrawToMatch extends Rule {
 				e.printStackTrace();
 			}
 		} while (!game.isLegal(ruleset.getLastDrawn()));
+		card = ruleset.getLastDrawn();
+		card.setPlayable(true);
+		game.checkUno();
 		return PREVENT_FALLBACK;
 	}
 }

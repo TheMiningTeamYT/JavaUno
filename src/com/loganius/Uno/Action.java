@@ -24,6 +24,7 @@ class Action implements Serializable {
 	static final int START_GAME = 10;
 	static final int HELLO = 11;
 	static final int UNO = 12;
+	static final int SWAP = 13;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -82,6 +83,11 @@ class Action implements Serializable {
 	
 	static Action uno(GameState finalState) {
 		return new Action(UNO, null, finalState);
+	}
+	
+	static Action swap(GameState finalState, int hand1, int hand2) {
+		int[] args = new int[] {hand1, hand2};
+		return new Action(SWAP, args, finalState);
 	}
 	
 	Action(int type, Object argument, GameState finalState) {

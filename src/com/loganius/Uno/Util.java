@@ -106,6 +106,10 @@ public class Util {
 		return val*scaleFactor;
 	}
 	
+	public static Font getLargeFont() {
+		return largeFont;
+	}
+	
 	public static Font getScaledFont() {
 		return scaledFont;
 	}

@@ -159,6 +159,17 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
+	void swapHands(int hand1, int hand2) {
+		super.swapHands(hand1, hand2);
+		
+		if (!handlingMessages) {
+			state.swapHands(hand1, hand2);
+			synchronized(outQueue) {
+				outQueue.addElement(Action.swap(state, hand1, hand2));
+			}
+		}
+	}
+	
 	private void move() {
 		if (getTurnOrder() == 0) {
 			moves++;
@@ -221,6 +232,10 @@ class NetworkGameClient extends Game {
 		// Hack for the order in which Java initializes objects.
 		if (actionHandlers == null) {
 			actionHandlers = new Hashtable();
+		}
+		if (actionHandlers.containsKey(new Integer(type))) {
+			System.err.println("!!! TWO PLUGINS ARE USING ACTION" + type + "!!!");
+			return;
 		}
 		new CustomAction(type, handler);
 	}
@@ -326,7 +341,7 @@ class NetworkGameClient extends Game {
 					}
 					resizeHands();
 				}
-				screenOrderedHands[0].setUp(true);
+				screenHands[0].setUp(true);
 				netGameUI.start(player, getPlayers());
 				start();
 				break;
@@ -338,6 +353,12 @@ class NetworkGameClient extends Game {
 					callUno(0);
 				}
 				break;
+			case Action.SWAP:
+				if (!(a.getArgument() instanceof int[])) {
+					break;
+				}
+				args = (int[]) a.getArgument();
+				swapHands(args[0], args[1]);
 			default:
 				break;
 		}
