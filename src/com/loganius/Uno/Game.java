@@ -361,20 +361,22 @@ class Game extends JLayeredPane implements ActionListener {
 		hands[hand2].setPlayable(playableBefore[1]);
 		hands[hand2].setUp(upBefore[1]);
 		hands[hand2].setOrientation(orientationBefore[1]);
-		
+
 		onResize();
 	}
 	
 	void onTurn() {
-		hands[0].setPlayable(false);
-		unoButton.setVisible(false);
-		drew = false;
-		uno = false;
-		if (hands[0].numCards() == 0) {
-			onWin();
-		} else {
-			rotate();
-			checkUno();
+		if (!isInterrupted()) {
+			hands[0].setPlayable(false);
+			unoButton.setVisible(false);
+			drew = false;
+			uno = false;
+			if (hands[0].numCards() == 0) {
+				onWin();
+			} else {
+				rotate();
+				checkUno();
+			}
 		}
 	}
 	

@@ -97,10 +97,12 @@ class Stacking extends Rule implements ActionHandler {
 				}
 			} else {
 				draw(game);
+				finish(game);
 				if (game instanceof NetworkGameClient) {
 					((NetworkGameClient)game).sendAction(FINISH_STACK, null);
 				}
-				finish(game);
+				game.onTurn();
+				game.onTurn();
 			}
 		};
 	}
@@ -137,10 +139,12 @@ class Stacking extends Rule implements ActionHandler {
 				}
 			} else {
 				draw(game);
+				finish(game);
 				if (game instanceof NetworkGameClient) {
 					((NetworkGameClient)game).sendAction(FINISH_STACK, null);
 				}
-				finish(game);
+				game.onTurn();
+				game.onTurn();
 			}
 		};
 	}
@@ -168,9 +172,6 @@ class Stacking extends Rule implements ActionHandler {
 		for (int i = 0; i < cardsToDraw; i++) {
 			game.drawToHand(1);
 		}
-		
-		game.onTurn();
-		game.onTurn();
 	}
 	
 	private void finish(Game game) {

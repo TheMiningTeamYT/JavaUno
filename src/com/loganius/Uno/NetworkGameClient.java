@@ -13,6 +13,7 @@ import java.util.Hashtable;
  * TODO: Add the ability for users to set usernames.
  * TODO: Handle network errors gracefully.
  * TODO: Some more GUI flair for joining a game.
+ * TODO: Ensure the network representation is in sync the game representation
  * note: Can get a font of a given size using the Font constructor
  */
 class NetworkGameClient extends Game {
@@ -132,14 +133,17 @@ class NetworkGameClient extends Game {
 	}
 	
 	void callUno(int player) {
-		if (player == 0) {
-			super.callUno(0);
-			
-			if (!handlingMessages) {
-				state.doUno();
-				synchronized(outQueue) {
-					outQueue.addElement(Action.uno(state));
-				}
+		// Bit of a hack
+		boolean handlingBefore = handlingMessages;
+
+		handlingMessages = false;
+		super.callUno(player);
+		handlingMessages = handlingBefore;
+		
+		if (!handlingMessages) {
+			state.doUno();
+			synchronized(outQueue) {
+				outQueue.addElement(Action.uno(state));
 			}
 		}
 	}
@@ -150,7 +154,7 @@ class NetworkGameClient extends Game {
 
 		handlingMessages = false;
 		super.deal();
-		handlingMessages = true;
+		handlingMessages = handlingBefore;
 
 		state.setLastPlayed(getLastPlayed().getType());
 		synchronized(outQueue) {
