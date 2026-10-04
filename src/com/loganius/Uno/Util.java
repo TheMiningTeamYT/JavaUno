@@ -58,11 +58,11 @@ public class Util {
 	public static Image rotate(Image img, int deg) {
 		RotateFilter rotate = new RotateFilter(deg * Math.PI / 180);
 		ImageProducer producer = new FilteredImageSource(img.getSource(), rotate);
-		return bufferImage(Toolkit.getDefaultToolkit().createImage(producer));
+		return Toolkit.getDefaultToolkit().createImage(producer);
 	}
 	
 	public static Image getImage(URL path) {
-		return bufferImage(Toolkit.getDefaultToolkit().getImage(path));
+		return Toolkit.getDefaultToolkit().getImage(path);
 	}
 	
 	public static Image bufferScaledImage(Image img, int width, int height) {

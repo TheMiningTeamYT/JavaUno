@@ -88,6 +88,9 @@ class Hand {
 	
 	void setOrientation(int orientation) {
 		this.orientation = orientation;
+		for (int i = 0; i < cards.size(); i++) {
+			((Card) cards.elementAt(i)).setOrientation(orientation);
+		}
 	}
 	
 	boolean getPlayable() {
@@ -107,6 +110,9 @@ class Hand {
 
 	void setUp(boolean up) {
 		this.up = up;
+		for (int i = 0; i < cards.size(); i++) {
+			((Card) cards.elementAt(i)).setUp(up);
+		}
 	}
 	
 	Card getCardByType(int cardType) {

@@ -15,40 +15,9 @@ class Card extends JComponent {
 	private static int width = 80;
 	private static int height = 120;
 	private boolean playable;
+	private boolean up;
+	private int orientation;
 	private Card card = this;
-
-	Card(int type, Hand parent) {
-		super();
-		this.type = type;
-		this.parent = parent;
-		playable = parent.getPlayable();
-		
-		DragListener listener = new DragListener();
-		addMouseListener(listener);
-		addMouseMotionListener(listener);
-		
-		parent.getGame().add(this);
-		parent.add(this);
-	}
-
-	void transfer(Hand destination) {
-		parent.remove(this);
-		destination.add(this);
-		playable = destination.getPlayable();
-		this.parent = destination;
-	}
-	
-	int getType() {
-		return type;
-	}
-	
-	CardType getCardType() {
-		return parent.getGame().getDeck().getCard(type);
-	}
-	
-	void setType(int type) {
-		this.type = type;
-	}
 
 	static int getWidth(int orientation) {
 		if (orientation == 0 || orientation == 180) {
@@ -73,13 +42,64 @@ class Card extends JComponent {
 	static void setHeight(int height) {
 		Card.height = height;
 	}
+
+	Card(int type, Hand parent) {
+		super();
+		this.type = type;
+		this.parent = parent;
+		playable = parent.getPlayable();
+		orientation = parent.getOrientation();
+		up = parent.getUp();
+		
+		Game game = parent.getGame();
+		
+		DragListener listener = new DragListener();
+		addMouseListener(listener);
+		addMouseMotionListener(listener);
+		
+		game.add(this);
+		parent.add(this);
+	}
+
+	void transfer(Hand destination) {
+		parent.remove(this);
+		destination.add(this);
+		stopUsingImages();
+		playable = destination.getPlayable();
+		orientation = destination.getOrientation();
+		up = destination.getUp();
+		usingImages();
+		this.parent = destination;
+	}
+	
+	int getType() {
+		return type;
+	}
+	
+	CardType getCardType() {
+		return getGame().getDeck().getCard(type);
+	}
+	
+	void setType(int type) {
+		stopUsingImages();
+		this.type = type;
+		usingImages();
+	}
 	
 	void setPlayable(boolean playable) {
 		this.playable = playable;
 	}
+
+	void setUp(boolean up) {
+		stopUsingImages();
+		this.up = up;
+		usingImages();
+	}
 	
-	boolean getPlayable() {
-		return playable;
+	void setOrientation(int orientation) {
+		stopUsingImages();
+		this.orientation = orientation;
+		usingImages();
 	}
 	
 	Game getGame() {
@@ -88,7 +108,7 @@ class Card extends JComponent {
 	
 	// TODO: Implement animations for played cards.
 	void played() {
-		parent.getGame().discard(this);
+		getGame().discard(this);
 		getCardType().played(this);
 	}
 	
@@ -99,13 +119,39 @@ class Card extends JComponent {
 		return other.getCardType().getValue() - getCardType().getValue();
 	}
 	
+	void usingImages() {
+		if (up) {
+			getCardType().useFace(orientation);
+		} else {
+			getCardType().useBack(orientation);
+		}
+	}
+	
+	void stopUsingImages() {
+		if (up) {
+			getCardType().stopUsingFace(orientation);
+		} else {
+			getCardType().stopUsingBack(orientation);
+		}
+	}
+	
+	public void addNotify() {
+		super.addNotify();
+		usingImages();
+	}
+	
+	public void removeNotify() {
+		super.removeNotify();
+		stopUsingImages();
+	}
+	
 	public void paintComponent(Graphics g) {
-		CardType cardType = parent.getGame().getDeck().getCards()[type];
-		if (parent.getUp()) {
-			Image front = cardType.getFace()[parent.getOrientation() / 90];
+		CardType cardType = getCardType();
+		if (up) {
+			Image front = cardType.getFace(orientation);
 			g.drawImage(front, 0, 0, getWidth(), getHeight(), this);
 		} else {
-			Image back = cardType.getBack()[parent.getOrientation() / 90];
+			Image back = cardType.getBack(orientation);
 			g.drawImage(back, 0, 0, getWidth(), getHeight(), this);
 		}
 	}

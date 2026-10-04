@@ -4,7 +4,7 @@ import java.awt.Image;
 import java.net.URL;
 
 final class WildDraw4Type extends WildChangeColorType {
-	WildDraw4Type(URL front, Image[] back) {
+	WildDraw4Type(URL front, CardFace[] back) {
 		super(front, back);
 		value = Value.DRAW_4;
 	}

@@ -1,6 +1,8 @@
 package com.loganius.Uno;
 import java.awt.*;
+import java.awt.event.*;
 import java.net.URL;
+import javax.swing.*;
 
 // TODO: Figure out how to send a card type over the network in a way I'm happy with.
 // TODO: Pre-scale images for better performance?
@@ -21,31 +23,25 @@ class CardType {
 		static final int DRAW_4 = -6;
 	}
 
-	protected Image[] originalFace;
-	protected Image[] originalBack;
-	protected Image[] face;
-	protected Image[] back;
+	protected CardFace[] face;
+	protected CardFace[] back;
 	private int width = -1;
 	private int height = -1;
 	protected int color;
 	protected int value;
 	protected boolean drawable;
 
-	CardType(URL front, Image[] back, int color, int value, boolean drawable) {
-		originalFace = generateImageList(Util.getImage(front));
-		face = (Image[]) originalFace.clone();
-		originalBack = back;
-		this.back = (Image[])back.clone();
+	CardType(URL front, CardFace[] back, int color, int value, boolean drawable) {
+		face = generateImageList(Util.getImage(front));
+		this.back = back;
 		this.color = color;
 		this.value = value;
 		this.drawable = drawable;
 	}
 	
 	CardType(CardType parent) {
-		originalFace = parent.originalFace;
-		originalBack = parent.originalBack;
-		face = (Image[]) parent.face.clone();
-		back = (Image[]) parent.back.clone();
+		face = (CardFace[]) parent.face.clone();
+		back = (CardFace[]) parent.back.clone();
 		width = parent.width;
 		height = parent.height;
 		color = parent.color;
@@ -53,33 +49,36 @@ class CardType {
 		drawable = parent.drawable;
 	}
 	
-	Image[] getFace() {
-		if (Card.getWidth(0) == width && Card.getHeight(0) == height) {
-			return face;
-		}
-		width = Card.getWidth(0);
-		height = Card.getHeight(0);
-		updateImages();
-		return face;
+	Image getFace(int orientation) {
+		return face[orientation / 90].get();
 	}
 	
-	Image[] getBack() {
-		if (Card.getWidth(0) == width && Card.getHeight(0) == height) {
-			return back;
-		}
-		width = Card.getWidth(0);
-		height = Card.getHeight(0);
-		updateImages();
-		return back;
+	Image getBack(int orientation) {
+		return back[orientation / 90].get();
 	}
 	
-	static Image[] generateImageList(Image src) {
-		return new Image[] {
-			src,
-			Util.rotate(src, 90),
-			Util.rotate(src, 180),
-			Util.rotate(src, 270),
-			
+	void useFace(int orientation) {
+		face[orientation / 90].using();
+	}
+	
+	void stopUsingFace(int orientation) {
+		face[orientation / 90].stopUsing();
+	}
+	
+	void useBack(int orientation) {
+		back[orientation / 90].using();
+	}
+	
+	void stopUsingBack(int orientation) {
+		back[orientation / 90].stopUsing();
+	}
+	
+	static CardFace[] generateImageList(Image src) {
+		return new CardFace[] {
+			new CardFace(src, 0),
+			new CardFace(Util.rotate(src, 90), 90),
+			new CardFace(Util.rotate(src, 180), 180),
+			new CardFace(Util.rotate(src, 270), 270),
 		};
 	}
 	
@@ -94,13 +93,6 @@ class CardType {
 	boolean getDrawable() {
 		return drawable;
 	}
-	
-	private void updateImages() {
-		for (int i = 0; i < 4; i++) {
-			face[i] = Util.bufferScaledImage(originalFace[i], width, height);
-			back[i] = Util.bufferScaledImage(originalBack[i], width, height);
-		}
-	}
 
 	/**
 	 * Take an action when the card is played.
@@ -111,8 +103,59 @@ class CardType {
 		parent.getGame().onTurn();
 	};
 	
+	static class CardFace {
+		private Image original;
+		private Image buffered = null;
+		private int users = 0;
+		private int width = -1;
+		private int height = -1;
+		private int orientation;
+
+		CardFace(Image original, int orientation) {
+			this.original = original;
+			this.orientation = orientation;
+		}
+		
+		Image get() {
+			update();
+			return buffered;
+		}
+		
+		void update() {
+			if (buffered == null || width != Card.getWidth(orientation) || height != Card.getHeight(orientation)) {
+				width = Card.getWidth(orientation);
+				height = Card.getHeight(orientation);
+				buffered = Util.bufferScaledImage(original, width, height);
+			}
+		}
+		
+		void using() {
+			users++;
+			System.out.println("Users using " + getClass().getName() + ": " + users);
+			update();
+		}
+		
+		void stopUsing() {
+			users--;
+			if (users <= 0) {
+				// Because cards often stop using and then immediately start using images,
+				// we wait a bit before actually deleting the image for real.
+				final Timer cleanupDelay = new Timer(1000, new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						if (users <= 0) {
+							buffered = null;
+							users = 0;
+						}
+					}
+				});
+				cleanupDelay.setRepeats(false);
+				cleanupDelay.start();
+			}
+		}
+	}
+	
 	static final class SkipCardType extends CardType {
-		SkipCardType(URL front, Image[] back, int color) {
+		SkipCardType(URL front, CardFace[] back, int color) {
 			super(front, back, color, Value.SKIP, true);
 		}
 		
@@ -124,7 +167,7 @@ class CardType {
 	}
 	
 	static final class ReverseCardType extends CardType {
-		ReverseCardType(URL front, Image[] back, int color) {
+		ReverseCardType(URL front, CardFace[] back, int color) {
 			super(front, back, color, Value.REVERSE, true);
 		}
 		
@@ -136,7 +179,7 @@ class CardType {
 	}
 	
 	static final class DrawTwoCardType extends CardType {
-		DrawTwoCardType(URL front, Image[] back, int color) {
+		DrawTwoCardType(URL front, CardFace[] back, int color) {
 			super(front, back, color, Value.PLUS2, true);
 		}
 		

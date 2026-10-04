@@ -119,7 +119,7 @@ abstract class Deck {
 			cards = (CardType[])deck.clone();
 		}
 
-		private final Image[] back = CardType.generateImageList(Util.getImage(Util.getResource("Assets/UnoCorns/0.gif")));
+		private final CardFace[] back = CardType.generateImageList(Util.getImage(Util.getResource("Assets/UnoCorns/0.gif")));
 		
 		private final CardType[] deck = {
 			new CardType(Util.getResource("Assets/UnoCorns/r0.gif"), back, Color.RED, 0, true),

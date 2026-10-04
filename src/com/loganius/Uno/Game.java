@@ -38,7 +38,7 @@ class Game extends JLayeredPane implements ActionListener {
 	private JPanel customUISpace = new JPanel();
 	private Vector interruptQueue = new Vector();
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image background = bgSource;
+	private Image background = Util.bufferImage(bgSource);
 	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];

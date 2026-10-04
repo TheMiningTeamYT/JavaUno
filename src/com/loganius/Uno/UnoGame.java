@@ -14,7 +14,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	private CardLayout layout = new CardLayout();
 	private JLabel loading = new JLabel("Loading assets, please wait...", SwingConstants.CENTER);
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image bgImage = bgSource;
+	private Image bgImage = Util.bufferImage(bgSource);
 	private Rectangle bgBounds = new Rectangle(0, -80, 640, 640);
 	private Deck deck;
 	private UnoGame unoGame = this;

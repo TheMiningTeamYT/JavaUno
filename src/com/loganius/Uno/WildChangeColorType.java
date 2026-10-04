@@ -11,7 +11,7 @@ class WildChangeColorType extends CardType {
 	private JPanel buttonSpace = new JPanel();
 	private ComponentAdapter listener = new Util.Centering(buttonSpace);
 
-	WildChangeColorType(URL front, Image[] back) {
+	WildChangeColorType(URL front, CardFace[] back) {
 		super(front, back, Color.WILD, Value.CHANGE_COLOR, true);
 		buttonSpace.setLayout(new GridBagLayout());
 		buttonSpace.setOpaque(false);
