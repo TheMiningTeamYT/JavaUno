@@ -14,8 +14,8 @@ class UnoButton extends JComponent {
 	private static int height = 240;
 	
 	private Game game;
-	private Image buttonUp = Util.getImage(getClass().getResource("Assets/uno.gif"));
-	private Image buttonDown = Util.getImage(getClass().getResource("Assets/uno_down.gif"));
+	private Image buttonUp = Util.bufferImage(Util.getImage(getClass().getResource("Assets/uno.gif")));
+	private Image buttonDown = Util.bufferImage(Util.getImage(getClass().getResource("Assets/uno_down.gif")));
 	private Image button = buttonUp;
 
 	UnoButton(Game game) {

@@ -6,6 +6,7 @@ import java.awt.event.*;
 
 public class SevenZero extends Rule {
 	private JLabel instruction = new JLabel("Choose player to swap with", SwingConstants.CENTER);
+	private transient Game game = null;
 
 	SevenZero() {
 		instruction.setForeground(Util.WHITE);
@@ -14,8 +15,10 @@ public class SevenZero extends Rule {
 	}
 	
 	void bind(Game game) {
-		Deck deck = game.getDeck();
-
+		this.game = game;
+	}
+	
+	void bind(Deck deck) {
 		deck.overrideCard(Deck.RED_0, new Zero(deck.getCard(Deck.RED_0)));
 		deck.overrideCard(Deck.YELLOW_0, new Zero(deck.getCard(Deck.YELLOW_0)));
 		deck.overrideCard(Deck.GREEN_0, new Zero(deck.getCard(Deck.GREEN_0)));
@@ -73,6 +76,7 @@ public class SevenZero extends Rule {
 				triangles[i].calculatePoints();
 			}
 			customUISpace.setVisible(true);
+			game.setHandPlayable(false);
 		}
 	}
 	
@@ -100,12 +104,8 @@ public class SevenZero extends Rule {
 		private double sin;
 		private double cos;
 		private double size;
-		private int hand;
-		private Game game;
 
 		SelectorTriangle(double angle, double size, final int hand, final Game game) {
-			this.hand = hand;
-			this.game = game;
 			this.size = size;
 			sin = Math.sin(angle);
 			cos = Math.cos(angle);

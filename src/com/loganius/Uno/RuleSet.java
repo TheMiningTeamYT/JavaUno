@@ -22,6 +22,8 @@ abstract class RuleSet implements Serializable {
 	abstract boolean isLegal(Card card, Game game);
 	
 	void bind(Game game) {};
+	
+	void bind(Deck deck) {};
 
 	abstract void onDraw(Game game);
 	
@@ -97,6 +99,13 @@ abstract class RuleSet implements Serializable {
 		void bind(Game game) {
 			for (int i = 0; i < rules.length; i++) {
 				rules[i].bind(game);
+			}
+			bind(game.getDeck());
+		}
+		
+		void bind(Deck deck) {
+			for (int i = 0; i < rules.length; i++) {
+				rules[i].bind(deck);
 			}
 		}
 

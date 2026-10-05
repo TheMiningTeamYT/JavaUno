@@ -12,6 +12,7 @@ class DiscardHand extends Hand {
 		if (cards.size() > 2) {
 			remove((Card)cards.firstElement());
 		}
+		card.getGame().setLayer(card, 0);
 		onResize();
 	}
 	

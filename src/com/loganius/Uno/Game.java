@@ -224,10 +224,10 @@ class Game extends JLayeredPane implements ActionListener {
 		return -1;
 	}
 	
-	protected boolean isHand0Player() {
-		return (findScreenHand(0) == 0);
+	boolean isHandPlayer(int hand) {
+		return true;
 	}
-	
+
 	protected void resizeHands() {
 		int cardHeight = Card.getHeight(0);
 		Rectangle size = getBounds();
@@ -236,41 +236,45 @@ class Game extends JLayeredPane implements ActionListener {
 		screenHands[1].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
 		screenHands[2].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
 		screenHands[3].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		repaint();
 	}
 	
 	protected void rotateScreenHands(int direction) {
 		Hand temp1;
 		Hand temp2;
-		boolean[] playableBefore = {screenHands[0].getPlayable(), screenHands[players - 1].getPlayable()};
-		boolean[] upBefore = {screenHands[0].getUp(), screenHands[players - 1].getUp()};
+		boolean[] playableBefore = new boolean[players];
+		boolean[] upBefore = new boolean[players];
+		int[] orientationBefore = new int[players];
+
+		for (int i = 0; i < players; i++) {
+			playableBefore[i] = screenHands[i].getPlayable();
+			upBefore[i] = screenHands[i].getUp();
+			orientationBefore[i] = screenHands[i].getOrientation();
+		}
 
 		if (direction == clockwise) {
-			int orientation = 90 * (players - 1);
 			temp1 = screenHands[0];
 			for (int i = players - 1; i >= 0; i--) {
 				temp2 = screenHands[i];
 				screenHands[i] = temp1;
-				screenHands[i].setOrientation(orientation);
-				orientation -= 90;
 				temp1 = temp2;
 			}
 		} else {
-			int orientation = 0;
 			temp1 = screenHands[players - 1];
 			for (int i = 0; i < players; i++) {
 				temp2 = screenHands[i];
 				screenHands[i] = temp1;
-				screenHands[i].setOrientation(orientation);
-				orientation += 90;
 				temp1 = temp2;
 			}
 		}
-
-		screenHands[0].setPlayable(playableBefore[0]);
-		screenHands[0].setUp(upBefore[0]);
-
-		screenHands[players - 1].setPlayable(playableBefore[1]);
-		screenHands[players - 1].setUp(upBefore[1]);
+		
+		for (int i = 0; i < players; i++) {
+			screenHands[i].setUp(upBefore[i]);
+			screenHands[i].setPlayable(playableBefore[i]);
+			screenHands[i].setOrientation(orientationBefore[i]);
+		}
+		
+		resizeHands();
 	}
 	
 	int getPlayers() {
@@ -355,14 +359,15 @@ class Game extends JLayeredPane implements ActionListener {
 		hands[hand2] = temp;
 		screenHands[screenHand2] = temp;
 		
-		hands[hand1].setPlayable(playableBefore[0]);
 		hands[hand1].setUp(upBefore[0]);
+		hands[hand1].setPlayable(playableBefore[0]);
 		hands[hand1].setOrientation(orientationBefore[0]);
-		hands[hand2].setPlayable(playableBefore[1]);
-		hands[hand2].setUp(upBefore[1]);
-		hands[hand2].setOrientation(orientationBefore[1]);
 
-		onResize();
+		hands[hand2].setUp(upBefore[1]);
+		hands[hand2].setPlayable(playableBefore[1]);
+		hands[hand2].setOrientation(orientationBefore[1]);
+		
+		resizeHands();
 	}
 	
 	void onTurn() {
@@ -418,7 +423,7 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void onWin() {
-		onEnd((isHand0Player()) ? "You Win!" : "You Lose");
+		onEnd((isHandPlayer(0)) ? "You Win!" : "You Lose");
 	}
 	
 	void callUno(int player) {
@@ -442,8 +447,7 @@ class Game extends JLayeredPane implements ActionListener {
 		int cardHeight = (int)(Util.scale(120));
 		Card.setWidth(cardWidth);
 		Card.setHeight(cardHeight);
-		
-		resizeHands();
+
 		discardHand.onResize((size.width - cardWidth)/2, (size.height - cardHeight)/2, cardWidth, cardHeight);
 		customUISpace.setBounds(0, cardHeight, size.width, size.height - cardHeight * 2);
 		draw.setBounds(0, 0, cardHeight, cardHeight);
@@ -452,7 +456,7 @@ class Game extends JLayeredPane implements ActionListener {
 		backgroundBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
-		repaint();
+		resizeHands();
 	}
 
 	public void paintComponent(Graphics g) {

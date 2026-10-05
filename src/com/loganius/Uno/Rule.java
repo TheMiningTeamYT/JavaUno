@@ -29,6 +29,8 @@ abstract class Rule implements Serializable {
 	/* Intended to allow rules to override card types if desired */
 	void bind(Game game) {};
 	
+	void bind(Deck deck) {};
+	
 	int isLegal(Card card, Game game) {return ALLOW;};
 	
 	/* 

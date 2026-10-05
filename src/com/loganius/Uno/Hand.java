@@ -45,7 +45,6 @@ class Hand {
 	 */
 	void add(Card card) {
 		boolean added = false;
-		game.add(card, 0);
 
 		if (cards.size() != 0) {
 			for (int i = 0; i < cards.size(); i++) {
@@ -65,6 +64,7 @@ class Hand {
 			game.setLayer((Card)cards.elementAt(i), i);
 		}
 
+		game.add(card);
 		onResize();
 	}
 	
@@ -94,7 +94,7 @@ class Hand {
 	}
 	
 	boolean getPlayable() {
-		return playable && !game.isInterrupted();
+		return playable;
 	}
 	
 	void setPlayable(boolean playable) {

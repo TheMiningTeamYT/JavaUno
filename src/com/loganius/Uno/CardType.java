@@ -40,8 +40,8 @@ class CardType {
 	}
 	
 	CardType(CardType parent) {
-		face = (CardFace[]) parent.face.clone();
-		back = (CardFace[]) parent.back.clone();
+		face = parent.face;
+		back = parent.back;
 		width = parent.width;
 		height = parent.height;
 		color = parent.color;
@@ -59,18 +59,24 @@ class CardType {
 	
 	void useFace(int orientation) {
 		face[orientation / 90].using();
+		face[0].using();
+		face[0].update();
 	}
 	
 	void stopUsingFace(int orientation) {
 		face[orientation / 90].stopUsing();
+		face[0].stopUsing();
 	}
 	
 	void useBack(int orientation) {
 		back[orientation / 90].using();
+		face[0].using();
+		face[0].update();
 	}
 	
 	void stopUsingBack(int orientation) {
 		back[orientation / 90].stopUsing();
+		face[0].stopUsing();
 	}
 	
 	static CardFace[] generateImageList(Image src) {
@@ -120,7 +126,7 @@ class CardType {
 			update();
 			return buffered;
 		}
-		
+
 		void update() {
 			if (buffered == null || width != Card.getWidth(orientation) || height != Card.getHeight(orientation)) {
 				width = Card.getWidth(orientation);
@@ -131,8 +137,6 @@ class CardType {
 		
 		void using() {
 			users++;
-			System.out.println("Users using " + getClass().getName() + ": " + users);
-			update();
 		}
 		
 		void stopUsing() {
@@ -140,7 +144,7 @@ class CardType {
 			if (users <= 0) {
 				// Because cards often stop using and then immediately start using images,
 				// we wait a bit before actually deleting the image for real.
-				final Timer cleanupDelay = new Timer(1000, new ActionListener() {
+				Timer cleanupDelay = new Timer(1000, new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						if (users <= 0) {
 							buffered = null;

@@ -31,17 +31,18 @@ class Stacking extends Rule implements ActionHandler {
 	}
 
 	void bind(Game game) {
-		Deck deck = game.getDeck();
+		if (game instanceof NetworkGameClient) {
+			((NetworkGameClient)game).registerAction(STACK, this);
+			((NetworkGameClient)game).registerAction(FINISH_STACK, this);
+		}
+	}
+	
+	void bind(Deck deck) {
 		deck.overrideCard(Deck.RED_PLUS2, new StackingDrawTwoType(deck.getCard(Deck.RED_PLUS2)));
 		deck.overrideCard(Deck.YELLOW_PLUS2, new StackingDrawTwoType(deck.getCard(Deck.YELLOW_PLUS2)));
 		deck.overrideCard(Deck.GREEN_PLUS2, new StackingDrawTwoType(deck.getCard(Deck.GREEN_PLUS2)));
 		deck.overrideCard(Deck.BLUE_PLUS2, new StackingDrawTwoType(deck.getCard(Deck.BLUE_PLUS2)));
 		deck.overrideCard(Deck.WILD_DRAW4, new StackingDrawFourType(deck.getCard(Deck.WILD_DRAW4)));
-
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).registerAction(STACK, this);
-			((NetworkGameClient)game).registerAction(FINISH_STACK, this);
-		}
 	}
 	
 	int isLegal(Card card, Game game) {
@@ -118,7 +119,6 @@ class Stacking extends Rule implements ActionHandler {
 		}
 		
 		void played(Card parent) {
-			parent.getGame().getCustomUISpace().removeAll();
 			super.played(parent);
 		}
 		
@@ -134,7 +134,6 @@ class Stacking extends Rule implements ActionHandler {
 				setTypesPlayable(game, args);
 
 				if (game instanceof NetworkGameClient) {
-					System.out.println("Sending stacking action!");
 					((NetworkGameClient)game).sendAction(STACK, args);
 				}
 			} else {

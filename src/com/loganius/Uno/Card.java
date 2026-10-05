@@ -17,7 +17,7 @@ class Card extends JComponent {
 	private boolean playable;
 	private boolean up;
 	private int orientation;
-	private Card card = this;
+	private boolean dirty = true;
 
 	static int getWidth(int orientation) {
 		if (orientation == 0 || orientation == 180) {
@@ -53,22 +53,19 @@ class Card extends JComponent {
 		
 		Game game = parent.getGame();
 		
-		DragListener listener = new DragListener();
+		DragListener listener = new DragListener(this);
 		addMouseListener(listener);
 		addMouseMotionListener(listener);
-		
-		game.add(this);
+
 		parent.add(this);
 	}
 
 	void transfer(Hand destination) {
 		parent.remove(this);
-		destination.add(this);
-		stopUsingImages();
 		playable = destination.getPlayable();
 		orientation = destination.getOrientation();
 		up = destination.getUp();
-		usingImages();
+		destination.add(this);
 		this.parent = destination;
 	}
 	
@@ -83,7 +80,6 @@ class Card extends JComponent {
 	void setType(int type) {
 		stopUsingImages();
 		this.type = type;
-		usingImages();
 	}
 	
 	void setPlayable(boolean playable) {
@@ -93,13 +89,11 @@ class Card extends JComponent {
 	void setUp(boolean up) {
 		stopUsingImages();
 		this.up = up;
-		usingImages();
 	}
 	
 	void setOrientation(int orientation) {
 		stopUsingImages();
 		this.orientation = orientation;
-		usingImages();
 	}
 	
 	Game getGame() {
@@ -120,18 +114,24 @@ class Card extends JComponent {
 	}
 	
 	void usingImages() {
-		if (up) {
-			getCardType().useFace(orientation);
-		} else {
-			getCardType().useBack(orientation);
+		if (dirty) {
+			if (up) {
+				getCardType().useFace(orientation);
+			} else {
+				getCardType().useBack(orientation);
+			}
+			dirty = false;
 		}
 	}
 	
 	void stopUsingImages() {
-		if (up) {
-			getCardType().stopUsingFace(orientation);
-		} else {
-			getCardType().stopUsingBack(orientation);
+		if (!dirty) {
+			if (up) {
+				getCardType().stopUsingFace(orientation);
+			} else {
+				getCardType().stopUsingBack(orientation);
+			}
+			dirty = true;
 		}
 	}
 	
@@ -147,24 +147,30 @@ class Card extends JComponent {
 	
 	public void paintComponent(Graphics g) {
 		CardType cardType = getCardType();
+		usingImages();
 		if (up) {
 			Image front = cardType.getFace(orientation);
-			g.drawImage(front, 0, 0, getWidth(), getHeight(), this);
+			g.drawImage(front, 0, 0, this);
 		} else {
 			Image back = cardType.getBack(orientation);
-			g.drawImage(back, 0, 0, getWidth(), getHeight(), this);
+			g.drawImage(back, 0, 0, this);
 		}
 	}
 	
-	class DragListener extends MouseAdapter implements MouseMotionListener {
+	private class DragListener extends MouseAdapter implements MouseMotionListener {
 		private boolean active = false;
 		private int startX;
 		private int startY;
-		private int startLayer;
+		private int startLayer = 0;
 		private Rectangle startBounds = null;
+		private Card card;
+		
+		DragListener(Card parent) {
+			this.card = parent;
+		}
 
 		public void mouseDragged(MouseEvent e) {
-			if (playable) {
+			if (playable && !getGame().isInterrupted()) {
 				if (active) {
 					Rectangle bounds = getBounds();
 					bounds.x += e.getX() - startX;
@@ -175,30 +181,29 @@ class Card extends JComponent {
 					startX = e.getX();
 					startY = e.getY();
 					startBounds = getBounds();
-					startLayer = parent.getGame().getLayer((Component)card);
-					parent.getGame().setLayer(card, JLayeredPane.DRAG_LAYER.intValue());
+					startLayer = JLayeredPane.getLayer(card);
+					getGame().setLayer(card, JLayeredPane.DRAG_LAYER.intValue());
 				}
 			}
 		}
 		
 		public void mouseReleased(MouseEvent e) {
-			if (playable) {
+			if (playable && !getGame().isInterrupted()) {
 				active = false;
 				Rectangle bounds = getBounds();
-				Rectangle discardBounds = parent.getGame().getDiscardHandBounds();
-				parent.getGame().setLayer(card, startLayer);
+				Rectangle discardBounds = getGame().getDiscardHandBounds();
 				if (e.getX() + bounds.x >= discardBounds.x - 10 && e.getX() + bounds.x <= discardBounds.x + discardBounds.width + 10 &&
 					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10) {
-					if (parent.getGame().isLegal(card)) {
-						card.played();
+					if (getGame().isLegal(card)) {
+						played();
 						return;
 					}
 				}
-
-				if (startBounds != null) {
-					setBounds(startBounds);
-					repaint();
-				}
+			}
+			if (startBounds != null) {
+				getGame().setLayer(card, startLayer);
+				setBounds(startBounds);
+				repaint();
 			}
 		}
 		

@@ -60,7 +60,6 @@ class NetworkGameClient extends Game {
 			deal();
 		}
 		netGameUI.setActivePlayer(findScreenHand(0));
-		onResize();
 	}
 	
 	Card drawToHand(int hand, int type) {
@@ -174,13 +173,17 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
+	boolean isHandPlayer(int hand) {
+		return (findScreenHand(0) == hand);
+	}
+	
 	private void move() {
 		if (getTurnOrder() == 0) {
 			moves++;
 		} else {
 			moves--;
 		}
-		hands[0].setPlayable(isHand0Player());
+		hands[0].setPlayable(isHandPlayer(0));
 		netGameUI.setActivePlayer(findScreenHand(0));
 	}
 	
@@ -219,7 +222,7 @@ class NetworkGameClient extends Game {
 			rotate();
 		}
 		moves = newState.getMoves();
-		hands[0].setPlayable(isHand0Player());
+		hands[0].setPlayable(isHandPlayer(0));
 		netGameUI.setActivePlayer(findScreenHand(0));
 		
 		for (int i = 0; i < getPlayers(); i++) {
@@ -351,7 +354,7 @@ class NetworkGameClient extends Game {
 				break;
 			} 
 			case Action.UNO:
-				if (isHand0Player()) {
+				if (isHandPlayer(0)) {
 					callUno(1);
 				} else {
 					callUno(0);

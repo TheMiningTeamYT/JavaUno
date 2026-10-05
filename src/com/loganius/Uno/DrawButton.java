@@ -12,8 +12,8 @@ class DrawButton extends JComponent {
 	private static final long serialVersionUID = 1L;
 
 	private Game game;
-	private Image buttonUp = Util.getImage(getClass().getResource("Assets/draw.gif"));
-	private Image buttonDown = Util.getImage(getClass().getResource("Assets/draw_down.gif"));
+	private Image buttonUp = Util.bufferImage(Util.getImage(getClass().getResource("Assets/draw.gif")));
+	private Image buttonDown = Util.bufferImage(Util.getImage(getClass().getResource("Assets/draw_down.gif")));
 	private Image button = buttonUp;
 
 	DrawButton(Game game) {
