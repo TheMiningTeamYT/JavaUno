@@ -5,17 +5,16 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class SevenZero extends Rule {
-	private JLabel instruction = new JLabel("Choose player to swap with", SwingConstants.CENTER);
-	private transient Game game = null;
+	private static final long serialVersionUID = 1L;
 
-	SevenZero() {
+	private transient JLabel instruction;
+	
+	// Defacto constructor.
+	void bind(Game game) {
+		instruction = new JLabel("Choose player to swap with", SwingConstants.CENTER);
 		instruction.setForeground(Util.WHITE);
 		instruction.setFont(Util.getScaledFont());
 		instruction.addComponentListener(Util.ResizeListener);
-	}
-	
-	void bind(Game game) {
-		this.game = game;
 	}
 	
 	void bind(Deck deck) {
@@ -23,34 +22,35 @@ public class SevenZero extends Rule {
 		deck.overrideCard(Deck.YELLOW_0, new Zero(deck.getCard(Deck.YELLOW_0)));
 		deck.overrideCard(Deck.GREEN_0, new Zero(deck.getCard(Deck.GREEN_0)));
 		deck.overrideCard(Deck.BLUE_0, new Zero(deck.getCard(Deck.BLUE_0)));
-		deck.overrideCard(Deck.RED_7, new Seven(deck.getCard(Deck.RED_7), game));
-		deck.overrideCard(Deck.YELLOW_7, new Seven(deck.getCard(Deck.YELLOW_7), game));
-		deck.overrideCard(Deck.GREEN_7, new Seven(deck.getCard(Deck.GREEN_7), game));
-		deck.overrideCard(Deck.BLUE_7, new Seven(deck.getCard(Deck.BLUE_7), game));
+		deck.overrideCard(Deck.RED_7, new Seven(deck.getCard(Deck.RED_7)));
+		deck.overrideCard(Deck.YELLOW_7, new Seven(deck.getCard(Deck.YELLOW_7)));
+		deck.overrideCard(Deck.GREEN_7, new Seven(deck.getCard(Deck.GREEN_7)));
+		deck.overrideCard(Deck.BLUE_7, new Seven(deck.getCard(Deck.BLUE_7)));
 	}
 	
 	private class Seven extends CardType {
-		SelectorTriangle[] triangles = {null, null, null,};
+		private SelectorTriangle[] triangles = new SelectorTriangle[3];
 
-		Seven(CardType parent, Game game) {
+		Seven(CardType parent) {
 			super(parent);
-			for (int i = 0; i < 3; i++) {
-				triangles[i] = new SelectorTriangle(1.570796327 * (i + 1), 60, i + 1, game);
-			}
 		}
 		
 		void played(Card parent) {
-			final Game game = parent.getGame();
+			Game game = parent.getGame();
 			JPanel customUISpace = game.getCustomUISpace();
 			GridBagConstraints c = new GridBagConstraints();
+			
+			for (int i = 0; i < game.getPlayers() - 1; i++) {
+				triangles[i] = new SelectorTriangle(1.570796327 * (i + 1), 60, i + 1, game);
+			}
 
 			customUISpace.setLayout(new GridBagLayout());
 			
 			c.gridx = 0;
 			c.gridy = 0;
 			c.gridwidth = 0;
-			c.gridheight = 0;
-			c.fill = GridBagConstraints.BOTH;
+			c.gridheight = 1;
+			c.fill = GridBagConstraints.NONE;
 			c.weightx = 0;
 			c.weighty = 0;
 			c.insets = new Insets(10, 10, 10, 10);
@@ -75,6 +75,7 @@ public class SevenZero extends Rule {
 			for (int i = 0; i < game.getPlayers() - 1; i++) {
 				triangles[i].calculatePoints();
 			}
+
 			customUISpace.setVisible(true);
 			game.setHandPlayable(false);
 		}

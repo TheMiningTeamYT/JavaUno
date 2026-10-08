@@ -2,6 +2,8 @@ package com.loganius.Uno;
 
 import java.io.Serializable;
 
+import javax.swing.SwingUtilities;
+
 /**
  * NOTE: Rule processing takes place on a separate thread to enable delaying!
  * If you aren't using Rule.drawToHand (which uses Swing.invokeLater), PLEASE
@@ -25,9 +27,10 @@ abstract class Rule implements Serializable {
 	/* Move is NOT legal */
 	static final int ILLEGAL = 2;
 	static final int STOP = 2;
-	
-	/* Intended to allow rules to override card types if desired */
+
 	void bind(Game game) {};
+	
+	void unbind(Game game) {};
 	
 	void bind(Deck deck) {};
 	
@@ -41,5 +44,13 @@ abstract class Rule implements Serializable {
 	 * to achieve the desired behavior.
 	 * Rules are encouraged to use Game.drew() to allow running other handlers
 	 */
-	int onDraw(Game game, RuleSet.Composite ruleset) {return ALLOW;};
+	int onDraw(Game game) {return ALLOW;};
+	
+	static void drawToHand(final int hand, final Game game) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				game.drawToHand(hand);
+			}
+		});
+	}
 }

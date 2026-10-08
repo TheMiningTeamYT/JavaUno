@@ -25,6 +25,9 @@ class Action implements Serializable {
 	static final int HELLO = 11;
 	static final int UNO = 12;
 	static final int SWAP = 13;
+	static final int CREATE_SLOT = 14;
+	static final int UPDATE_SLOT = 15;
+	static final int SET_RULES = 16;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -41,8 +44,9 @@ class Action implements Serializable {
 		return new Action(REMOVE_FROM_HAND, new int[] {hand, type}, finalState);
 	}
 
-	static Action discard(int type, GameState finalState) {
-		return new Action(DISCARD, new Integer(type), finalState);
+	static Action discard(int type, int hand, GameState finalState) {
+		int[] args = new int[] {type, hand};
+		return new Action(DISCARD, args, finalState);
 	}
 	
 	static Action reverse(GameState finalState) {
@@ -88,6 +92,20 @@ class Action implements Serializable {
 	static Action swap(GameState finalState, int hand1, int hand2) {
 		int[] args = new int[] {hand1, hand2};
 		return new Action(SWAP, args, finalState);
+	}
+	
+	static Action createSlot(GameState finalState, int slot, int val) {
+		int[] args = new int[] {slot, val};
+		return new Action(CREATE_SLOT, args, finalState);
+	}
+	
+	static Action updateSlot(GameState finalState, int slot, int val) {
+		int[] args = new int[] {slot, val};
+		return new Action(UPDATE_SLOT, args, finalState);
+	}
+	
+	static Action setRules(RuleSet rules) {
+		return new Action(SET_RULES, rules, null);
 	}
 	
 	Action(int type, Object argument, GameState finalState) {

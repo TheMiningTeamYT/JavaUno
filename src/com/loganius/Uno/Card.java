@@ -12,6 +12,7 @@ class Card extends JComponent {
 
 	private int type;
 	private Hand parent;
+	private Hand oldParent = null;
 	private static int width = 80;
 	private static int height = 120;
 	private boolean playable;
@@ -61,6 +62,7 @@ class Card extends JComponent {
 	}
 
 	void transfer(Hand destination) {
+		oldParent = parent;
 		parent.remove(this);
 		playable = destination.getPlayable();
 		orientation = destination.getOrientation();
@@ -98,6 +100,14 @@ class Card extends JComponent {
 	
 	Game getGame() {
 		return parent.getGame();
+	}
+	
+	boolean isInHand(Hand hand) {
+		return hand == parent;
+	}
+	
+	boolean wasInHand(Hand hand) {
+		return hand == oldParent;
 	}
 	
 	// TODO: Implement animations for played cards.
@@ -168,6 +178,12 @@ class Card extends JComponent {
 		DragListener(Card parent) {
 			this.card = parent;
 		}
+		
+		public void mouseClicked(MouseEvent e) {
+			if (playable && !getGame().isInterrupted() && getGame().isLegal(card)) {
+				played();
+			}
+		}
 
 		public void mouseDragged(MouseEvent e) {
 			if (playable && !getGame().isInterrupted()) {
@@ -192,18 +208,17 @@ class Card extends JComponent {
 				active = false;
 				Rectangle bounds = getBounds();
 				Rectangle discardBounds = getGame().getDiscardHandBounds();
+				if (startBounds != null) {
+					getGame().setLayer(card, startLayer);
+					setBounds(startBounds);
+					repaint();
+				}
 				if (e.getX() + bounds.x >= discardBounds.x - 10 && e.getX() + bounds.x <= discardBounds.x + discardBounds.width + 10 &&
 					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10) {
 					if (getGame().isLegal(card)) {
 						played();
-						return;
 					}
 				}
-			}
-			if (startBounds != null) {
-				getGame().setLayer(card, startLayer);
-				setBounds(startBounds);
-				repaint();
 			}
 		}
 		

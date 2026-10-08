@@ -58,8 +58,8 @@ class NetGameUI extends JPanel implements ActionListener {
 
 		if (adjustment != 0) {
 			for (int i = 0; i < adjustment; i++) {
-				temp1 = players[numPlayers - 1];
-				for (int j = 0; j < numPlayers; j++) {
+				temp1 = players[0];
+				for (int j = numPlayers - 1; j >= 0; j--) {
 					temp2 = players[j];
 					players[j] = temp1;
 					temp1 = temp2;

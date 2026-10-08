@@ -5,8 +5,8 @@ import javax.swing.*;
 class ForcePlay extends Rule {
 	private static final long serialVersionUID = 1L;
 
-	int onDraw(Game game, RuleSet.Composite ruleset) {
-		final Card drawn = ruleset.getLastDrawn();
+	int onDraw(Game game) {
+		final Card drawn = game.getLastDrawn();
 		if (drawn == null || !game.isLegal(drawn)) {
 			return ALLOW;
 		}

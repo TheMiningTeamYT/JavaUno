@@ -6,7 +6,7 @@
  	* Synchronize rulesets over the network
  	* Allow configuring the ruleset through the UI
  	* House rules to implement:
- 		* Jump In
+ 		* Jump In (done)
  			* Will require bespoke code
  			* Will require new kind of action
  			* Will require overriding turns (hrrrg)
@@ -19,6 +19,8 @@
  		* Draw To Match (done)
  		* Force Play (done)
  		* No Bluffing... whatever that means
+ * Ensure synchronization between the network game state representation
+   and the internal representation.
  * Implement wild card challenges
  	* Add new action(s) for wild draw 4 cards
  	* Implement the UI for challenging wild draw 4s

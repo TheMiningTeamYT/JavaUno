@@ -19,10 +19,10 @@ import java.util.Hashtable;
 class NetworkGameClient extends Game {
 	private Socket socket = null;
 	private volatile Vector inQueue = new Vector();
-	private volatile Vector outQueue = new Vector();
+	private volatile Vector outQueue;
 	private Thread inThread;
 	private Thread outThread;
-	private GameState state = new GameState();
+	private GameState state;
 	private NetGameUI netGameUI = new NetGameUI(this);
 	private int moves = 0;
 	private int player = 0;
@@ -35,6 +35,7 @@ class NetworkGameClient extends Game {
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
 		Rectangle bounds = getBounds();
+		checkState();
 
 		try {
 			socket = new Socket(server, port);
@@ -89,8 +90,9 @@ class NetworkGameClient extends Game {
 
 		if (!handlingMessages) {
 			synchronized(outQueue) {
-				state.discard(card.getType());
-				outQueue.addElement(Action.discard(card.getType(), state));
+				int hand = findHand(card);
+				state.discard(card.getType(), hand);
+				outQueue.addElement(Action.discard(card.getType(), hand, state));
 			}
 		}
 	}
@@ -127,6 +129,17 @@ class NetworkGameClient extends Game {
 			state.setLastPlayed(getLastPlayed().getType());
 			synchronized(outQueue) {
 				outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
+			}
+		}
+	}
+	
+	void setRuleSet(RuleSet rules) {
+		super.setRuleSet(rules);
+		
+		if (!handlingMessages) {
+			state.setRuleSet(rules);
+			synchronized(outQueue) {
+				outQueue.addElement(Action.setRules(rules));
 			}
 		}
 	}
@@ -194,8 +207,8 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	private void discard(int cardType) {
-		Card toBeDiscarded = hands[0].getCardByType(cardType);
+	private void discard(int cardType, int hand) {
+		Card toBeDiscarded = hands[hand].getCardByType(cardType);
 		if (toBeDiscarded != null) {
 			super.discard(toBeDiscarded);
 		}
@@ -205,6 +218,7 @@ class NetworkGameClient extends Game {
 		Integer[][] newHands = newState.getHands();
 		int adjustMoves = ((newState.getMoves()) - moves) % getPlayers();
 		setTurnOrder(newState.getTurnOrder());
+		setRuleSet(newState.getRules());
 
 		for (int i = 0; i < getPlayers(); i++) {
 			hands[i].removeAll();
@@ -241,10 +255,16 @@ class NetworkGameClient extends Game {
 			actionHandlers = new Hashtable();
 		}
 		if (actionHandlers.containsKey(new Integer(type))) {
-			System.err.println("!!! TWO PLUGINS ARE USING ACTION" + type + "!!!");
-			return;
+			throw new IllegalArgumentException("!!! TWO PLUGINS ARE USING ACTION" + type + "!!!");
 		}
 		new CustomAction(type, handler);
+	}
+	
+	void unregisterAction(int type) {
+		if (!actionHandlers.containsKey(new Integer(type))) {
+			throw new IllegalArgumentException("ActionType " + type + "not in use!");
+		}
+		actionHandlers.remove(new Integer(type));
 	}
 	
 	void sendAction(int type, Object arg) {
@@ -252,7 +272,41 @@ class NetworkGameClient extends Game {
 			synchronized(outQueue) {
 				outQueue.addElement(new Action(type, arg, state));
 			}
+		} else {
+			throw new IllegalArgumentException("Action type " + type + " not registered");
 		}
+	}
+	
+	void requestTrackingSlot(int cookie, int val) {
+		checkState();
+		state.requestTrackingSlot(cookie, val);
+		if (!handlingMessages) {
+			synchronized(outQueue) {
+				outQueue.addElement(Action.createSlot(state, cookie, val));
+			}
+		}
+	}
+	
+	void releaseTrackingSlot(int cookie) {
+		checkState();
+		state.releaseTrackingSlot(cookie);
+	}
+	
+	void updateSlot(int cookie, int val) {
+		checkState();
+		if (state.getSlot(cookie) != val) {
+			state.updateSlot(cookie, val);
+			if (!handlingMessages) {
+				synchronized(outQueue) {
+					outQueue.addElement(Action.updateSlot(state, cookie, val));
+				}
+			}
+		}
+	}
+	
+	int getSlot(int cookie) {
+		checkState();
+		return state.getSlot(cookie);
 	}
 	
 	void applyAction(Action a) {
@@ -266,25 +320,25 @@ class NetworkGameClient extends Game {
 
 		switch (a.getType()) {
 			case Action.DRAW_TO_HAND:
-				if (!(a.getArgument() instanceof int[])) {
+				if (a.getArgument().getClass() != int[].class) {
 					break;
 				}
 				args = (int[]) a.getArgument();
 				drawToHand(args[0], args[1]);
 				break;
 			case Action.REMOVE_FROM_HAND:
-				if (!(a.getArgument() instanceof int[])) {
+				if (a.getArgument().getClass() != int[].class) {
 					break;
 				}
 				args = (int[]) a.getArgument();
 				removeFromHand(args[0], args[1]);
 				break;
 			case Action.DISCARD:
-				if (!(a.getArgument() instanceof Integer)) {
+				if (a.getArgument().getClass() != int[].class) {
 					break;
 				}
-				arg = (Integer) a.getArgument();
-				discard(arg.intValue());
+				args = (int[]) a.getArgument();
+				discard(args[0], args[1]);
 				break;
 			case Action.REVERSE:
 				if (a.getArgument() != null) {
@@ -299,7 +353,7 @@ class NetworkGameClient extends Game {
 				rotateHands();
 				break;
 			case Action.TURN:
-				if (!(a.getArgument() instanceof Integer)) {
+				if (a.getArgument().getClass() != Integer.class) {
 					break;
 				}
 				arg = (Integer) a.getArgument();
@@ -307,7 +361,7 @@ class NetworkGameClient extends Game {
 				onTurn();
 				break;
 			case Action.SET_STATE:
-				if (!(a.getArgument() instanceof GameState)) {
+				if (a.getArgument().getClass() != GameState.class) {
 					break;
 				}
 				{
@@ -316,7 +370,7 @@ class NetworkGameClient extends Game {
 				}
 				break;
 			case Action.WELCOME: {
-				if (!(a.getArgument() instanceof Action.WelcomeAction)) {
+				if (a.getArgument().getClass() != Action.WelcomeAction.class) {
 					break;
 				}
 				Action.WelcomeAction hello = (Action.WelcomeAction) a.getArgument();
@@ -344,7 +398,7 @@ class NetworkGameClient extends Game {
 				int adjustment = player;
 				if (adjustment != 0) {
 					for (int i = 0; i < adjustment; i++) {
-						rotateScreenHands(1);
+						rotateScreenHands(0);
 					}
 					resizeHands();
 				}
@@ -352,7 +406,7 @@ class NetworkGameClient extends Game {
 				netGameUI.start(player, getPlayers());
 				start();
 				break;
-			} 
+			}
 			case Action.UNO:
 				if (isHandPlayer(0)) {
 					callUno(1);
@@ -361,11 +415,18 @@ class NetworkGameClient extends Game {
 				}
 				break;
 			case Action.SWAP:
-				if (!(a.getArgument() instanceof int[])) {
+				if (a.getArgument().getClass() != int[].class) {
 					break;
 				}
 				args = (int[]) a.getArgument();
 				swapHands(args[0], args[1]);
+				break;
+			case Action.SET_RULES:
+				if (!(a.getArgument() instanceof RuleSet)) {
+					break;
+				}
+				setRuleSet((RuleSet)a.getArgument());
+				break;
 			default:
 				break;
 		}
@@ -432,9 +493,22 @@ class NetworkGameClient extends Game {
 		outQueue.addElement(Action.requestStart());
 	}
 	
+	void checkState() {
+		if (state == null) {
+			state = new GameState();
+		}
+		if (outQueue == null) {
+			outQueue = new Vector();
+		}
+		if (actionHandlers == null) {
+			actionHandlers = new Hashtable();
+		}
+	}
+	
 	private class TimerListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			Vector queue = null;
+			handlingMessages = true;
 			synchronized(inQueue) {
 				if (inQueue.size() > 0) {
 					queue = (Vector)inQueue.clone();
@@ -447,14 +521,17 @@ class NetworkGameClient extends Game {
 					Action[] acts = (Action[]) queue.firstElement();
 					for (int i = 0; i < acts.length; i++) {
 						a = acts[i];
-						state.applyAction(a);
+						if (!actionHandlers.containsKey(new Integer(a.getType()))
+							|| !((CustomAction)actionHandlers.get(new Integer(a.getType()))).dryRun(a)) {
+							state.applyAction(a);
+						}
 					}
 					queue.removeElementAt(0);
 				} while (queue.size() > 0);
 
 				if (a != null && a.verify(state)) {
 					synchronized(inQueue) {
-						handlingMessages = true;
+						
 						do {
 							Action[] acts = (Action[]) inQueue.firstElement();
 							for (int i = 0; i < acts.length; i++) {
@@ -462,12 +539,12 @@ class NetworkGameClient extends Game {
 							}
 							inQueue.removeElementAt(0);
 						} while (inQueue.size() > 0);
-						handlingMessages = false;
 					}
 				} else {
 					synchronized(outQueue) {
 						outQueue.removeAllElements();
 						outQueue.addElement(Action.getState());
+						System.out.println("Client desync!");
 					}
 				}
 			}
@@ -477,6 +554,7 @@ class NetworkGameClient extends Game {
 					outQueue.notify();
 				}
 			}
+			handlingMessages = false;
 		}
 	}
 	
@@ -493,6 +571,14 @@ class NetworkGameClient extends Game {
 		boolean handleAction(Action a) {
 			if (a.getType() == type) {
 				handler.handleAction(type, a.getArgument(), game);
+				return true;
+			}
+			return false;
+		}
+		
+		boolean dryRun(Action a) {
+			if (a.getType() == type) {
+				handler.actionDryRun(type, a.getArgument(), game);
 				return true;
 			}
 			return false;

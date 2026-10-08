@@ -366,6 +366,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 							e2.printStackTrace();
 						}
 						gameState = new NetworkGameClient(deck, unoGame, player.getText(), "127.0.0.1", portNum);
+						gameState.setRuleSet(new RuleSet.Composite(new Rule[] {new DrawToMatch(), new ForcePlay(), new SevenZero(), new JumpIn(), new Stacking(),}));
 						parentContainer.remove(mainScreen);
 						parentContainer.add(gameState);
 						parentContainer.validate();

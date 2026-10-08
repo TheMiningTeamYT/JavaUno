@@ -10,6 +10,7 @@ import java.util.Vector;
  * TODO: Add safety checks
  */
 class Game extends JLayeredPane implements ActionListener {
+	public static final int MAX_PLAYERS = 4;
 	private static final long serialVersionUID = 1L;
 	private static final double arcRatio = 0.13962634;
 	private static final Color arcColor = new Color(0, 220, 255);
@@ -17,7 +18,7 @@ class Game extends JLayeredPane implements ActionListener {
 	static final int counterClockwise = 1;
 
 	private GameHandler handler;
-	private RuleSet rules = new RuleSet.Composite(new Rule[] {new Stacking(), new DrawToMatch(), new ForcePlay(), new SevenZero(),});
+	private RuleSet rules = new RuleSet.Standard();
 	protected Hand[] hands = {
 			new Hand(this, 0, 360, 640, 120, 0, true, false),
 			new Hand(this, 0, 130, 120, 220, 270, false, false),
@@ -27,16 +28,17 @@ class Game extends JLayeredPane implements ActionListener {
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
 	protected Hand[] screenHands;
 	private Deck deck;
+	private Card lastDrawn = null;
 	private int turnOrder = clockwise;
 	private int players = 1;
 	private boolean drew = false;
 	private boolean uno = false;
 	private boolean ended = false;
+	private int interruptQueue = 0;
 	
 	private DrawButton draw = new DrawButton(this);
 	private UnoButton unoButton = new UnoButton(this);
 	private JPanel customUISpace = new JPanel();
-	private Vector interruptQueue = new Vector();
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
 	private Image background = Util.bufferImage(bgSource);
 	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
@@ -98,12 +100,6 @@ class Game extends JLayeredPane implements ActionListener {
 		return rules;
 	}
 	
-	void setRuleSet(RuleSet ruleset) {
-		rules = ruleset;
-		deck.reset();
-		rules.bind(this);
-	}
-	
 	int getTurnOrder() {
 		return turnOrder;
 	}
@@ -153,17 +149,17 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void interrupt() {
-		interruptQueue.addElement(new Boolean(true));
+		interruptQueue++;
 	}
 	
 	void release() {
 		if (isInterrupted()) {
-			interruptQueue.removeElementAt(interruptQueue.size() - 1);
+			interruptQueue--;
 		}
 	}
 	
 	boolean isInterrupted() {
-		return (interruptQueue.size() > 0);
+		return (interruptQueue > 0);
 	}
 	
 	Rectangle getDiscardHandBounds() {
@@ -221,6 +217,23 @@ class Game extends JLayeredPane implements ActionListener {
 		}
 		
 		// Should be unreachable.
+		return -1;
+	}
+	
+	int findHand(Card card) {
+		if (card.isInHand(discardHand)) {
+			for (int i = 0; i < players; i++) {
+				if (card.wasInHand(hands[i])) {
+					return i;
+				}
+			}
+		} else {
+			for (int i = 0; i < players; i++) {
+				if (card.isInHand(hands[i])) {
+					return i;
+				}
+			}
+		}
 		return -1;
 	}
 	
@@ -282,7 +295,7 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void setPlayers(int players) {
-		if (players > 0 && players <= 4) {
+		if (players > 0 && players <= MAX_PLAYERS) {
 			this.players = players;
 		}
 	}
@@ -307,8 +320,12 @@ class Game extends JLayeredPane implements ActionListener {
 		return hands[hand].contains(cardType);
 	}
 	
+	void setTypePlayable(int type, boolean playable, int hand) {
+		hands[hand].setTypePlayable(type, playable);
+	}
+
 	void setTypePlayable(int type, boolean playable) {
-		hands[0].setTypePlayable(type, playable);
+		setTypePlayable(type, playable, 0);
 	}
 
 	/* These functions here are intended to be intercepted so their work can be captured
@@ -318,7 +335,11 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 
 	Card drawToHand(int hand, int type) {
-		return new Card(type, hands[hand]);
+		return (lastDrawn = new Card(type, hands[hand]));
+	}
+	
+	Card getLastDrawn() {
+		return lastDrawn;
 	}
 	
 	void removeFromHand(int hand, Card card) {
@@ -347,27 +368,29 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void swapHands(int hand1, int hand2) {
-		boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
-		boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
-		int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
-		int screenHand1 = findScreenHand(hand1);
-		int screenHand2 = findScreenHand(hand2);
-		Hand temp = hands[hand1];
-		
-		hands[hand1] = hands[hand2];
-		screenHands[screenHand1] = hands[hand2];
-		hands[hand2] = temp;
-		screenHands[screenHand2] = temp;
-		
-		hands[hand1].setUp(upBefore[0]);
-		hands[hand1].setPlayable(playableBefore[0]);
-		hands[hand1].setOrientation(orientationBefore[0]);
-
-		hands[hand2].setUp(upBefore[1]);
-		hands[hand2].setPlayable(playableBefore[1]);
-		hands[hand2].setOrientation(orientationBefore[1]);
-		
-		resizeHands();
+		if (hands[hand1].numCards() <= 0 && hands[hand2].numCards() <= 0) {
+			boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
+			boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
+			int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
+			int screenHand1 = findScreenHand(hand1);
+			int screenHand2 = findScreenHand(hand2);
+			Hand temp = hands[hand1];
+			
+			hands[hand1] = hands[hand2];
+			screenHands[screenHand1] = hands[hand2];
+			hands[hand2] = temp;
+			screenHands[screenHand2] = temp;
+			
+			hands[hand1].setUp(upBefore[0]);
+			hands[hand1].setPlayable(playableBefore[0]);
+			hands[hand1].setOrientation(orientationBefore[0]);
+	
+			hands[hand2].setUp(upBefore[1]);
+			hands[hand2].setPlayable(playableBefore[1]);
+			hands[hand2].setOrientation(orientationBefore[1]);
+			
+			resizeHands();
+		}
 	}
 	
 	void onTurn() {
@@ -383,6 +406,14 @@ class Game extends JLayeredPane implements ActionListener {
 				checkUno();
 			}
 		}
+	}
+	
+	void setRuleSet(RuleSet ruleset) {
+		System.out.println("Set ruleset to instance of " + ruleset.getClass().getName());
+		rules.unbind(this);
+		deck.reset();
+		rules = ruleset;
+		rules.bind(this);
 	}
 	
 	void onEnd(String msg) {

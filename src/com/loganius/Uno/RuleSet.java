@@ -23,6 +23,8 @@ abstract class RuleSet implements Serializable {
 	
 	void bind(Game game) {};
 	
+	void unbind(Game game) {};
+	
 	void bind(Deck deck) {};
 
 	abstract void onDraw(Game game);
@@ -85,7 +87,6 @@ abstract class RuleSet implements Serializable {
 	static class Composite extends RuleSet {
 		private static final long serialVersionUID = 1L;
 		private Rule[] rules;
-		private transient Card lastDrawn = null;
 		
 		Composite(Rule[] rules) {
 			this(new Standard(), rules);
@@ -101,6 +102,12 @@ abstract class RuleSet implements Serializable {
 				rules[i].bind(game);
 			}
 			bind(game.getDeck());
+		}
+		
+		void unbind(Game game) {
+			for (int i = 0; i < rules.length; i++) {
+				rules[i].unbind(game);
+			}
 		}
 		
 		void bind(Deck deck) {
@@ -131,18 +138,6 @@ abstract class RuleSet implements Serializable {
 			}
 		}
 		
-		void drawToHand(final int hand, final Game game) {
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					lastDrawn = game.drawToHand(hand);
-				}
-			});
-		}
-		
-		Card getLastDrawn() {
-			return lastDrawn;
-		}
-		
 		void onDraw(final Game game) {
 			if (game.getHandPlayable(0) && !game.getDrew()) {
 				game.setHandPlayable(false);
@@ -151,7 +146,7 @@ abstract class RuleSet implements Serializable {
 					public void run() {
 						boolean runFallback = true;
 						for (int i = 0; i < rules.length; i++) {
-							switch (rules[i].onDraw(game, ruleset)) {
+							switch (rules[i].onDraw(game)) {
 								case Rule.STOP:
 									return;
 								case Rule.PREVENT_FALLBACK:

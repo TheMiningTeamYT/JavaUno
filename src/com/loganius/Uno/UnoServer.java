@@ -101,15 +101,13 @@ public class UnoServer {
 					while (inQueue[client].size() > 0) {
 						Action[] actionSet = (Action[])inQueue[client].firstElement();
 						for (int action = 0; action < actionSet.length; action++) {
-							Action priorAction = a;
 							a = actionSet[action];
-							// System.out.println("Received type " + a.getType() + " from " + client);
+							System.out.println("Received type " + a.getType() + " from " + client);
 							switch (a.getType()) {
 								case Action.SEND_STATE:
 									synchronized(outQueue[client]) {
 										outQueue[client].addElement(Action.setState(state));
 									}
-									a = priorAction;
 									break;
 								case Action.HELLO: {
 									Object received = a.getArgument();
@@ -129,14 +127,23 @@ public class UnoServer {
 											outQueue[i].addElement(Action.welcome(currentNames, i, players));
 										}
 									}
-									a = priorAction;
 									break;
 								}
 								case Action.REQUEST_START:
 									if (client == 0) {
 										start = true;
 									}
-									a = priorAction;
+									break;
+								case Action.CREATE_SLOT:
+								case Action.UPDATE_SLOT:
+									newState.applyAction(a);
+									break;
+								case Action.SET_RULES:
+									if (client != 0 && !start) {
+										break;
+									}
+									acts.addElement(a);
+									newState.applyAction(a);
 									break;
 								default:
 									acts.addElement(a);
