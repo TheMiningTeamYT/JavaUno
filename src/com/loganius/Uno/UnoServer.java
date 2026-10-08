@@ -102,7 +102,7 @@ public class UnoServer {
 						Action[] actionSet = (Action[])inQueue[client].firstElement();
 						for (int action = 0; action < actionSet.length; action++) {
 							a = actionSet[action];
-							System.out.println("Received type " + a.getType() + " from " + client);
+							// System.out.println("Received type " + a.getType() + " from " + client);
 							switch (a.getType()) {
 								case Action.SEND_STATE:
 									synchronized(outQueue[client]) {

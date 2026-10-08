@@ -166,4 +166,19 @@ public class Util {
 			e.getComponent().validate();
 		}
 	}
+	
+	// TODO: Make this a layout manager?
+	public static class CenteringColumn extends ComponentAdapter {
+		private Component child;
+		
+		CenteringColumn(Component child) {
+			this.child = child;
+		}
+		
+		public void componentResized(ComponentEvent e) {
+			Rectangle bounds = e.getComponent().getBounds();
+			child.setBounds(bounds.width / 4, 0, bounds.width / 2, bounds.height);
+			e.getComponent().validate();
+		}
+	}
 }

@@ -140,8 +140,6 @@ abstract class RuleSet implements Serializable {
 		
 		void onDraw(final Game game) {
 			if (game.getHandPlayable(0) && !game.getDrew()) {
-				game.setHandPlayable(false);
-				final Composite ruleset = this;
 				new Thread() {
 					public void run() {
 						boolean runFallback = true;

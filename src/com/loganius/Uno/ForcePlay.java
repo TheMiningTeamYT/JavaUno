@@ -12,6 +12,7 @@ class ForcePlay extends Rule {
 		}
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
+				game.setHandPlayable(false);
 				drawn.played();
 			}
 		});

@@ -1,14 +1,11 @@
 package com.loganius.Uno;
 
-/**
- * TODO: Figure out a way to slow this down so the player can see what's happening
- * without breaking everything.
- */
 class DrawToMatch extends Rule {
 	private static final long serialVersionUID = 1L;
 
 	int onDraw(Game game) {
 		Card card;
+		game.setHandPlayable(false);
 		do {
 			drawToHand(0, game);
 			try {

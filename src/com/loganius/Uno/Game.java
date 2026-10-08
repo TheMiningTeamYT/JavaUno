@@ -204,8 +204,7 @@ class Game extends JLayeredPane implements ActionListener {
 				return i;
 			}
 		}
-		
-		// Should be unreachable.
+
 		return -1;
 	}
 	
@@ -215,8 +214,7 @@ class Game extends JLayeredPane implements ActionListener {
 				return i;
 			}
 		}
-		
-		// Should be unreachable.
+
 		return -1;
 	}
 	
@@ -414,7 +412,6 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void setRuleSet(RuleSet ruleset) {
-		System.out.println("Set ruleset to instance of " + ruleset.getClass().getName());
 		rules.unbind(this);
 		deck.reset();
 		rules = ruleset;

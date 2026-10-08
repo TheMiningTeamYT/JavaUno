@@ -3,8 +3,8 @@
  * Implement house rules
  	* Implement the rules themselves
  	* Implement a composite ruleset comprised of individual rules (done)
- 	* Synchronize rulesets over the network
- 	* Allow configuring the ruleset through the UI
+ 	* Synchronize rulesets over the network (done)
+ 	* Allow configuring the ruleset through the UI (done)
  	* House rules to implement:
  		* Jump In (done)
  			* Will require bespoke code
@@ -33,6 +33,8 @@
  * Full code audit
 
 Post 1.0 release checklist:
+ * Add a rule that makes the Uno button appear at all times,
+   but punishes you for pressing it too early.
  * Local AI players
  * Loadable, scriptable decks
  * Scriptable rules
