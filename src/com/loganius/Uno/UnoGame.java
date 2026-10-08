@@ -416,7 +416,6 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 						}
 						for (int i = 0; i < ruleFactories.size(); i++) {
 							if (ruleBoxes[i].isSelected()) {
-								System.out.println("Adding " + ((RuleFactory)ruleFactories.elementAt(i)).getName());
 								rules.addElement(((RuleFactory)ruleFactories.elementAt(i)).create());
 							}
 						}

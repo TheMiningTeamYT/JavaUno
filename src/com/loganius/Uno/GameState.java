@@ -143,7 +143,7 @@ class GameState implements Serializable {
 		if (!tracking.containsKey(new Integer(cookie))) {
 			throw new IllegalArgumentException("Cookie " + cookie + " not in use!");
 		}
-		trackingCookies.remove(new Integer(cookie));
+		trackingCookies.removeElement(new Integer(cookie));
 		tracking.remove(new Integer(cookie));
 	}
 	

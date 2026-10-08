@@ -71,12 +71,11 @@ abstract class Deck {
 	static final int BLUE_DRAW4 = 61;
 	
 	int random() {
-		/*int card;
+		int card;
 		do {
 			card = (int)(Math.random() * cards.length);
 		} while (!getCard(card).drawable);
-		return card;*/
-		return Deck.RED_7;
+		return card;
 	}
 	
 	CardType getCard(int type) {
