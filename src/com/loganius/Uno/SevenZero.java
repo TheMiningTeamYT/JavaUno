@@ -152,4 +152,14 @@ public class SevenZero extends Rule {
 			return new Dimension((int)(size*Util.getScaleFactor()), (int)(size*Util.getScaleFactor()));
 		}
 	}
+	
+	static class Factory implements RuleFactory {
+		public Rule create() {
+			return new SevenZero();
+		}
+		
+		public String getName() {
+			return "7-0";
+		}
+	}
 }

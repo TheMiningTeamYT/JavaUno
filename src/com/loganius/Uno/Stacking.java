@@ -255,4 +255,14 @@ class Stacking extends Rule implements ActionHandler {
 		}
 		
 	}
+	
+	static class Factory implements RuleFactory {
+		public Rule create() {
+			return new Stacking();
+		}
+		
+		public String getName() {
+			return "Stack";
+		}
+	}
 }

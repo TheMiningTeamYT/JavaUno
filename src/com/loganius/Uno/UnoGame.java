@@ -1,11 +1,15 @@
 package com.loganius.Uno;
+
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.*;
+import java.util.Vector;
 
 // TODO: Handle scaling the game from the get go rather than starting at 640x480
 public class UnoGame extends JApplet implements GameHandler, ActionListener {
+	private Vector ruleFactories = new Vector();
+
 	private Game gameState = null;
 	private UnoServer server = null;
 
@@ -19,6 +23,14 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	private Deck deck;
 	private UnoGame unoGame = this;
 	private int frame = 0;
+	
+	UnoGame() {
+		ruleFactories.addElement(new DrawToMatch.Factory());
+		ruleFactories.addElement(new ForcePlay.Factory());
+		ruleFactories.addElement(new SevenZero.Factory());
+		ruleFactories.addElement(new JumpIn.Factory());
+		ruleFactories.addElement(new Stacking.Factory());
+	}
 	
 	private void init(Container parent) {
 		this.parentContainer = parent;
@@ -97,20 +109,6 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
 		setVisible(true);
 		init(getContentPane());
-	}
-
-	public static void main(String[] args) {
-		JFrame frame = new JFrame("Uno!");
-		frame.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				System.exit(0);
-			}
-		});
-		frame.setSize(640, 480);
-		frame.getContentPane().setLayout(new GridLayout(1, 1));
-		frame.getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
-		frame.setVisible(true);
-		new UnoGame().init(frame.getContentPane());
 	}
 	
 	private class MainMenu extends JPanel {
@@ -265,6 +263,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 
 			c.gridy++;
 			c.gridwidth = 1;
+			start.setMnemonic(KeyEvent.VK_ENTER);
 			start.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					if (host.getText() == null) {
@@ -293,6 +292,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			inner.add(start, c);
 			
 			c.gridx++;
+			back.setMnemonic(KeyEvent.VK_BACK_SPACE);
 			back.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					layout.show(mainScreen, "main");
@@ -313,18 +313,23 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 	private class HostMenu extends JPanel {
 		private JTextField player = new JTextField(40);
 		private JTextField port = new JTextField("23770", 6);
+		private JCheckBox[] ruleBoxes = new JCheckBox[ruleFactories.size()];
 		private JLabel error = new JLabel("", SwingConstants.CENTER);
 		
 		HostMenu() {
 			JPanel inner = new JPanel(new GridBagLayout());
+			JLabel[] ruleLabels = new JLabel[ruleFactories.size()];
 			JLabel playerLabel = new JLabel("Name", SwingConstants.CENTER);
 			JLabel portLabel = new JLabel("Port", SwingConstants.CENTER);
+			JLabel rulesLabel = new JLabel("Rules", SwingConstants.CENTER);
 			JButton start = new JButton("Host");
 			JButton back = new JButton("Back");
 			GridBagConstraints c = new GridBagConstraints();
+			GridBagConstraints c2 = new GridBagConstraints();
 
 			Util.commonComponentInit(portLabel, Util.WHITE);
 			Util.commonComponentInit(playerLabel, Util.WHITE);
+			Util.commonComponentInit(rulesLabel, Util.WHITE);
 			Util.commonComponentInit(player, Util.BLACK);
 			Util.commonComponentInit(port, Util.BLACK);
 			Util.commonComponentInit(start, Util.BLACK);
@@ -351,22 +356,77 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 
 			c.gridy++;
 			inner.add(port, c);
+			
+			c.gridy++;
+			inner.add(rulesLabel, c);
+			
+			for (int i = 0; i < ruleFactories.size();) {
+				JPanel ruleBox = new JPanel(new GridBagLayout());
+				c.gridy++;
+				
+				c2.gridx = 0;
+				c2.gridy = 0;
+				c2.gridwidth = 1;
+				c2.gridheight = 1;
+				c2.weightx = 1;
+				c2.weighty = 1;
+				c2.fill = GridBagConstraints.BOTH;
+
+				for (int j = 0; i < ruleFactories.size() && j < 4; i++, j++) {
+					RuleFactory factory = (RuleFactory)ruleFactories.elementAt(i);
+					JPanel box = new JPanel();
+					box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+	
+					ruleLabels[i] = new JLabel(factory.getName(), SwingConstants.CENTER);
+					ruleLabels[i].setForeground(Util.WHITE);
+					ruleLabels[i].setFont(Util.getScaledFont());
+					ruleLabels[i].addComponentListener(Util.ResizeListener);
+					ruleLabels[i].setAlignmentX(CENTER_ALIGNMENT);
+					
+					ruleBoxes[i] = new JCheckBox();
+					ruleBoxes[i].setOpaque(false);
+					ruleBoxes[i].setAlignmentX(CENTER_ALIGNMENT);
+	
+					box.add(ruleLabels[i]);
+					box.add(ruleBoxes[i]);
+	
+					box.setOpaque(false);
+					ruleBox.add(box, c2);
+					
+					c2.gridx++;
+				}
+				ruleBox.setOpaque(false);
+				inner.add(ruleBox, c);
+			}
 
 			c.gridx = 0;
 			c.gridy++;
 			c.gridwidth = 1;
+			start.setMnemonic(KeyEvent.VK_ENTER);
 			start.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					String name = player.getText();
 					int portNum = Integer.parseInt(port.getText());
 					if (name != null && name.length() != 0) {
+						Vector rules = new Vector();
 						try {
 							server = new UnoServer(portNum);
 						} catch (IOException e2) {
 							e2.printStackTrace();
 						}
+						for (int i = 0; i < ruleFactories.size(); i++) {
+							if (ruleBoxes[i].isSelected()) {
+								System.out.println("Adding " + ((RuleFactory)ruleFactories.elementAt(i)).getName());
+								rules.addElement(((RuleFactory)ruleFactories.elementAt(i)).create());
+							}
+						}
 						gameState = new NetworkGameClient(deck, unoGame, player.getText(), "127.0.0.1", portNum);
-						gameState.setRuleSet(new RuleSet.Composite(new Rule[] {new DrawToMatch(), new ForcePlay(), new SevenZero(), new JumpIn(), new Stacking(),}));
+						if (rules.size() > 0) {
+							Rule[] ruleArray;
+							ruleArray = new Rule[rules.size()];
+							rules.copyInto(ruleArray);
+							gameState.setRuleSet(new RuleSet.Composite(ruleArray));
+						}
 						parentContainer.remove(mainScreen);
 						parentContainer.add(gameState);
 						parentContainer.validate();
@@ -376,6 +436,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			inner.add(start, c);
 			
 			c.gridx++;
+			back.setMnemonic(KeyEvent.VK_BACK_SPACE);
 			back.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					layout.show(mainScreen, "main");
@@ -391,5 +452,19 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 			inner.setOpaque(false);
 			add(inner);
 		}
+	}
+	
+	public static void main(String[] args) {
+		JFrame frame = new JFrame("Uno!");
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				System.exit(0);
+			}
+		});
+		frame.setSize(640, 480);
+		frame.getContentPane().setLayout(new GridLayout(1, 1));
+		frame.getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
+		frame.setVisible(true);
+		new UnoGame().init(frame.getContentPane());
 	}
 }

@@ -21,4 +21,14 @@ class DrawToMatch extends Rule {
 		game.checkUno();
 		return PREVENT_FALLBACK;
 	}
+	
+	static class Factory implements RuleFactory {
+		public Rule create() {
+			return new DrawToMatch();
+		}
+		
+		public String getName() {
+			return "Draw to Match";
+		}
+	}
 }

@@ -172,4 +172,14 @@ public class JumpIn extends Rule implements ActionHandler {
 			parentType.played(parent);
 		}
 	}
+	
+	static class Factory implements RuleFactory {
+		public Rule create() {
+			return new JumpIn();
+		}
+		
+		public String getName() {
+			return "Jump In";
+		}
+	}
 }

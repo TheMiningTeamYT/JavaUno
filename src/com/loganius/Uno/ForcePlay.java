@@ -17,4 +17,14 @@ class ForcePlay extends Rule {
 		});
 		return STOP;
 	}
+	
+	static class Factory implements RuleFactory {
+		public Rule create() {
+			return new ForcePlay();
+		}
+		
+		public String getName() {
+			return "Force Play";
+		}
+	}
 }
