@@ -356,6 +356,9 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void rotateHands() {
+		if (hands[0].numCards() <= 0) {
+			return;
+		}
 		rotate();
 		rotateScreenHands(turnOrder);
 		resizeHands();
@@ -369,28 +372,30 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void swapHands(int hand1, int hand2) {
 		if (hands[hand1].numCards() <= 0 && hands[hand2].numCards() <= 0) {
-			boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
-			boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
-			int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
-			int screenHand1 = findScreenHand(hand1);
-			int screenHand2 = findScreenHand(hand2);
-			Hand temp = hands[hand1];
-			
-			hands[hand1] = hands[hand2];
-			screenHands[screenHand1] = hands[hand2];
-			hands[hand2] = temp;
-			screenHands[screenHand2] = temp;
-			
-			hands[hand1].setUp(upBefore[0]);
-			hands[hand1].setPlayable(playableBefore[0]);
-			hands[hand1].setOrientation(orientationBefore[0]);
-	
-			hands[hand2].setUp(upBefore[1]);
-			hands[hand2].setPlayable(playableBefore[1]);
-			hands[hand2].setOrientation(orientationBefore[1]);
-			
-			resizeHands();
+			return;
 		}
+
+		boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
+		boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
+		int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
+		int screenHand1 = findScreenHand(hand1);
+		int screenHand2 = findScreenHand(hand2);
+		Hand temp = hands[hand1];
+		
+		hands[hand1] = hands[hand2];
+		screenHands[screenHand1] = hands[hand2];
+		hands[hand2] = temp;
+		screenHands[screenHand2] = temp;
+		
+		hands[hand1].setUp(upBefore[0]);
+		hands[hand1].setPlayable(playableBefore[0]);
+		hands[hand1].setOrientation(orientationBefore[0]);
+
+		hands[hand2].setUp(upBefore[1]);
+		hands[hand2].setPlayable(playableBefore[1]);
+		hands[hand2].setOrientation(orientationBefore[1]);
+		
+		resizeHands();
 	}
 	
 	void onTurn() {
