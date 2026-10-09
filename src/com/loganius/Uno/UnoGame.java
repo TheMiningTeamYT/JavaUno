@@ -7,7 +7,7 @@ import java.io.*;
 import java.util.Vector;
 
 // TODO: Handle scaling the game from the get go rather than starting at 640x480
-public class UnoGame extends JApplet implements GameHandler, ActionListener {
+public class UnoGame implements GameHandler, ActionListener {
 	private Vector ruleFactories = new Vector();
 
 	private Game gameState = null;
@@ -32,7 +32,7 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		ruleFactories.addElement(new Stacking.Factory());
 	}
 	
-	private void init(Container parent) {
+	public void init(Container parent) {
 		this.parentContainer = parent;
 
 		Timer loadingAnimationTimer = new Timer(1000, this);
@@ -101,14 +101,6 @@ public class UnoGame extends JApplet implements GameHandler, ActionListener {
 		}
 		loading.setText(text);
 		frame = (frame + 1) % 3;
-	}
-	
-	// TODO: Work on the Applet part, make sure it works properly
-	public void init() {
-		getContentPane().setLayout(new GridLayout(1, 1));
-		getContentPane().add(new JLabel("Loading assets, please wait...", SwingConstants.CENTER));
-		setVisible(true);
-		init(getContentPane());
 	}
 	
 	private class MainMenu extends JPanel {
