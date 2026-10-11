@@ -23,7 +23,7 @@ class NetworkGameClient extends Game {
 	private Thread inThread;
 	private Thread outThread;
 	private GameState state;
-	private NetGameUI netGameUI = new NetGameUI(this);
+	private NetGameUI netGameUI;
 	private int moves = 0;
 	private int player = 0;
 	private String[] names;
@@ -35,7 +35,6 @@ class NetworkGameClient extends Game {
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
 		Rectangle bounds = getBounds();
-		checkState();
 
 		try {
 			socket = new Socket(server, port);
@@ -53,6 +52,14 @@ class NetworkGameClient extends Game {
 		inThread.start();
 		outThread.start();
 		queueHandler.start();
+	}
+	
+	protected void preInit() {
+		state = new GameState();
+		outQueue = new Vector();
+		actionHandlers = new Hashtable();
+		netGameUI = new NetGameUI(this);
+		super.preInit();
 	}
 	
 	void start() {
@@ -278,7 +285,6 @@ class NetworkGameClient extends Game {
 	}
 	
 	void requestTrackingSlot(int cookie, int val) {
-		checkState();
 		state.requestTrackingSlot(cookie, val);
 		if (!handlingMessages) {
 			synchronized(outQueue) {
@@ -288,12 +294,10 @@ class NetworkGameClient extends Game {
 	}
 	
 	void releaseTrackingSlot(int cookie) {
-		checkState();
 		state.releaseTrackingSlot(cookie);
 	}
 	
 	void updateSlot(int cookie, int val) {
-		checkState();
 		if (state.getSlot(cookie) != val) {
 			state.updateSlot(cookie, val);
 			if (!handlingMessages) {
@@ -305,7 +309,6 @@ class NetworkGameClient extends Game {
 	}
 	
 	int getSlot(int cookie) {
-		checkState();
 		return state.getSlot(cookie);
 	}
 	
@@ -464,10 +467,8 @@ class NetworkGameClient extends Game {
 	}
 	
 	protected void onResize() {
-		if (netGameUI != null) {
-			Rectangle bounds = getBounds();
-			netGameUI.setBounds(0, 0, bounds.width, bounds.height);
-		}
+		Rectangle bounds = getBounds();
+		netGameUI.setBounds(0, 0, bounds.width, bounds.height);
 		super.onResize();
 	}
 	
@@ -491,18 +492,6 @@ class NetworkGameClient extends Game {
 	
 	void requestStart() {
 		outQueue.addElement(Action.requestStart());
-	}
-	
-	void checkState() {
-		if (state == null) {
-			state = new GameState();
-		}
-		if (outQueue == null) {
-			outQueue = new Vector();
-		}
-		if (actionHandlers == null) {
-			actionHandlers = new Hashtable();
-		}
 	}
 	
 	private class TimerListener implements ActionListener {

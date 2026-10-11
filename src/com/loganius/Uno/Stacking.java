@@ -107,7 +107,7 @@ class Stacking extends Rule implements ActionHandler {
 			if (handContains(game, args)) {
 				pass(game, args);
 			} else {
-				draw(game, 2);
+				draw(game, args[0]);
 			}
 		} else {
 			pass(game, args);

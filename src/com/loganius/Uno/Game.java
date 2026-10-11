@@ -52,6 +52,8 @@ class Game extends JLayeredPane implements ActionListener {
 		this.deck = deck;
 		this.handler = handler;
 		screenHands = (Hand[])hands.clone();
+		preInit();
+
 		deck.reset();
 		rules.bind(this);
 
@@ -75,6 +77,8 @@ class Game extends JLayeredPane implements ActionListener {
 			}
 		}).start();
 	}
+	
+	protected void preInit() {}
 	
 	void start() {
 		add(draw, 0);

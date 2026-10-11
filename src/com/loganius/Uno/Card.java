@@ -214,10 +214,9 @@ class Card extends JComponent {
 					repaint();
 				}
 				if (e.getX() + bounds.x >= discardBounds.x - 10 && e.getX() + bounds.x <= discardBounds.x + discardBounds.width + 10 &&
-					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10) {
-					if (getGame().isLegal(card)) {
-						played();
-					}
+					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10 &&
+					getGame().isLegal(card)) {
+					played();
 				}
 			}
 		}
