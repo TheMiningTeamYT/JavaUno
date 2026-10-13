@@ -160,7 +160,6 @@ public class JumpIn extends Rule implements ActionHandler {
 						jumpInDelay.setRepeats(false);
 						jumpInDelay.start();
 
-						game.checkUno();
 						activate(game, type);
 						if (game instanceof NetworkGameClient) {
 							((NetworkGameClient)game).sendAction(START_JUMP_IN, new Integer(type));

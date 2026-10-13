@@ -113,7 +113,11 @@ class Card extends JComponent {
 	// TODO: Implement animations for played cards.
 	void played() {
 		getGame().discard(this);
-		getCardType().played(this);
+		if (oldParent.numCards() == 0) {
+			getGame().onTurn();
+		} else {
+			getCardType().played(this);
+		}
 	}
 	
 	int compareTo(Card other) {

@@ -42,6 +42,10 @@ abstract class RuleSet implements Serializable {
 		}
 	}
 	
+	boolean equals(RuleSet other) {
+		return getClass() == other.getClass();
+	}
+	
 	/**
 	 * An implementation of the standard ruleset for Uno.
 	 */
@@ -94,6 +98,9 @@ abstract class RuleSet implements Serializable {
 
 		Composite(RuleSet fallback, Rule[] rules) {
 			super(fallback);
+			if (rules == null) {
+				throw new IllegalArgumentException("No rules provided!");
+			}
 			this.rules = rules;
 		}
 		
@@ -172,6 +179,21 @@ abstract class RuleSet implements Serializable {
 					}
 				}.start();
 			}
+		}
+		
+		boolean equals(RuleSet other) {
+			if (getClass() != other.getClass()) {
+				return false;
+			}
+			if (((Composite)other).rules.length != rules.length) {
+				return false;
+			}
+			for (int i = 0; i < rules.length; i++) {
+				if (((Composite)other).rules[i].getClass() != rules[i].getClass()) {
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 }

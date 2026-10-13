@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.Vector;
+import java.util.Date;
 
 /**
  * Represents the space in which a game of Uno is played.
@@ -45,6 +46,7 @@ class Game extends JLayeredPane implements ActionListener {
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
+	private long lastFrame = (new Date()).getTime();
 	private int frame = 0;
 	
 	Game(Deck deck, GameHandler handler) {
@@ -71,7 +73,9 @@ class Game extends JLayeredPane implements ActionListener {
 		new Timer(33, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (!isInterrupted()) {
-					frame = (frame + 1) % 360;
+					long now = (new Date()).getTime();
+					frame = (frame + (int)(Math.round(((double)(now - lastFrame))/33))) % 360;
+					lastFrame = now;
 					repaint(arcBounds);
 				}
 			}

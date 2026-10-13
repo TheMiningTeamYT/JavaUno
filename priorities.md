@@ -20,7 +20,7 @@
  		* Force Play (done)
  		* No Bluffing... whatever that means
  * Ensure synchronization between the network game state representation
-   and the internal representation.
+   and the internal representation. (done)
  * Implement wild card challenges
  	* Add new action(s) for wild draw 4 cards
  	* Implement the UI for challenging wild draw 4s

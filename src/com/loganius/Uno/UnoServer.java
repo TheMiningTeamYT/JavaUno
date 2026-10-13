@@ -180,6 +180,7 @@ public class UnoServer {
 						}
 					}
 					System.out.println("Desynced!");
+					System.out.println("Last action received: " + a.getType());
 					break;
 				}
 			}

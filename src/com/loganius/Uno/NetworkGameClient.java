@@ -85,8 +85,8 @@ class NetworkGameClient extends Game {
 		super.removeFromHand(hand, card);
 
 		if (!handlingMessages) {
+			state.removeFromHand(hand, card.getType());
 			synchronized(outQueue) {
-				state.removeFromHand(hand, card.getType());
 				outQueue.addElement(Action.removeFromHand(hand, card.getType(), state));
 			}
 		}
@@ -96,9 +96,9 @@ class NetworkGameClient extends Game {
 		super.discard(card);
 
 		if (!handlingMessages) {
+			int hand = findHand(card);
+			state.discard(card.getType(), hand);
 			synchronized(outQueue) {
-				int hand = findHand(card);
-				state.discard(card.getType(), hand);
 				outQueue.addElement(Action.discard(card.getType(), hand, state));
 			}
 		}
@@ -312,6 +312,39 @@ class NetworkGameClient extends Game {
 		return state.getSlot(cookie);
 	}
 	
+	boolean verify() {
+		Integer[][] stateHands;
+		if (state.getPlayers() != getPlayers()) {
+			return false;
+		}
+		if (state.getTurnOrder() != getTurnOrder()) {
+			return false;
+		}
+		if (getLastPlayed() != null) {
+			if (state.getLastPlayed() != getLastPlayed().getType()) {
+				return false;
+			}
+		}
+		if (state.getMoves() != moves) {
+			return false;
+		}
+		if (!state.getRules().equals(getRuleSet())) {
+			return false;
+		}
+		stateHands = state.getHands();
+		for (int i = 0; i < getPlayers(); i++) {
+			if (stateHands[i].length != hands[i].numCards()) {
+				return false;
+			}
+			for (int j = 0; j < stateHands[i].length; j++) {
+				if (!hands[i].contains(stateHands[i][j])) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
 	void applyAction(Action a) {
 		int[] args;
 		Integer arg;
@@ -496,54 +529,52 @@ class NetworkGameClient extends Game {
 	
 	private class TimerListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			Vector queue = null;
+			boolean appliedSuccessfully = true;
 			handlingMessages = true;
+
 			synchronized(inQueue) {
 				if (inQueue.size() > 0) {
-					queue = (Vector)inQueue.clone();
-				}
-			}
-
-			if (queue != null) {
-				Action a = null;
-				do {
-					Action[] acts = (Action[]) queue.firstElement();
-					for (int i = 0; i < acts.length; i++) {
-						a = acts[i];
-						if (!actionHandlers.containsKey(new Integer(a.getType()))
-							|| !((CustomAction)actionHandlers.get(new Integer(a.getType()))).dryRun(a)) {
-							state.applyAction(a);
+					Vector queue = (Vector)inQueue.clone();
+					Action a = null;
+					while (queue.size() > 0) {
+						Action[] acts = (Action[]) queue.firstElement();
+						for (int i = 0; i < acts.length; i++) {
+							a = acts[i];
+							if (!actionHandlers.containsKey(new Integer(a.getType()))
+								|| !((CustomAction)actionHandlers.get(new Integer(a.getType()))).dryRun(a)) {
+								state.applyAction(a);
+							}
 						}
-					}
-					queue.removeElementAt(0);
-				} while (queue.size() > 0);
+						queue.removeElementAt(0);
+					};
 
-				if (a != null && a.verify(state)) {
-					synchronized(inQueue) {
-						
-						do {
+					if (a != null && a.verify(state)) {
+						while (inQueue.size() > 0) {
 							Action[] acts = (Action[]) inQueue.firstElement();
 							for (int i = 0; i < acts.length; i++) {
 								applyAction(acts[i]);
 							}
 							inQueue.removeElementAt(0);
-						} while (inQueue.size() > 0);
-					}
-				} else {
-					synchronized(outQueue) {
-						outQueue.removeAllElements();
-						outQueue.addElement(Action.getState());
-						System.out.println("Client desync!");
+						};
+						appliedSuccessfully = verify();
+					} else {
+						appliedSuccessfully = false;
 					}
 				}
 			}
+			
+			handlingMessages = false;
 
 			synchronized(outQueue) {
+				if (!appliedSuccessfully) {
+					outQueue.removeAllElements();
+					outQueue.addElement(Action.getState());
+					System.out.println("Client desync!");
+				}
 				if (outQueue.size() > 0) {
 					outQueue.notify();
 				}
 			}
-			handlingMessages = false;
 		}
 	}
 	
