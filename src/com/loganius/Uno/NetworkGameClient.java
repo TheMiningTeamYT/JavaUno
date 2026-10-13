@@ -337,7 +337,7 @@ class NetworkGameClient extends Game {
 				return false;
 			}
 			for (int j = 0; j < stateHands[i].length; j++) {
-				if (!hands[i].contains(stateHands[i][j])) {
+				if (!hands[i].contains(stateHands[i][j].intValue())) {
 					return false;
 				}
 			}
