@@ -341,7 +341,8 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 
 	Card drawToHand(int hand, int type) {
-		return (lastDrawn = new Card(type, hands[hand]));
+		lastDrawn = new Card(type, hands[hand]);
+		return (lastDrawn);
 	}
 	
 	Card getLastDrawn() {
@@ -370,10 +371,13 @@ class Game extends JLayeredPane implements ActionListener {
 		resizeHands();
 	}
 	
-	void checkUno() {
+	boolean checkUno() {
 		if (hands[0].numCards() == 2 && canBePlayed()) {
+			uno = false;
 			unoButton.setVisible(true);
+			return true;
 		}
+		return false;
 	}
 	
 	void swapHands(int hand1, int hand2) {

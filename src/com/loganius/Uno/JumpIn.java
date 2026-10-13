@@ -58,18 +58,24 @@ public class JumpIn extends Rule implements ActionHandler {
 	
 	private void activate(Game game, int lastPlayed) {
 		JPanel customUISpace = game.getCustomUISpace();
-
-		customUISpace.setLayout(new GridLayout(1, 1));
-		customUISpace.add(instruction);
-		customUISpace.setVisible(true);
-
+		boolean playerHasCard = false;
+		
 		for (int i = 0; i < game.getPlayers(); i++) {
 			playableBefore[i] = game.getHandPlayable(i);
 			if (game.isHandPlayer(i)) {
 				game.setHandPlayable(false, i);
-				game.setTypePlayable(lastPlayed, true, i);
+				if (game.handContains(i, lastPlayed)) {
+					game.setTypePlayable(lastPlayed, true, i);
+					playerHasCard = true;
+				}
 			}
 		}
+
+		instruction.setText((playerHasCard) ? "Jump In!" : "Waiting...");
+		
+		customUISpace.setLayout(new GridLayout(1, 1));
+		customUISpace.add(instruction);
+		customUISpace.setVisible(true);
 		
 		active.set(game, lastPlayed);
 	}

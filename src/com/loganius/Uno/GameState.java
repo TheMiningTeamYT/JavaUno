@@ -91,16 +91,22 @@ class GameState implements Serializable {
 	
 	void move() {
 		uno = false;
-		rotate();
-		if (turnOrder == 0) {
-			moves++;
-		} else {
-			moves--;
+		if (hands[0].size() > 0) {
+			rotate();
+			if (turnOrder == 0) {
+				moves++;
+			} else {
+				moves--;
+			}
 		}
 	}
 	
 	void doUno() {
 		uno = true;
+	}
+	
+	void startUno() {
+		uno = false;
 	}
 	
 	void setRuleSet(RuleSet rules) {
@@ -250,7 +256,7 @@ class GameState implements Serializable {
 					}
 				}
 				break;
-			case Action.UNO:
+			case Action.CALL_UNO:
 				uno = true;
 				break;
 			case Action.SWAP:
@@ -279,6 +285,9 @@ class GameState implements Serializable {
 					break;
 				}
 				setRuleSet((RuleSet)a.getArgument());
+				break;
+			case Action.START_UNO:
+				startUno();
 				break;
 			default:
 				break;

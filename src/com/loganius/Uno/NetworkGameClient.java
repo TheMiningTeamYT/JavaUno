@@ -162,9 +162,20 @@ class NetworkGameClient extends Game {
 		if (!handlingMessages) {
 			state.doUno();
 			synchronized(outQueue) {
-				outQueue.addElement(Action.uno(state));
+				outQueue.addElement(Action.callUno(state));
 			}
 		}
+	}
+	
+	boolean checkUno() {
+		boolean unoActive = super.checkUno();
+		if (unoActive && !handlingMessages) {
+			state.startUno();
+			synchronized(outQueue) {
+				outQueue.addElement(Action.startUno(state));
+			}
+		}
+		return unoActive;
 	}
 	
 	void deal() {
@@ -194,17 +205,19 @@ class NetworkGameClient extends Game {
 	}
 	
 	boolean isHandPlayer(int hand) {
-		return (findScreenHand(0) == hand);
+		return (findHand(0) == hand);
 	}
 	
 	private void move() {
-		if (getTurnOrder() == 0) {
-			moves++;
-		} else {
-			moves--;
+		if (hands[0].numCards() > 0) {
+			if (getTurnOrder() == 0) {
+				moves++;
+			} else {
+				moves--;
+			}
+			hands[0].setPlayable(isHandPlayer(0));
+			netGameUI.setActivePlayer(findScreenHand(0));
 		}
-		hands[0].setPlayable(isHandPlayer(0));
-		netGameUI.setActivePlayer(findScreenHand(0));
 	}
 	
 	private void removeFromHand(int hand, int cardType) {
@@ -443,7 +456,7 @@ class NetworkGameClient extends Game {
 				start();
 				break;
 			}
-			case Action.UNO:
+			case Action.CALL_UNO:
 				if (isHandPlayer(0)) {
 					callUno(1);
 				} else {
@@ -462,6 +475,9 @@ class NetworkGameClient extends Game {
 					break;
 				}
 				setRuleSet((RuleSet)a.getArgument());
+				break;
+			case Action.START_UNO:
+				checkUno();
 				break;
 			default:
 				break;

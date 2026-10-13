@@ -23,11 +23,12 @@ class Action implements Serializable {
 	static final int REQUEST_START = 9;
 	static final int START_GAME = 10;
 	static final int HELLO = 11;
-	static final int UNO = 12;
+	static final int CALL_UNO = 12;
 	static final int SWAP = 13;
 	static final int CREATE_SLOT = 14;
 	static final int UPDATE_SLOT = 15;
 	static final int SET_RULES = 16;
+	static final int START_UNO = 17;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -85,8 +86,8 @@ class Action implements Serializable {
 		return new Action(HELLO, name, null);
 	}
 	
-	static Action uno(GameState finalState) {
-		return new Action(UNO, null, finalState);
+	static Action callUno(GameState finalState) {
+		return new Action(CALL_UNO, null, finalState);
 	}
 	
 	static Action swap(GameState finalState, int hand1, int hand2) {
@@ -106,6 +107,10 @@ class Action implements Serializable {
 	
 	static Action setRules(RuleSet rules) {
 		return new Action(SET_RULES, rules, null);
+	}
+	
+	static Action startUno(GameState finalState) {
+		return new Action(START_UNO, null, finalState);
 	}
 	
 	Action(int type, Object argument, GameState finalState) {
