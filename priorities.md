@@ -5,7 +5,7 @@
  	* Implement a composite ruleset comprised of individual rules (done)
  	* Synchronize rulesets over the network (done)
  	* Allow configuring the ruleset through the UI (done)
- 	* House rules to implement:
+ 	* House rules to implement: (done)
  		* Jump In (done)
  			* Will require bespoke code
  			* Will require new kind of action
@@ -21,10 +21,10 @@
  		* No Bluffing... whatever that means (done)
  * Ensure synchronization between the network game state representation
    and the internal representation. (done)
- * Implement wild card challenges
- 	* Add new action(s) for wild draw 4 cards
- 	* Implement the UI for challenging wild draw 4s
- 	* Fully implement the action for the wild draw 4
+ * Implement wild card challenges (done)
+ 	* Add new action(s) for wild draw 4 cards (done)
+ 	* Implement the UI for challenging wild draw 4s (done)
+ 	* Fully implement the action for the wild draw 4 (done)
  * Implement custom decks
  * Fix applet loading screen
  * Server-side turn validation
