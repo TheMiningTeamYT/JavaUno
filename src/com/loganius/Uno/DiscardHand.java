@@ -23,6 +23,14 @@ class DiscardHand extends Hand {
 			return null;
 		}
 	}
+	
+	Card getSecondToLastCard() {
+		if (cards.size() > 1) {
+			return (Card)cards.firstElement();
+		} else {
+			return null;
+		}
+	}
 
 	void onResize() {
 		// TODO: Scale the cards with the screen size.

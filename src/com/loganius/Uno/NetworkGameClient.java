@@ -8,6 +8,7 @@ import javax.swing.*;
 
 import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Date;
 
 /**
  * TODO: Add the ability for users to set usernames.
@@ -31,6 +32,7 @@ class NetworkGameClient extends Game {
 	private Hashtable actionHandlers;
 	private boolean handlingMessages = false;
 	private Game game = this;
+	private long lastMove = new Date().getTime();
 
 	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
 		super(deck, handler);
@@ -71,6 +73,10 @@ class NetworkGameClient extends Game {
 	}
 	
 	Card drawToHand(int hand, int type) {
+		if (isHandPlayer(hand)) {
+			lastMove = new Date().getTime();
+		}
+
 		if (!handlingMessages) {
 			state.drawToHand(hand, type);
 			synchronized(outQueue) {
@@ -93,10 +99,14 @@ class NetworkGameClient extends Game {
 	}
 	
 	void discard(Card card) {
+		int hand = findHand(card);
 		super.discard(card);
+		
+		if (isHandPlayer(hand)) {
+			lastMove = new Date().getTime();
+		}
 
 		if (!handlingMessages) {
-			int hand = findHand(card);
 			state.discard(card.getType(), hand);
 			synchronized(outQueue) {
 				outQueue.addElement(Action.discard(card.getType(), hand, state));
@@ -130,6 +140,10 @@ class NetworkGameClient extends Game {
 	void onTurn() {
 		super.onTurn();
 		move();
+		
+		if (isHandPlayer(0)) {
+			lastMove = (new Date()).getTime();
+		}
 		
 		if (!handlingMessages) {
 			state.move();
@@ -204,6 +218,30 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
+	void sendWildCardChallenge() {
+		try {
+			super.sendWildCardChallenge();
+		} catch (RuntimeException e) {};
+		
+		if (!handlingMessages) {
+			state.sendWildCardChallenge(getLastPlayed().getType());
+			synchronized(outQueue) {
+				outQueue.addElement(Action.sendChallenge(state, getLastPlayed().getType()));
+			}
+		}
+	}
+	
+	protected void endWildCardChallenge() {
+		super.endWildCardChallenge();
+		
+		if (!handlingMessages) {
+			state.endWildCardChallenge();
+			synchronized(outQueue) {
+				outQueue.addElement(Action.endChallenge(state));
+			}
+		}
+	}
+	
 	boolean isHandPlayer(int hand) {
 		return (findHand(0) == hand);
 	}
@@ -258,6 +296,8 @@ class NetworkGameClient extends Game {
 		moves = newState.getMoves();
 		hands[0].setPlayable(isHandPlayer(0));
 		netGameUI.setActivePlayer(findScreenHand(0));
+		setUno(newState.getUno());
+		setChallengeActive(newState.getChallengeActive());
 		
 		for (int i = 0; i < getPlayers(); i++) {
 			for (int j = 0; j < newHands[i].length; j++) {
@@ -327,23 +367,13 @@ class NetworkGameClient extends Game {
 	
 	boolean verify() {
 		Integer[][] stateHands;
-		if (state.getPlayers() != getPlayers()) {
+		if (state.getPlayers() != getPlayers() || state.getTurnOrder() != getTurnOrder() ||
+			(getLastPlayed() != null && state.getLastPlayed() != getLastPlayed().getType()) ||
+			state.getMoves() != moves || !state.getRules().equals(getRuleSet()) ||
+			state.getUno() != getUno() || state.getChallengeActive() != getChallengeActive()) {
 			return false;
 		}
-		if (state.getTurnOrder() != getTurnOrder()) {
-			return false;
-		}
-		if (getLastPlayed() != null) {
-			if (state.getLastPlayed() != getLastPlayed().getType()) {
-				return false;
-			}
-		}
-		if (state.getMoves() != moves) {
-			return false;
-		}
-		if (!state.getRules().equals(getRuleSet())) {
-			return false;
-		}
+
 		stateHands = state.getHands();
 		for (int i = 0; i < getPlayers(); i++) {
 			if (stateHands[i].length != hands[i].numCards()) {
@@ -406,7 +436,7 @@ class NetworkGameClient extends Game {
 					break;
 				}
 				arg = (Integer) a.getArgument();
-				new Card(arg.intValue(), discardHand);
+				getLastPlayed().setType(arg.intValue());
 				onTurn();
 				break;
 			case Action.SET_STATE:
@@ -478,6 +508,17 @@ class NetworkGameClient extends Game {
 				break;
 			case Action.START_UNO:
 				checkUno();
+				break;
+			case Action.SEND_CHALLENGE:
+				if (a.getArgument().getClass() != Integer.class) {
+					break;
+				}
+				arg = (Integer) a.getArgument();
+				getLastPlayed().setType(arg.intValue());
+				sendWildCardChallenge();
+				break;
+			case Action.END_CHALLENGE:
+				endWildCardChallenge();
 				break;
 			default:
 				break;
@@ -580,6 +621,18 @@ class NetworkGameClient extends Game {
 			}
 			
 			handlingMessages = false;
+			
+			if (isHandPlayer(0)) {
+				if (!getStarted() || isInterrupted()) {
+					lastMove = new Date().getTime();
+				} else if (new Date().getTime() - lastMove > 20000) {
+					game.onTurn();
+				} else if (new Date().getTime() - lastMove > 15000) {
+					if (!game.getDrew()) {
+						game.onDraw();
+					}
+				} 
+			}
 
 			synchronized(outQueue) {
 				if (!appliedSuccessfully) {

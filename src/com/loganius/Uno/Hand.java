@@ -144,6 +144,16 @@ class Hand {
 		return false;
 	}
 	
+	boolean containsColor(int color) {
+		for (int i = 0; i < cards.size(); i++) {
+			Card card = (Card) cards.elementAt(i);
+			if (card.getCardType().getColor() == color) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	void removeAll() {
 		for (int i = 0; i < cards.size(); i++) {
 			game.remove((Card) cards.elementAt(i));

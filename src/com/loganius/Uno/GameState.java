@@ -10,7 +10,7 @@ import java.io.*;
  * TODO: Add the ability for plugins to track custom values in the game state.
  */
 class GameState implements Serializable {
-	private static final long serialVersionUID = 7L;
+	private static final long serialVersionUID = 8L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -27,10 +27,15 @@ class GameState implements Serializable {
 	private int moves = 0;
 	private int players = 0;
 	private boolean uno = false;
+	private boolean challengeActive = false;
 
 	GameState() {};
 
 	GameState(GameState other) {
+		clone(other);
+	}
+	
+	private void clone(GameState other) {
 		for (int i = 0; i < hands.length; i++) {
 			hands[i] = (Vector) other.hands[i].clone();
 		}
@@ -42,6 +47,7 @@ class GameState implements Serializable {
 		moves = other.moves;
 		players = other.players;
 		uno = other.uno;
+		challengeActive = other.challengeActive;
 	}
 	
 	void setPlayers(int players) {
@@ -121,6 +127,15 @@ class GameState implements Serializable {
 		Vector temp = hands[hand1];
 		hands[hand1] = hands[hand2];
 		hands[hand2] = temp;
+	}
+	
+	void sendWildCardChallenge(int lastPlayed) {
+		this.lastPlayed = lastPlayed;
+		challengeActive = true;
+	}
+	
+	void endWildCardChallenge() {
+		challengeActive = false;
 	}
 	
 	void requestTrackingSlot(int cookie, int val) {
@@ -209,8 +224,8 @@ class GameState implements Serializable {
 					break;
 				}
 				arg = (Integer) a.getArgument();
-				move();
 				lastPlayed = arg.intValue();
+				move();
 				break;
 			case Action.SET_STATE:
 				if (a.getArgument().getClass() != GameState.class) {
@@ -244,15 +259,7 @@ class GameState implements Serializable {
 						break;
 					}
 					if (valid) {
-						hands = state.hands;
-						tracking = state.tracking;
-						trackingCookies = state.trackingCookies;
-						rules = state.rules;
-						lastPlayed = state.lastPlayed;
-						turnOrder = state.turnOrder;
-						moves = state.moves;
-						players = state.players;
-						uno = state.uno;
+						clone(state);
 					}
 				}
 				break;
@@ -288,6 +295,16 @@ class GameState implements Serializable {
 				break;
 			case Action.START_UNO:
 				startUno();
+				break;
+			case Action.SEND_CHALLENGE:
+				if (a.getArgument().getClass() != Integer.class) {
+					break;
+				}
+				arg = (Integer) a.getArgument();
+				sendWildCardChallenge(arg.intValue());
+				break;
+			case Action.END_CHALLENGE:
+				endWildCardChallenge();
 				break;
 			default:
 				break;
@@ -327,38 +344,49 @@ class GameState implements Serializable {
 		return players;
 	}
 	
+	boolean getUno() {
+		return uno;
+	}
+	
+	boolean getChallengeActive() {
+		return challengeActive;
+	}
+	
 	long getCRC32() throws IOException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		CRC32 sum = new CRC32();
 		DataOutputStream out = new DataOutputStream(bos);
 		Integer[][] hands = getHands();
+		byte[] raw;
 		
 		for (int i = 0; i < players; i++) {
 			for (int j = 0; j < hands[i].length; j++) {
 				out.writeInt(hands[i][j].intValue());
 			}
 			// Canary value to prevent 2 valid game states from producing the same serialized output.
-			out.writeInt(-1);
+			out.writeByte(-1);
 		}
 		
 		out.writeInt(lastPlayed);
-		out.writeInt(-1);
+		out.writeByte(-1);
 		out.writeInt(turnOrder);
-		out.writeInt(-1);
+		out.writeByte(-1);
 		out.writeInt(moves);
-		out.writeInt(-1);
+		out.writeByte(-1);
 		out.writeInt(players);
-		out.writeInt(-1);
+		out.writeByte(-1);
 		out.writeBoolean(uno);
-		out.writeInt(-1);
+		out.writeByte(-1);
+		out.writeBoolean(challengeActive);
+		out.writeByte(-1);
 		
 		for (int i = 0; i < trackingCookies.size(); i++) {
 			int val = ((Integer)tracking.get(trackingCookies.elementAt(i))).intValue();
 			out.writeInt(val);
-			out.writeInt(-1);
+			out.writeByte(-1);
 		}
 
-		byte[] raw = bos.toByteArray();
+		raw = bos.toByteArray();
 
 		out.close();
 		bos.close();

@@ -32,16 +32,18 @@ class Game extends JLayeredPane implements ActionListener {
 	private Card lastDrawn = null;
 	private int turnOrder = clockwise;
 	private int players = 1;
+	private boolean started = false;
 	private boolean drew = false;
 	private boolean uno = false;
 	private boolean ended = false;
+	private boolean challengeActive = false;
 	private int interruptQueue = 0;
 	
 	private DrawButton draw = new DrawButton(this);
 	private UnoButton unoButton = new UnoButton(this);
 	private JPanel customUISpace = new JPanel();
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image background = Util.bufferImage(bgSource);
+	private Image background = Util.bufferScaledImage(bgSource, 640, 640);
 	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];
@@ -85,6 +87,7 @@ class Game extends JLayeredPane implements ActionListener {
 	protected void preInit() {}
 	
 	void start() {
+		started = true;
 		add(draw, 0);
 		add(unoButton, 0);
 	}
@@ -110,6 +113,10 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	int getTurnOrder() {
 		return turnOrder;
+	}
+	
+	boolean getStarted() {
+		return started;
 	}
 
 	void setTurnOrder(int order) {
@@ -318,12 +325,38 @@ class Game extends JLayeredPane implements ActionListener {
 		return ended;
 	}
 	
+	boolean getUno() {
+		return uno;
+	}
+	
+	protected void setUno(boolean uno) {
+		this.uno = uno; 
+	}
+	
+	boolean getChallengeActive() {
+		return challengeActive;
+	}
+	
+	protected void setChallengeActive(boolean challengeActive) {
+		if (challengeActive != this.challengeActive) {
+			if (this.challengeActive) {
+				endWildCardChallenge();
+			} else {
+				sendWildCardChallenge();
+			}
+		}
+	}
+	
 	public void actionPerformed(ActionEvent e) {
 		gameOver();
 	}
 	
 	boolean handContains(int hand, int cardType) {
 		return hands[hand].contains(cardType);
+	}
+	
+	boolean handContainsColor(int hand, int color) {
+		return hands[hand].containsColor(color);
 	}
 	
 	void setTypePlayable(int type, boolean playable, int hand) {
@@ -430,6 +463,118 @@ class Game extends JLayeredPane implements ActionListener {
 		rules.bind(this);
 	}
 	
+	void startWildCardChallenge() {
+		if (rules.wildcardChallenges(this) && discardHand.getSecondToLastCard() != null) {
+			sendWildCardChallenge();
+		} else {
+			for (int i = 0; i < 4; i++) {
+				drawToHand(1);
+			}
+			onTurn();
+			onTurn();
+		}
+	}
+	
+	void sendWildCardChallenge() {
+		challengeActive = true;
+		if (isHandPlayer(1)) {
+			JButton challenge = new JButton("Challenge");
+			JButton decline = new JButton("Decline");
+			JPanel buttons = new JPanel();
+
+			Util.commonComponentInit(challenge, Util.BLACK);
+			Util.commonComponentInit(decline, Util.BLACK);
+			customUISpace.setLayout(new BoxLayout(customUISpace, BoxLayout.Y_AXIS));
+			customUISpace.add(Box.createVerticalGlue());
+			
+			buttons.setLayout(new BoxLayout(buttons, BoxLayout.X_AXIS));
+			buttons.setOpaque(false);
+			
+			challenge.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					handleWildCardChallenge(true);
+				}
+			});
+			
+			decline.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					handleWildCardChallenge(false);
+				}
+			});
+			
+			buttons.add(challenge);
+			buttons.add(decline);
+			customUISpace.add(buttons);
+			customUISpace.setVisible(true);
+		} else {
+			JLabel waiting = new JLabel("Waiting for player to challenge.", SwingConstants.CENTER);
+			Util.commonComponentInit(waiting, Util.BLACK);
+			customUISpace.setLayout(new GridLayout(1, 1));
+			customUISpace.add(waiting);
+			customUISpace.setVisible(true);
+			
+			/** 
+			 * Subclasses of Game which have non-local-player hands must handle
+			 * wildcard challenges on their own, or else the game would
+			 * softlock.
+			 * This exception is here to make sure they do.
+			 * If you wrap this in a try-catch and do nothing, that's your
+			 * fault.
+			 */
+			throw new RuntimeException(
+					"Dear developer, you appear not to have implemented your" +
+					"subclass of Game properly. Please fix that." + 
+					"-Developer");
+		}
+	}
+
+	// TODO: Add an animation for the outcome of the challenge.
+	void handleWildCardChallenge(boolean challenged) {
+		if (challengeActive) {
+			endWildCardChallenge();
+			if (challenged) {
+				final boolean upBefore = hands[0].getUp();
+				hands[0].setUp(true);
+				
+				Timer handleDelay = new Timer(2000, new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						int color = discardHand.getSecondToLastCard().getCardType().getColor();
+
+						hands[0].setUp(upBefore);
+						if (hands[0].containsColor(color)) {
+							for (int i = 0; i < 4; i++) {
+								drawToHand(0);
+							}
+						} else {
+							for (int i = 0; i < 6; i++) {
+								drawToHand(1);
+							}
+						}
+
+						onTurn();
+						onTurn();
+					}
+				});
+
+				handleDelay.setRepeats(false);
+				handleDelay.start();
+			} else {
+				for (int i = 0; i < 4; i++) {
+					drawToHand(1);
+				}
+
+				onTurn();
+				onTurn();
+			}
+		}
+	}
+	
+	protected void endWildCardChallenge() {
+		customUISpace.removeAll();
+		customUISpace.setVisible(false);
+		challengeActive = false;
+	}
+	
 	void onEnd(String msg) {
 		JButton endButton = new JButton("Leave");
 		JLabel label = new JLabel();
@@ -500,6 +645,7 @@ class Game extends JLayeredPane implements ActionListener {
 		
 		backgroundBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
+
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
 		resizeHands();
 	}

@@ -83,7 +83,7 @@ class Stacking extends Rule implements ActionHandler {
 	
 	private boolean handContains(Game game, int[] args) {
 		for (int i = 1; i < args.length; i++) {
-			if (game.handContains(0, args[i])) {
+			if (game.handContains(1, args[i])) {
 				return true;
 			}
 		}
@@ -91,6 +91,10 @@ class Stacking extends Rule implements ActionHandler {
 	}
 	
 	private void pass(Game game, int[] args) {
+		game.onTurn();
+		if (game.getEnded()) {
+			return;
+		}
 		stack(game, args[0]);
 		if (game instanceof NetworkGameClient) {
 			((NetworkGameClient)game).sendAction(STACK, args);
@@ -98,29 +102,17 @@ class Stacking extends Rule implements ActionHandler {
 		setTypesPlayable(game, args);
 	}
 	
-	private void stackNext(final Game game, int[] args) {
-		game.onTurn();
-		if (game.getEnded()) {
-			return;
-		}
-		if (stacking.get(game) == NOT_STACKING) {
-			if (handContains(game, args)) {
-				pass(game, args);
-			} else {
-				draw(game, args[0]);
-			}
-		} else {
+	private void stackNext(Game game, int[] args) {
+		if (handContains(game, args)) {
 			pass(game, args);
-			if (!handContains(game, args)) {
-				game.setHandPlayable(false);
-				Timer drawDelayTimer = new Timer(1000, new ActionListener() {
-					public void actionPerformed(ActionEvent e) {
-						draw(game, cardsToDraw.get(game));
-					}
-				});
-				drawDelayTimer.setRepeats(false);
-				drawDelayTimer.start();
+		} else if (stacking.get(game) == NOT_STACKING) {
+			draw(game, args[0], args[0]);
+		} else {
+			stack(game, args[0]);
+			if (game instanceof NetworkGameClient) {
+				((NetworkGameClient)game).sendAction(STACK, args);
 			}
+			draw(game, cardsToDraw.get(game), args[0]);
 		}
 	}
 	
@@ -156,11 +148,14 @@ class Stacking extends Rule implements ActionHandler {
 		void played(Card parent) {
 			parent.getGame().getCustomUISpace().removeAll();
 			super.played(parent);
+			
 		}
 		
 		protected void cardAction(Card parent, int color) {
+			Game game = parent.getGame();
+			start(game, STACKING_4);
 			parent.setType(Deck.RED_DRAW4 + color);
-			stackNext(parent.getGame(), args);
+			stackNext(game, args);
 		};
 	}
 	
@@ -183,17 +178,35 @@ class Stacking extends Rule implements ActionHandler {
 		}
 	}
 	
-	private void draw(Game game, int numCards) {
-		if (stacking.get(game) != NOT_STACKING) {
-			finish(game);
-			if (game instanceof NetworkGameClient) {
-				((NetworkGameClient)game).sendAction(FINISH_STACK, null);
-			}
-		}
+	private void drawCards(Game game, int numCards) {
 		for (int i = 0; i < numCards; i++) {
-			game.drawToHand(0);
+			game.drawToHand(1);
 		}
 		game.onTurn();
+		game.onTurn();
+	}
+	
+	private void draw(final Game game, final int numCards, int type) {
+		game.setHandPlayable(false);
+		if (stacking.get(game) == NOT_STACKING) {
+			if (type == STACKING_4) {
+				game.startWildCardChallenge();
+			} else {
+				drawCards(game, numCards);
+			}
+		} else {
+			Timer drawDelayTimer = new Timer(1000, new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					finish(game);
+					if (game instanceof NetworkGameClient) {
+						((NetworkGameClient)game).sendAction(FINISH_STACK, null);
+					}
+					drawCards(game, numCards);
+				}
+			});
+			drawDelayTimer.setRepeats(false);
+			drawDelayTimer.start();
+		}
 	}
 	
 	private void finish(Game game) {

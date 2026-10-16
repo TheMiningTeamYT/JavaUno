@@ -26,6 +26,8 @@ abstract class RuleSet implements Serializable {
 	void unbind(Game game) {};
 	
 	void bind(Deck deck) {};
+	
+	abstract boolean wildcardChallenges(Game game);
 
 	abstract void onDraw(Game game);
 	
@@ -77,6 +79,10 @@ abstract class RuleSet implements Serializable {
 					game.onTurn();
 				}
 			}
+		}
+		
+		boolean wildcardChallenges(Game game) {
+			return true;
 		}
 		
 		RuleSet getFallback() {
@@ -179,6 +185,21 @@ abstract class RuleSet implements Serializable {
 					}
 				}.start();
 			}
+		}
+		
+		boolean wildcardChallenges(Game game) {
+			for (int i = 0; i < rules.length; i++) {
+				switch (rules[i].wildcardChallenges(game)) {
+					case Rule.LEGAL:
+						return true;
+					case Rule.ILLEGAL:
+						return false;
+					case Rule.ALLOW:
+					default:
+						break;
+				}
+			}
+			return fallback.wildcardChallenges(game);
 		}
 		
 		boolean equals(RuleSet other) {

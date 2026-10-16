@@ -18,7 +18,7 @@ public class UnoGame implements GameHandler, ActionListener {
 	private CardLayout layout = new CardLayout();
 	private JLabel loading = new JLabel("Loading assets, please wait...", SwingConstants.CENTER);
 	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image bgImage = Util.bufferImage(bgSource);
+	private Image bgImage = Util.bufferScaledImage(bgSource, 640, 640);
 	private Rectangle bgBounds = new Rectangle(0, -80, 640, 640);
 	private Deck deck;
 	private UnoGame unoGame = this;
@@ -30,6 +30,7 @@ public class UnoGame implements GameHandler, ActionListener {
 		ruleFactories.addElement(new SevenZero.Factory());
 		ruleFactories.addElement(new JumpIn.Factory());
 		ruleFactories.addElement(new Stacking.Factory());
+		ruleFactories.addElement(new NoBluffing.Factory());
 	}
 	
 	public void init(Container parent) {
@@ -56,7 +57,6 @@ public class UnoGame implements GameHandler, ActionListener {
 				Rectangle bounds = mainScreen.getBounds();
 				bgBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), bounds);
 				bgImage = Util.bufferScaledImage(bgSource, bgBounds.width, bgBounds.height);
-				mainScreen.repaint();
 			}
 		});
 
@@ -86,6 +86,7 @@ public class UnoGame implements GameHandler, ActionListener {
 	public void gameOver() {
 		if (server != null) {
 			server.stop();
+			server = null;
 		}
 		parentContainer.remove(gameState);
 		parentContainer.add(mainScreen);
@@ -205,6 +206,7 @@ public class UnoGame implements GameHandler, ActionListener {
 					} else {
 						icon.setImage(UnoLogo.getScaledInstance(bounds.width / 2, -1, frame));
 					}
+					repaint();
 				}
 			});
 		}	

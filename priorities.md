@@ -18,7 +18,7 @@
  			* Will require new kind of action
  		* Draw To Match (done)
  		* Force Play (done)
- 		* No Bluffing... whatever that means
+ 		* No Bluffing... whatever that means (done)
  * Ensure synchronization between the network game state representation
    and the internal representation. (done)
  * Implement wild card challenges

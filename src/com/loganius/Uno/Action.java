@@ -29,6 +29,8 @@ class Action implements Serializable {
 	static final int UPDATE_SLOT = 15;
 	static final int SET_RULES = 16;
 	static final int START_UNO = 17;
+	static final int SEND_CHALLENGE = 18;
+	static final int END_CHALLENGE = 19;
 
 	private int type;
 	// Meaning is defined by the handler code.
@@ -111,6 +113,14 @@ class Action implements Serializable {
 	
 	static Action startUno(GameState finalState) {
 		return new Action(START_UNO, null, finalState);
+	}
+	
+	static Action sendChallenge(GameState finalState, int newType) {
+		return new Action(SEND_CHALLENGE, new Integer(newType), finalState);
+	}
+	
+	static Action endChallenge(GameState finalState) {
+		return new Action(END_CHALLENGE, null, finalState);
 	}
 	
 	Action(int type, Object argument, GameState finalState) {
