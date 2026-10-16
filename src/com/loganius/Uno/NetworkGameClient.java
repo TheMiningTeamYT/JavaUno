@@ -275,6 +275,9 @@ class NetworkGameClient extends Game {
 	private void setState(GameState newState) {
 		Integer[][] newHands = newState.getHands();
 		int adjustMoves = ((newState.getMoves()) - moves) % getPlayers();
+		boolean handlingBefore = handlingMessages;
+		handlingMessages = false;
+
 		setTurnOrder(newState.getTurnOrder());
 		setRuleSet(newState.getRules());
 
@@ -307,6 +310,9 @@ class NetworkGameClient extends Game {
 		
 		new Card(newState.getLastPlayed(), discardHand);
 		resizeHands();
+		
+		outQueue.removeAllElements();
+		handlingMessages = handlingBefore;
 	}
 	
 	void registerAction(int type, ActionHandler handler) {

@@ -153,20 +153,18 @@ class Stacking extends Rule implements ActionHandler {
 		
 		protected void cardAction(Card parent, int color) {
 			Game game = parent.getGame();
-			start(game, STACKING_4);
+			start(game);
 			parent.setType(Deck.RED_DRAW4 + color);
 			stackNext(game, args);
 		};
 	}
 	
-	private void start(Game game, int value) {
+	private void start(Game game) {
 		JPanel customUISpace = game.getCustomUISpace();
 
 		customUISpace.setLayout(new GridLayout(1, 1));
 		customUISpace.add(cardsToDrawLabel);
 		customUISpace.setVisible(true);
-
-		stacking.set(game, value);
 	}
 	
 	private void stack(Game game, int value) {
@@ -174,7 +172,8 @@ class Stacking extends Rule implements ActionHandler {
 		cardsToDrawLabel.setText("+" + cardsToDraw.get(game));
 
 		if (stacking.get(game) == NOT_STACKING) {
-			start(game, value);
+			start(game);
+			stacking.set(game, value);
 		}
 	}
 	
@@ -189,6 +188,7 @@ class Stacking extends Rule implements ActionHandler {
 	private void draw(final Game game, final int numCards, int type) {
 		game.setHandPlayable(false);
 		if (stacking.get(game) == NOT_STACKING) {
+			finish(game);
 			if (type == STACKING_4) {
 				game.startWildCardChallenge();
 			} else {
