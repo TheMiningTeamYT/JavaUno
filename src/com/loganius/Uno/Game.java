@@ -15,8 +15,8 @@ class Game extends JLayeredPane implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	private static final double arcRatio = 0.13962634;
 	private static final Color arcColor = new Color(0, 220, 255);
-	static final int clockwise = 0;
-	static final int counterClockwise = 1;
+	static final int CLOCKWISE = 0;
+	static final int COUNTER_CLOCKWISE = 1;
 
 	private GameHandler handler;
 	private RuleSet rules = new RuleSet.Standard();
@@ -30,7 +30,7 @@ class Game extends JLayeredPane implements ActionListener {
 	protected Hand[] screenHands;
 	private Deck deck;
 	private Card lastDrawn = null;
-	private int turnOrder = clockwise;
+	private int turnOrder = CLOCKWISE;
 	private int players = 1;
 	private boolean started = false;
 	private boolean drew = false;
@@ -135,10 +135,10 @@ class Game extends JLayeredPane implements ActionListener {
             hands[players - 1 - i] = temp;
         }
 
-		if (turnOrder == clockwise) {
-			turnOrder = counterClockwise;
+		if (turnOrder == CLOCKWISE) {
+			turnOrder = COUNTER_CLOCKWISE;
 		} else {
-			turnOrder = clockwise;
+			turnOrder = CLOCKWISE;
 		}
 		
 		repaint(arcBounds);
@@ -149,14 +149,28 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	protected void rotate() {
-		Hand temp1 = hands[0];
-		Hand temp2;
-		for (int i = players - 1; i >= 0; i--) {
-			temp2 = hands[i];
-			hands[i] = temp1;
-			temp1 = temp2;
-		}
+		rotate(COUNTER_CLOCKWISE);
 
+	}
+	
+	private void rotate(int direction) {
+		Hand temp1;
+		Hand temp2;
+		if (direction == CLOCKWISE) {
+			temp1 = hands[players - 1];
+			for (int i = 0; i < players; i++) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
+		} else {
+			temp1 = hands[0];
+			for (int i = players - 1; i >= 0; i--) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
+		}
 	}
 	
 	JPanel getCustomUISpace() {
@@ -278,16 +292,16 @@ class Game extends JLayeredPane implements ActionListener {
 			orientationBefore[i] = screenHands[i].getOrientation();
 		}
 
-		if (direction == clockwise) {
-			temp1 = screenHands[0];
-			for (int i = players - 1; i >= 0; i--) {
+		if (direction == CLOCKWISE) {
+			temp1 = screenHands[players - 1];
+			for (int i = 0; i < players; i++) {
 				temp2 = screenHands[i];
 				screenHands[i] = temp1;
 				temp1 = temp2;
 			}
 		} else {
-			temp1 = screenHands[players - 1];
-			for (int i = 0; i < players; i++) {
+			temp1 = screenHands[0];
+			for (int i = players - 1; i >= 0; i--) {
 				temp2 = screenHands[i];
 				screenHands[i] = temp1;
 				temp1 = temp2;
@@ -399,7 +413,7 @@ class Game extends JLayeredPane implements ActionListener {
 		if (hands[0].numCards() <= 0) {
 			return;
 		}
-		rotate();
+		rotate(CLOCKWISE);
 		rotateScreenHands(turnOrder);
 		resizeHands();
 	}
@@ -657,7 +671,7 @@ class Game extends JLayeredPane implements ActionListener {
 		if (arcBounds.intersects(g.getClipBounds())) {
 			g.setColor(arcColor);
 			
-			if (turnOrder == clockwise) {
+			if (turnOrder == CLOCKWISE) {
 				double sin = 0;
 				double cos = 0;
 				for (int i = 0; i < 20; i++) {

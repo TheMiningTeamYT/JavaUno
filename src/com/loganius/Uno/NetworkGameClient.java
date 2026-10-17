@@ -127,10 +127,10 @@ class NetworkGameClient extends Game {
 	
 	void rotateHands() {
 		super.rotateHands();
-		move();
+		move(true);
 		
 		if (!handlingMessages) {
-			state.move();
+			state.move(true);
 			synchronized(outQueue) {
 				outQueue.addElement(Action.rotateHands(state));
 			}
@@ -139,14 +139,14 @@ class NetworkGameClient extends Game {
 	
 	void onTurn() {
 		super.onTurn();
-		move();
+		move(false);
 		
 		if (isHandPlayer(0)) {
 			lastMove = (new Date()).getTime();
 		}
 		
 		if (!handlingMessages) {
-			state.move();
+			state.move(false);
 			state.setLastPlayed(getLastPlayed().getType());
 			synchronized(outQueue) {
 				outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
@@ -246,12 +246,12 @@ class NetworkGameClient extends Game {
 		return (findHand(0) == hand);
 	}
 	
-	private void move() {
+	private void move(boolean reverse) {
 		if (hands[0].numCards() > 0) {
 			if (getTurnOrder() == 0) {
-				moves++;
+				moves += (reverse) ? -1 : 1;
 			} else {
-				moves--;
+				moves += (reverse) ? 1 : -1;
 			}
 			hands[0].setPlayable(isHandPlayer(0));
 			netGameUI.setActivePlayer(findScreenHand(0));
@@ -308,6 +308,7 @@ class NetworkGameClient extends Game {
 			}
 		}
 		
+		// TODO: Put the last 2 cards played into the game state
 		new Card(newState.getLastPlayed(), discardHand);
 		resizeHands();
 		
@@ -483,7 +484,7 @@ class NetworkGameClient extends Game {
 				int adjustment = player;
 				if (adjustment != 0) {
 					for (int i = 0; i < adjustment; i++) {
-						rotateScreenHands(0);
+						rotateScreenHands(COUNTER_CLOCKWISE);
 					}
 					resizeHands();
 				}
@@ -631,9 +632,9 @@ class NetworkGameClient extends Game {
 			if (isHandPlayer(0)) {
 				if (!getStarted() || isInterrupted()) {
 					lastMove = new Date().getTime();
-				} else if (new Date().getTime() - lastMove > 20000) {
+				} else if (new Date().getTime() - lastMove > 60000) {
 					game.onTurn();
-				} else if (new Date().getTime() - lastMove > 15000) {
+				} else if (new Date().getTime() - lastMove > 30000) {
 					if (!game.getDrew()) {
 						game.onDraw();
 					}

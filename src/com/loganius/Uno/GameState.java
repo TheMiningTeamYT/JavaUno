@@ -23,7 +23,7 @@ class GameState implements Serializable {
 	private Hashtable tracking = new Hashtable();
 	private RuleSet rules = new RuleSet.Standard();
 	private int lastPlayed;
-	private int turnOrder = 0;
+	private int turnOrder = Game.CLOCKWISE;
 	private int moves = 0;
 	private int players = 0;
 	private boolean uno = false;
@@ -70,7 +70,7 @@ class GameState implements Serializable {
 	}
 
 	void reverse() {
-		rotate();
+		rotate(Game.COUNTER_CLOCKWISE);
 
 		for (int i = 0; i < players / 2; i++) {
             Vector temp = hands[i];
@@ -78,31 +78,41 @@ class GameState implements Serializable {
             hands[players - 1 - i] = temp;
         }
 
-		if (turnOrder == 0) {
-			turnOrder = 1;
+		if (turnOrder == Game.CLOCKWISE) {
+			turnOrder = Game.COUNTER_CLOCKWISE;
 		} else {
-			turnOrder = 0;
+			turnOrder = Game.CLOCKWISE;
 		}
 	}
 
-	void rotate() {
-		Vector temp1 = hands[0];
+	void rotate(int direction) {
+		Vector temp1;
 		Vector temp2;
-		for (int i = players - 1; i >= 0; i--) {
-			temp2 = hands[i];
-			hands[i] = temp1;
-			temp1 = temp2;
+		if (direction == Game.CLOCKWISE) {
+			temp1 = hands[players - 1];
+			for (int i = 0; i < players; i++) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
+		} else if (direction == Game.COUNTER_CLOCKWISE) {
+			temp1 = hands[0];
+			for (int i = players - 1; i >= 0; i--) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
 		}
 	}
 	
-	void move() {
+	void move(boolean reverse) {
 		uno = false;
 		if (hands[0].size() > 0) {
-			rotate();
-			if (turnOrder == 0) {
-				moves++;
+			rotate(reverse ? Game.CLOCKWISE : Game.COUNTER_CLOCKWISE);
+			if (turnOrder == Game.CLOCKWISE) {
+				moves += (reverse) ? -1 : 1;
 			} else {
-				moves--;
+				moves += (reverse) ? 1 : -1;
 			}
 		}
 	}
@@ -217,7 +227,7 @@ class GameState implements Serializable {
 				if (a.getArgument() != null) {
 					break;
 				}
-				move();
+				move(true);
 				break;
 			case Action.TURN:
 				if (a.getArgument().getClass() != Integer.class) {
@@ -225,7 +235,7 @@ class GameState implements Serializable {
 				}
 				arg = (Integer) a.getArgument();
 				lastPlayed = arg.intValue();
-				move();
+				move(false);
 				break;
 			case Action.SET_STATE:
 				if (a.getArgument().getClass() != GameState.class) {
