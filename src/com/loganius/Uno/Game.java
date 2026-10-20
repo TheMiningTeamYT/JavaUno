@@ -45,7 +45,7 @@ class Game extends JLayeredPane implements ActionListener {
 	private JPanel customUISpace = new JPanel();
 	private Image bgSource;
 	private Image background;
-	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
+	private Rectangle backgroundBounds;
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
@@ -61,7 +61,8 @@ class Game extends JLayeredPane implements ActionListener {
 		unoButton = new UnoButton(this);
 		
 		bgSource = theme.getGameBackground();
-		background = Util.bufferScaledImage(bgSource, 640, 640);
+		backgroundBounds = Util.scaleAndCrop(new Rectangle(bgSource.getWidth(null), bgSource.getHeight(null)), new Rectangle(640, 480));
+		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		deck = theme.getDeck();
 		screenHands = (Hand[])hands.clone();
 		preInit();

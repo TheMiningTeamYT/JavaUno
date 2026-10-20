@@ -56,7 +56,10 @@ class CachedImage {
 			Timer cleanupDelay = new Timer(1000, new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					if (users <= 0) {
-						buffered = null;
+						if (buffered != null) {
+							buffered.flush();
+							buffered = null;
+						}
 						users = 0;
 					}
 				}

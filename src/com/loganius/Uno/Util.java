@@ -73,7 +73,10 @@ public class Util {
 	}
 	
 	public static Image bufferScaledImage(Image img, int width, int height) {
-		return bufferImage(img.getScaledInstance(width, height, Image.SCALE_FAST));
+		Image scaled = img.getScaledInstance(width, height, Image.SCALE_FAST);
+		Image result = bufferImage(scaled);
+		scaled.flush();
+		return result;
 	}
 	
 	public static Image bufferImage(Image img) {

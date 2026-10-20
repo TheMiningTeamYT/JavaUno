@@ -212,7 +212,11 @@ public class UnoGame implements GameHandler {
 				public void componentResized(ComponentEvent e) {
 					Rectangle bounds = getBounds();
 					double scaleFactor = Util.getScaleFactor();
-					
+					Image previous = icon.getImage();
+
+					if (previous != null) {
+						previous.flush();
+					}
 					if (239*scaleFactor > bounds.height / 3) {
 						icon.setImage(UnoLogo.getScaledInstance(-1, bounds.height / 3, frame));
 					} else {
@@ -448,7 +452,13 @@ public class UnoGame implements GameHandler {
 	
 	private class ResourcePackSelectionMenu extends JPanel {
 		private JPanel inner = new JPanel(new GridBagLayout());
-		private JPanel packContainer = new JPanel();
+		private JPanel packContainer = new JPanel() {
+			public Dimension getPreferredSize() {
+				Dimension result = super.getPreferredSize();
+				result.width = packScroll.getBounds().width;
+				return result;
+			}
+		};
 		private JScrollPane packScroll = new JScrollPane(packContainer);
 		private JPanel finalUI = new JPanel();
 		private volatile Vector packs = new Vector();
@@ -583,6 +593,11 @@ public class UnoGame implements GameHandler {
 						synchronized(packs) {
 							packs = new Vector();
 							packs.addElement(defaultPack);
+
+							for (int i = 0; i < remotePacks.size(); i++) {
+								packs.addElement(remotePacks.elementAt(i));
+							}
+
 							if (resourcePackDir.exists()) {
 								packPaths = new File("resourcepacks").list(new FilenameFilter() {
 									public boolean accept(File dir, String name) {
@@ -590,10 +605,7 @@ public class UnoGame implements GameHandler {
 										return extension.equalsIgnoreCase(".zip");
 									}
 								});
-								
-								for (int i = 0; i < remotePacks.size(); i++) {
-									packs.addElement(remotePacks.elementAt(i));
-								}
+
 								for (int i = 0; i < packPaths.length; i++) {
 									try {
 										packs.addElement(new ZIPResourcePack(new FileStreamAdapter(new File(resourcePackDir, packPaths[i]))));
@@ -631,7 +643,7 @@ public class UnoGame implements GameHandler {
 					for (int j = 0; i < packs.size() && j < 3; i++, j++) {
 						final ResourcePack pack = (ResourcePack) packs.elementAt(i);
 						final Image packIcon = pack.getIcon();
-						final ImageIcon icon = new ImageIcon(packIcon);
+						final ImageIcon icon = new ImageIcon();
 						JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
 						JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
 						JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
@@ -668,11 +680,11 @@ public class UnoGame implements GameHandler {
 						
 						box.addComponentListener(new ComponentAdapter() {
 							public void componentResized(ComponentEvent e) {
-								updatePackIcon(packIcon, icon, e);
+								updatePackIcon(packIcon, icon, e.getComponent());
 							}
 							
 							public void componentMoved(ComponentEvent e) {
-								updatePackIcon(packIcon, icon, e);
+								updatePackIcon(packIcon, icon, e.getComponent());
 							}
 						});
 						box.setOpaque(false);
@@ -690,16 +702,21 @@ public class UnoGame implements GameHandler {
 			removeAll();
 			add(finalUI);
 			validate();
+			repaint();
 		}
 		
-		private void updatePackIcon(Image packIcon, ImageIcon icon, ComponentEvent e) {
+		private void updatePackIcon(Image packIcon, ImageIcon icon, Component component) {
 			Rectangle bounds = packContainer.getBounds();
+			Image previous = icon.getImage();
+			if (previous != null) {
+				previous.flush();
+			}
 			if (bounds.width > bounds.height) {
 				icon.setImage(packIcon.getScaledInstance(-1, bounds.height/3 - (int)(5*Util.getScaleFactor()), Image.SCALE_FAST));
 			} else {
 				icon.setImage(packIcon.getScaledInstance(bounds.width/3 - (int)(5*Util.getScaleFactor()), -1, Image.SCALE_FAST));
 			}
-			e.getComponent().invalidate();
+			component.invalidate();
 			validate();
 		}
 	}
@@ -720,7 +737,6 @@ public class UnoGame implements GameHandler {
 			GridBagConstraints c = new GridBagConstraints();
 
 			packIcon = pack.getIcon();
-			icon.setImage(packIcon);
 			Util.commonComponentInit(name, textColor);
 			Util.commonComponentInit(author, textColor);
 			Util.commonComponentInit(use, Util.BLACK);
@@ -737,6 +753,10 @@ public class UnoGame implements GameHandler {
 			addComponentListener(new ComponentAdapter() {
 				public void componentResized(ComponentEvent e) {
 					Rectangle bounds = getBounds();
+					Image previous = icon.getImage();
+					if (previous != null) {
+						previous.flush();
+					}
 					if (bounds.width > bounds.height) {
 						icon.setImage(packIcon.getScaledInstance(-1, bounds.height / 3, Image.SCALE_FAST));
 					} else {

@@ -12,6 +12,7 @@ class ForcePlay extends Rule {
 		}
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
+				game.checkUno();
 				game.setHandPlayable(false);
 				if (game.getUno()) {
 					drawn.setPlayable(true);
