@@ -34,8 +34,8 @@ class NetworkGameClient extends Game {
 	private Game game = this;
 	private long lastMove = new Date().getTime();
 
-	NetworkGameClient(Deck deck, GameHandler handler, String name, String server, int port) {
-		super(deck, handler);
+	NetworkGameClient(Theme theme, GameHandler handler, String name, String server, int port) {
+		super(theme, handler);
 		Rectangle bounds = getBounds();
 
 		try {

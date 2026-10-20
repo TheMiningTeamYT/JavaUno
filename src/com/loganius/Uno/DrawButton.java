@@ -12,19 +12,38 @@ class DrawButton extends JComponent {
 	private static final long serialVersionUID = 1L;
 
 	private Game game;
-	private Image buttonUp = Util.bufferImage(Util.getImage(getClass().getResource("Assets/draw.gif")));
-	private Image buttonDown = Util.bufferImage(Util.getImage(getClass().getResource("Assets/draw_down.gif")));
-	private Image button = buttonUp;
+	private CachedImage buttonUp;
+	private CachedImage buttonDown;
+	private CachedImage button;
 
 	DrawButton(Game game) {
 		super();
+
+		CachedImage[] button = game.getTheme().getDrawButton();
 		this.game = game;
+		buttonUp = button[0];
+		buttonDown = button[1];
+		this.button = buttonUp;
+
 		addMouseListener(new ClickListener());
 	}
 	
 	public void paintComponent(Graphics g) {
 		Rectangle bounds = getBounds();
-		g.drawImage(button, 0, 0, bounds.width, bounds.height, this);
+		g.setColor(Util.WHITE);
+		g.drawImage(button.get(), 0, 0, this);
+	}
+	
+	public void addNotify() {
+		super.addNotify();
+		buttonUp.using();
+		buttonDown.using();
+	}
+	
+	public void removeNotify() {
+		super.removeNotify();
+		buttonUp.stopUsing();
+		buttonDown.stopUsing();
 	}
 	
 	// TODO: Animate the draw button.

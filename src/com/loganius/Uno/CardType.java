@@ -1,7 +1,7 @@
 package com.loganius.Uno;
+
 import java.awt.*;
 import java.awt.event.*;
-import java.net.URL;
 import javax.swing.*;
 
 // TODO: Figure out how to send a card type over the network in a way I'm happy with.
@@ -23,20 +23,20 @@ class CardType {
 		static final int DRAW_4 = -6;
 	}
 
-	protected CardFace[] face;
-	protected CardFace[] back;
+	protected CachedImage[] face;
+	protected CachedImage[] back;
 	private int width = -1;
 	private int height = -1;
 	protected int color;
 	protected int value;
-	protected boolean drawable;
+	private int weight;
 
-	CardType(URL front, CardFace[] back, int color, int value, boolean drawable) {
-		face = generateImageList(Util.getImage(front));
+	CardType(Image front, CachedImage[] back, int color, int value, int weight) {
+		face = generateImageList(front);
 		this.back = back;
 		this.color = color;
 		this.value = value;
-		this.drawable = drawable;
+		this.weight = weight;
 	}
 	
 	CardType(CardType parent) {
@@ -46,7 +46,7 @@ class CardType {
 		height = parent.height;
 		color = parent.color;
 		value = parent.value;
-		drawable = parent.drawable;
+		weight = parent.weight;
 	}
 	
 	Image getFace(int orientation) {
@@ -79,12 +79,12 @@ class CardType {
 		face[0].stopUsing();
 	}
 	
-	static CardFace[] generateImageList(Image src) {
-		return new CardFace[] {
-			new CardFace(src, 0),
-			new CardFace(Util.rotate(src, 90), 90),
-			new CardFace(Util.rotate(src, 180), 180),
-			new CardFace(Util.rotate(src, 270), 270),
+	static CachedImage[] generateImageList(Image src) {
+		return new CachedImage[] {
+			new CachedImage(src, 0, 80, 120),
+			new CachedImage(Util.rotate(src, 90), 90, 80, 120),
+			new CachedImage(Util.rotate(src, 180), 180, 80, 120),
+			new CachedImage(Util.rotate(src, 270), 270, 80, 120),
 		};
 	}
 	
@@ -96,8 +96,8 @@ class CardType {
 		return value;
 	}
 	
-	boolean getDrawable() {
-		return drawable;
+	int getWeight() {
+		return weight;
 	}
 
 	/**
@@ -109,58 +109,9 @@ class CardType {
 		parent.getGame().onTurn();
 	};
 	
-	static class CardFace {
-		private Image original;
-		private Image buffered = null;
-		private int users = 0;
-		private int width = -1;
-		private int height = -1;
-		private int orientation;
-
-		CardFace(Image original, int orientation) {
-			this.original = original;
-			this.orientation = orientation;
-		}
-		
-		Image get() {
-			update();
-			return buffered;
-		}
-
-		void update() {
-			if (buffered == null || width != Card.getWidth(orientation) || height != Card.getHeight(orientation)) {
-				width = Card.getWidth(orientation);
-				height = Card.getHeight(orientation);
-				buffered = Util.bufferScaledImage(original, width, height);
-			}
-		}
-		
-		void using() {
-			users++;
-		}
-		
-		void stopUsing() {
-			users--;
-			if (users <= 0) {
-				// Because cards often stop using and then immediately start using images,
-				// we wait a bit before actually deleting the image for real.
-				Timer cleanupDelay = new Timer(1000, new ActionListener() {
-					public void actionPerformed(ActionEvent e) {
-						if (users <= 0) {
-							buffered = null;
-							users = 0;
-						}
-					}
-				});
-				cleanupDelay.setRepeats(false);
-				cleanupDelay.start();
-			}
-		}
-	}
-	
 	static final class SkipCardType extends CardType {
-		SkipCardType(URL front, CardFace[] back, int color) {
-			super(front, back, color, Value.SKIP, true);
+		SkipCardType(Image front, CachedImage[] back, int color) {
+			super(front, back, color, Value.SKIP, 2);
 		}
 		
 		void played(Card parent) {
@@ -171,8 +122,8 @@ class CardType {
 	}
 	
 	static final class ReverseCardType extends CardType {
-		ReverseCardType(URL front, CardFace[] back, int color) {
-			super(front, back, color, Value.REVERSE, true);
+		ReverseCardType(Image front, CachedImage[] back, int color) {
+			super(front, back, color, Value.REVERSE, 2);
 		}
 		
 		void played(Card parent) {
@@ -183,8 +134,8 @@ class CardType {
 	}
 	
 	static final class DrawTwoCardType extends CardType {
-		DrawTwoCardType(URL front, CardFace[] back, int color) {
-			super(front, back, color, Value.PLUS2, true);
+		DrawTwoCardType(Image front, CachedImage[] back, int color) {
+			super(front, back, color, Value.PLUS2, 2);
 		}
 		
 		void played(Card parent) {

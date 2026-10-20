@@ -1,12 +1,12 @@
 package com.loganius.Uno;
 
 import java.awt.Image;
+import java.net.URL;
+
 import com.loganius.Uno.CardType.*;
 
 /* TODO: Add actually different images for the different change color results */
-abstract class Deck {
-	protected CardType[] cards;
-	protected CardType[] originalDeck;
+class Deck {
 	static final int RED_0 = 0;
 	static final int RED_1 = 1;
 	static final int RED_2 = 2;
@@ -70,116 +70,234 @@ abstract class Deck {
 	static final int GREEN_DRAW4 = 60;
 	static final int BLUE_DRAW4 = 61;
 	
+	private static final URL[] fallback = {
+		Util.getResource("Assets/UnoCorns/0.gif"),
+		Util.getResource("Assets/UnoCorns/r0.gif"),
+		Util.getResource("Assets/UnoCorns/r1.gif"),
+		Util.getResource("Assets/UnoCorns/r2.gif"),
+		Util.getResource("Assets/UnoCorns/r3.gif"),
+		Util.getResource("Assets/UnoCorns/r4.gif"),
+		Util.getResource("Assets/UnoCorns/r5.gif"),
+		Util.getResource("Assets/UnoCorns/r6.gif"),
+		Util.getResource("Assets/UnoCorns/r7.gif"),
+		Util.getResource("Assets/UnoCorns/r8.gif"),
+		Util.getResource("Assets/UnoCorns/r9.gif"),
+		Util.getResource("Assets/UnoCorns/r+2.gif"),
+		Util.getResource("Assets/UnoCorns/rs.gif"),
+		Util.getResource("Assets/UnoCorns/rr.gif"),
+		Util.getResource("Assets/UnoCorns/y0.gif"),
+		Util.getResource("Assets/UnoCorns/y1.gif"),
+		Util.getResource("Assets/UnoCorns/y2.gif"),
+		Util.getResource("Assets/UnoCorns/y3.gif"),
+		Util.getResource("Assets/UnoCorns/y4.gif"),
+		Util.getResource("Assets/UnoCorns/y5.gif"),
+		Util.getResource("Assets/UnoCorns/y6.gif"),
+		Util.getResource("Assets/UnoCorns/y7.gif"),
+		Util.getResource("Assets/UnoCorns/y8.gif"),
+		Util.getResource("Assets/UnoCorns/y9.gif"),
+		Util.getResource("Assets/UnoCorns/y+2.gif"),
+		Util.getResource("Assets/UnoCorns/ys.gif"),
+		Util.getResource("Assets/UnoCorns/yr.gif"),
+		Util.getResource("Assets/UnoCorns/g0.gif"),
+		Util.getResource("Assets/UnoCorns/g1.gif"),
+		Util.getResource("Assets/UnoCorns/g2.gif"),
+		Util.getResource("Assets/UnoCorns/g3.gif"),
+		Util.getResource("Assets/UnoCorns/g4.gif"),
+		Util.getResource("Assets/UnoCorns/g5.gif"),
+		Util.getResource("Assets/UnoCorns/g6.gif"),
+		Util.getResource("Assets/UnoCorns/g7.gif"),
+		Util.getResource("Assets/UnoCorns/g8.gif"),
+		Util.getResource("Assets/UnoCorns/g9.gif"),
+		Util.getResource("Assets/UnoCorns/g+2.gif"),
+		Util.getResource("Assets/UnoCorns/gs.gif"),
+		Util.getResource("Assets/UnoCorns/gr.gif"),
+		Util.getResource("Assets/UnoCorns/b0.gif"),
+		Util.getResource("Assets/UnoCorns/b1.gif"),
+		Util.getResource("Assets/UnoCorns/b2.gif"),
+		Util.getResource("Assets/UnoCorns/b3.gif"),
+		Util.getResource("Assets/UnoCorns/b4.gif"),
+		Util.getResource("Assets/UnoCorns/b5.gif"),
+		Util.getResource("Assets/UnoCorns/b6.gif"),
+		Util.getResource("Assets/UnoCorns/b7.gif"),
+		Util.getResource("Assets/UnoCorns/b8.gif"),
+		Util.getResource("Assets/UnoCorns/b9.gif"),
+		Util.getResource("Assets/UnoCorns/b+2.gif"),
+		Util.getResource("Assets/UnoCorns/bs.gif"),
+		Util.getResource("Assets/UnoCorns/br.gif"),
+		Util.getResource("Assets/UnoCorns/wtc.gif"),
+		Util.getResource("Assets/UnoCorns/rtc.gif"),
+		Util.getResource("Assets/UnoCorns/ytc.gif"),
+		Util.getResource("Assets/UnoCorns/gtc.gif"),
+		Util.getResource("Assets/UnoCorns/btc.gif"),
+		Util.getResource("Assets/UnoCorns/w+4.gif"),
+		Util.getResource("Assets/UnoCorns/r+4.gif"),
+		Util.getResource("Assets/UnoCorns/y+4.gif"),
+		Util.getResource("Assets/UnoCorns/g+4.gif"),
+		Util.getResource("Assets/UnoCorns/b+4.gif")
+	};
+
+	protected CardType[] cards;
+	protected CardType[] originalDeck;
+	protected int[] weightedCards;
+	
+	Deck(CardType[] cards) {
+		originalDeck = cards;
+		this.cards = (CardType[]) originalDeck.clone();
+		updateWeights();
+	}
+	
+	Deck(Image[] cards) {
+		this(createCompositeCards(cards));
+	}
+	
+	Deck() {
+		this(createDefaultCards());
+	}
+	
 	int random() {
-		int card;
-		do {
-			card = (int)(Math.random() * cards.length);
-		} while (!getCard(card).drawable);
-		return card;
+		return weightedCards[(int)(Math.random() * weightedCards.length)];
 	}
 	
 	CardType getCard(int type) {
 		return cards[type];
 	}
 	
-	void addCard(CardType newCard) {
+	int addCard(CardType newCard) {
 		CardType[] oldCards = cards;
 		cards = new CardType[cards.length + 1];
 		System.arraycopy(cards, 0, oldCards, 0, oldCards.length);
 		cards[cards.length - 1] = newCard;
+		updateWeights();
+		
+		return cards.length - 1;
 	}
 	
 	void overrideCard(int index, CardType override) {
 		if (index >= 0 && index < cards.length) {
 			cards[index] = override;
 		}
+		updateWeights();
 	}
 	
 	void resetCard(int index) {
 		if (index >= 0 && index < originalDeck.length) {
 			cards[index] = originalDeck[index];
 		}
+		updateWeights();
 	}
 	
 	void reset() {
 		cards = (CardType[]) originalDeck.clone();
+		updateWeights();
 	}
 	
 	int getLength() {
 		return cards.length;
 	}
-
-	static class UnoCorns extends Deck {
-		UnoCorns() {
-			originalDeck = deck;
-			cards = (CardType[])deck.clone();
+	
+	void updateWeights() {
+		int totalWeight = 0;
+		int currentWeight = 0;
+		for (int i = 0; i < cards.length; i++) {
+			totalWeight += cards[i].getWeight();
 		}
-
-		private final CardFace[] back = CardType.generateImageList(Util.getImage(Util.getResource("Assets/UnoCorns/0.gif")));
 		
-		private final CardType[] deck = {
-			new CardType(Util.getResource("Assets/UnoCorns/r0.gif"), back, Color.RED, 0, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r1.gif"), back, Color.RED, 1, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r2.gif"), back, Color.RED, 2, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r3.gif"), back, Color.RED, 3, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r4.gif"), back, Color.RED, 4, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r5.gif"), back, Color.RED, 5, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r6.gif"), back, Color.RED, 6, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r7.gif"), back, Color.RED, 7, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r8.gif"), back, Color.RED, 8, true),
-			new CardType(Util.getResource("Assets/UnoCorns/r9.gif"), back, Color.RED, 9, true),
-			new DrawTwoCardType(Util.getResource("Assets/UnoCorns/r+2.gif"), back, Color.RED),
-			new SkipCardType(Util.getResource("Assets/UnoCorns/rs.gif"), back, Color.RED),
-			new ReverseCardType(Util.getResource("Assets/UnoCorns/rr.gif"), back, Color.RED),
-			new CardType(Util.getResource("Assets/UnoCorns/y0.gif"), back, Color.YELLOW, 0, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y1.gif"), back, Color.YELLOW, 1, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y2.gif"), back, Color.YELLOW, 2, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y3.gif"), back, Color.YELLOW, 3, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y4.gif"), back, Color.YELLOW, 4, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y5.gif"), back, Color.YELLOW, 5, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y6.gif"), back, Color.YELLOW, 6, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y7.gif"), back, Color.YELLOW, 7, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y8.gif"), back, Color.YELLOW, 8, true),
-			new CardType(Util.getResource("Assets/UnoCorns/y9.gif"), back, Color.YELLOW, 9, true),
-			new DrawTwoCardType(Util.getResource("Assets/UnoCorns/y+2.gif"), back, Color.YELLOW),
-			new SkipCardType(Util.getResource("Assets/UnoCorns/ys.gif"), back, Color.YELLOW),
-			new ReverseCardType(Util.getResource("Assets/UnoCorns/yr.gif"), back, Color.YELLOW),
-			new CardType(Util.getResource("Assets/UnoCorns/g0.gif"), back, Color.GREEN, 0, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g1.gif"), back, Color.GREEN, 1, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g2.gif"), back, Color.GREEN, 2, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g3.gif"), back, Color.GREEN, 3, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g4.gif"), back, Color.GREEN, 4, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g5.gif"), back, Color.GREEN, 5, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g6.gif"), back, Color.GREEN, 6, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g7.gif"), back, Color.GREEN, 7, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g8.gif"), back, Color.GREEN, 8, true),
-			new CardType(Util.getResource("Assets/UnoCorns/g9.gif"), back, Color.GREEN, 9, true),
-			new DrawTwoCardType(Util.getResource("Assets/UnoCorns/g+2.gif"), back, Color.GREEN),
-			new SkipCardType(Util.getResource("Assets/UnoCorns/gs.gif"), back, Color.GREEN),
-			new ReverseCardType(Util.getResource("Assets/UnoCorns/gr.gif"), back, Color.GREEN),
-			new CardType(Util.getResource("Assets/UnoCorns/b0.gif"), back, Color.BLUE, 0, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b1.gif"), back, Color.BLUE, 1, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b2.gif"), back, Color.BLUE, 2, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b3.gif"), back, Color.BLUE, 3, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b4.gif"), back, Color.BLUE, 4, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b5.gif"), back, Color.BLUE, 5, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b6.gif"), back, Color.BLUE, 6, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b7.gif"), back, Color.BLUE, 7, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b8.gif"), back, Color.BLUE, 8, true),
-			new CardType(Util.getResource("Assets/UnoCorns/b9.gif"), back, Color.BLUE, 9, true),
-			new DrawTwoCardType(Util.getResource("Assets/UnoCorns/b+2.gif"), back, Color.BLUE),
-			new SkipCardType(Util.getResource("Assets/UnoCorns/bs.gif"), back, Color.BLUE),
-			new ReverseCardType(Util.getResource("Assets/UnoCorns/br.gif"), back, Color.BLUE),
-			new WildChangeColorType(Util.getResource("Assets/UnoCorns/wtc.gif"), back),
-			new CardType(Util.getResource("Assets/UnoCorns/rtc.gif"), back, Color.RED, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/ytc.gif"), back, Color.YELLOW, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/gtc.gif"), back, Color.GREEN, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/btc.gif"), back, Color.BLUE, -1, false),
-			new WildDraw4Type(Util.getResource("Assets/UnoCorns/w+4.gif"), back),
-			new CardType(Util.getResource("Assets/UnoCorns/r+4.gif"), back, Color.RED, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/y+4.gif"), back, Color.YELLOW, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/g+4.gif"), back, Color.GREEN, -1, false),
-			new CardType(Util.getResource("Assets/UnoCorns/b+4.gif"), back, Color.BLUE, -1, false),
+		weightedCards = new int[totalWeight];
+		for (int i = 0; i < cards.length; i++) {
+			for (int j = 0; j < cards[i].getWeight(); j++) {
+				weightedCards[currentWeight++] = i;
+			}
+		}
+	}
+	
+	static CardType[] createDefaultCards() {
+		return createCompositeCards(null);
+	}
+	
+	static CardType[] createCompositeCards(Image[] overrideCards) {
+		Image[] cards = new Image[fallback.length];
+		
+		for (int i = 0; i < cards.length; i++) {
+			try {
+				cards[i] = overrideCards[i];
+			} catch (IndexOutOfBoundsException e) {
+				
+			} catch (NullPointerException e) {}
+			
+			if (cards[i] == null) {
+				cards[i] = Util.getImage(fallback[i]);
+			}
+		}
+		
+		return createCards(cards);
+	}
+	
+	static CardType[] createCards(Image[] cards) {
+		CachedImage[] back = CardType.generateImageList(cards[0]);
+		
+		return new CardType[] {
+			new CardType(cards[1], back, Color.RED, 0, 1),
+			new CardType(cards[2], back, Color.RED, 1, 2),
+			new CardType(cards[3], back, Color.RED, 2, 2),
+			new CardType(cards[4], back, Color.RED, 3, 2),
+			new CardType(cards[5], back, Color.RED, 4, 2),
+			new CardType(cards[6], back, Color.RED, 5, 2),
+			new CardType(cards[7], back, Color.RED, 6, 2),
+			new CardType(cards[8], back, Color.RED, 7, 2),
+			new CardType(cards[9], back, Color.RED, 8, 2),
+			new CardType(cards[10], back, Color.RED, 9, 2),
+			new DrawTwoCardType(cards[11], back, Color.RED),
+			new SkipCardType(cards[12], back, Color.RED),
+			new ReverseCardType(cards[13], back, Color.RED),
+			new CardType(cards[14], back, Color.YELLOW, 0, 1),
+			new CardType(cards[15], back, Color.YELLOW, 1, 2),
+			new CardType(cards[16], back, Color.YELLOW, 2, 2),
+			new CardType(cards[17], back, Color.YELLOW, 3, 2),
+			new CardType(cards[18], back, Color.YELLOW, 4, 2),
+			new CardType(cards[19], back, Color.YELLOW, 5, 2),
+			new CardType(cards[20], back, Color.YELLOW, 6, 2),
+			new CardType(cards[21], back, Color.YELLOW, 7, 2),
+			new CardType(cards[22], back, Color.YELLOW, 8, 2),
+			new CardType(cards[23], back, Color.YELLOW, 9, 2),
+			new DrawTwoCardType(cards[24], back, Color.YELLOW),
+			new SkipCardType(cards[25], back, Color.YELLOW),
+			new ReverseCardType(cards[26], back, Color.YELLOW),
+			new CardType(cards[27], back, Color.GREEN, 0, 1),
+			new CardType(cards[28], back, Color.GREEN, 1, 2),
+			new CardType(cards[29], back, Color.GREEN, 2, 2),
+			new CardType(cards[30], back, Color.GREEN, 3, 2),
+			new CardType(cards[31], back, Color.GREEN, 4, 2),
+			new CardType(cards[32], back, Color.GREEN, 5, 2),
+			new CardType(cards[33], back, Color.GREEN, 6, 2),
+			new CardType(cards[34], back, Color.GREEN, 7, 2),
+			new CardType(cards[35], back, Color.GREEN, 8, 2),
+			new CardType(cards[36], back, Color.GREEN, 9, 2),
+			new DrawTwoCardType(cards[37], back, Color.GREEN),
+			new SkipCardType(cards[38], back, Color.GREEN),
+			new ReverseCardType(cards[39], back, Color.GREEN),
+			new CardType(cards[40], back, Color.BLUE, 0, 1),
+			new CardType(cards[41], back, Color.BLUE, 1, 2),
+			new CardType(cards[42], back, Color.BLUE, 2, 2),
+			new CardType(cards[43], back, Color.BLUE, 3, 2),
+			new CardType(cards[44], back, Color.BLUE, 4, 2),
+			new CardType(cards[45], back, Color.BLUE, 5, 2),
+			new CardType(cards[46], back, Color.BLUE, 6, 2),
+			new CardType(cards[47], back, Color.BLUE, 7, 2),
+			new CardType(cards[48], back, Color.BLUE, 8, 2),
+			new CardType(cards[49], back, Color.BLUE, 9, 2),
+			new DrawTwoCardType(cards[50], back, Color.BLUE),
+			new SkipCardType(cards[51], back, Color.BLUE),
+			new ReverseCardType(cards[52], back, Color.BLUE),
+			new WildChangeColorType(cards[53], back),
+			new CardType(cards[54], back, Color.RED, -1, 0),
+			new CardType(cards[55], back, Color.YELLOW, -1, 0),
+			new CardType(cards[56], back, Color.GREEN, -1, 0),
+			new CardType(cards[57], back, Color.BLUE, -1, 0),
+			new WildDraw4Type(cards[58], back),
+			new CardType(cards[59], back, Color.RED, -1, 0),
+			new CardType(cards[60], back, Color.YELLOW, -1, 0),
+			new CardType(cards[61], back, Color.GREEN, -1, 0),
+			new CardType(cards[62], back, Color.BLUE, -1, 0),
 		};
 	}
 }

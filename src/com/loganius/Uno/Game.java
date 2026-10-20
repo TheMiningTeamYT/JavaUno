@@ -28,6 +28,7 @@ class Game extends JLayeredPane implements ActionListener {
 	};
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
 	protected Hand[] screenHands;
+	private Theme theme;
 	private Deck deck;
 	private Card lastDrawn = null;
 	private int turnOrder = CLOCKWISE;
@@ -39,11 +40,11 @@ class Game extends JLayeredPane implements ActionListener {
 	private boolean challengeActive = false;
 	private int interruptQueue = 0;
 	
-	private DrawButton draw = new DrawButton(this);
-	private UnoButton unoButton = new UnoButton(this);
+	private DrawButton draw;
+	private UnoButton unoButton;
 	private JPanel customUISpace = new JPanel();
-	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image background = Util.bufferScaledImage(bgSource, 640, 640);
+	private Image bgSource;
+	private Image background;
 	private Rectangle backgroundBounds = new Rectangle(0, -80, 640, 640);
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
 	private int[] arcX = new int[43];
@@ -51,10 +52,17 @@ class Game extends JLayeredPane implements ActionListener {
 	private long lastFrame = (new Date()).getTime();
 	private int frame = 0;
 	
-	Game(Deck deck, GameHandler handler) {
+	Game(Theme theme, GameHandler handler) {
 		super();
-		this.deck = deck;
+		this.theme = theme;
 		this.handler = handler;
+		
+		draw = new DrawButton(this);
+		unoButton = new UnoButton(this);
+		
+		bgSource = theme.getGameBackground();
+		background = Util.bufferScaledImage(bgSource, 640, 640);
+		deck = theme.getDeck();
 		screenHands = (Hand[])hands.clone();
 		preInit();
 
@@ -146,6 +154,10 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	Deck getDeck() {
 		return deck;
+	}
+	
+	Theme getTheme() {
+		return theme;
 	}
 	
 	protected void rotate() {
@@ -657,7 +669,7 @@ class Game extends JLayeredPane implements ActionListener {
 		draw.setBounds(0, 0, cardHeight, cardHeight);
 		unoButton.setBounds(size.width - cardHeight, 0, cardHeight, cardHeight);
 		
-		backgroundBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), size);
+		backgroundBounds = Util.scaleAndCrop(new Rectangle(bgSource.getWidth(null), bgSource.getHeight(null)), size);
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));

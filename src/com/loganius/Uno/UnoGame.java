@@ -2,12 +2,17 @@ package com.loganius.Uno;
 
 import java.awt.*;
 import java.awt.event.*;
+
 import javax.swing.*;
+
 import java.io.*;
+
+import java.net.URL;
+
 import java.util.Vector;
 
 // TODO: Handle scaling the game from the get go rather than starting at 640x480
-public class UnoGame implements GameHandler, ActionListener {
+public class UnoGame implements GameHandler {
 	private Vector ruleFactories = new Vector();
 
 	private Game gameState = null;
@@ -16,12 +21,13 @@ public class UnoGame implements GameHandler, ActionListener {
 	private Container mainScreen;
 	private Container parentContainer;
 	private CardLayout layout = new CardLayout();
-	private JLabel loading = new JLabel("Loading assets, please wait...", SwingConstants.CENTER);
-	private Image bgSource = Util.getImage(Util.getResource("Assets/background.jpg"));
-	private Image bgImage = Util.bufferScaledImage(bgSource, 640, 640);
+	private Image bgSource;
+	private Image bgImage;
 	private Rectangle bgBounds = new Rectangle(0, -80, 640, 640);
-	private Deck deck;
+	private Theme theme = new Theme();
 	private UnoGame unoGame = this;
+	private Color textColor = theme.getMainScreenText();
+	private Color accentColor = theme.getMainScreenAccent();
 	private int frame = 0;
 	
 	UnoGame() {
@@ -35,32 +41,30 @@ public class UnoGame implements GameHandler, ActionListener {
 	
 	public void init(Container parent) {
 		this.parentContainer = parent;
+		bgSource = theme.getMainScreenBackground();
+		bgImage = Util.bufferScaledImage(bgSource, 640, 640);
 
-		Timer loadingAnimationTimer = new Timer(1000, this);
 		mainScreen = new JPanel() {
 			public void paintComponent(Graphics g) {
-				g.drawImage(bgImage, bgBounds.x, bgBounds.y, null);
+				g.drawImage(bgImage, bgBounds.x, bgBounds.y, this);
 			}
 		};
 
-		parent.setLayout(new GridLayout(1, 1));
-		
 		mainScreen.setLayout(new GridLayout(1, 1));
-
-		loading.setFont(Util.getScaledFont());
-		loading.setForeground(Util.WHITE);
-		loading.addComponentListener(Util.ResizeListener);
-		mainScreen.add(loading);
-
 		mainScreen.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
-				Rectangle bounds = mainScreen.getBounds();
-				bgBounds = Util.scaleAndCrop(new Rectangle(1024, 1024), bounds);
-				bgImage = Util.bufferScaledImage(bgSource, bgBounds.width, bgBounds.height);
+				updateBackground();
 			}
 		});
+		
+		mainScreen.setLayout(layout);
+		mainScreen.add(new MainMenu(), "main");
+		mainScreen.add(new JoinMenu(), "join");
+		mainScreen.add(new HostMenu(), "host");
+		mainScreen.add(new ResourcePackSelectionMenu(), "packs");
 
 		parent.removeAll();
+		parent.setLayout(new GridLayout(1, 1));
 		parent.add(mainScreen);
 		parent.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
@@ -68,19 +72,27 @@ public class UnoGame implements GameHandler, ActionListener {
 				Util.onResize(bounds.width, bounds.height);
 			}
 		});
-		loadingAnimationTimer.start();
-		
-		deck = new Deck.UnoCorns();
-		
-		loadingAnimationTimer.stop();
-		
-		mainScreen.remove(loading);
-		loading = null;
-		mainScreen.setLayout(layout);
-		mainScreen.add(new MainMenu(), "main");
-		mainScreen.add(new JoinMenu(), "join");
-		mainScreen.add(new HostMenu(), "host");
+
 		parent.validate();
+	}
+	
+	private void updateBackground() {
+		Rectangle bounds = mainScreen.getBounds();
+		int width;
+		int height;
+		while ((width = bgSource.getWidth(null)) == -1);
+		while ((height = bgSource.getHeight(null)) == -1);
+		bgBounds = Util.scaleAndCrop(new Rectangle(width, height), bounds);
+		bgImage = Util.bufferScaledImage(bgSource, bgBounds.width, bgBounds.height);
+	}
+	
+	private void setTheme(Theme theme) {
+		this.theme = theme;
+		bgSource = theme.getMainScreenBackground();
+		textColor = theme.getMainScreenText();
+		accentColor = theme.getMainScreenAccent();
+		updateBackground();
+		mainScreen.repaint();
 	}
 	
 	public void gameOver() {
@@ -95,17 +107,8 @@ public class UnoGame implements GameHandler, ActionListener {
 		gameState = null;
 	}
 	
-	public void actionPerformed(ActionEvent e) {
-		String text = "Loading assets, please wait.";
-		for (int i = 0; i < frame; i++) {
-			text += ".";
-		}
-		loading.setText(text);
-		frame = (frame + 1) % 3;
-	}
-	
 	private class MainMenu extends JPanel {
-		private Image UnoLogo = Util.getImage(Util.getResource("Assets/UnoLogo.gif"));
+		private Image UnoLogo = theme.getLogo();
 		private ImageIcon icon = new ImageIcon(UnoLogo.getScaledInstance(-1, 160, Image.SCALE_FAST));
 		private JPanel main = new JPanel();
 		private JPanel innerMain = new JPanel();
@@ -119,18 +122,19 @@ public class UnoGame implements GameHandler, ActionListener {
 			);
 			JLabel join = new JLabel("Join a Game", SwingConstants.CENTER);
 			JLabel host = new JLabel("Host a Game", SwingConstants.CENTER);
+			JLabel packs = new JLabel("Resource Packs", SwingConstants.CENTER);
 			JLabel exit = new JLabel("Exit", SwingConstants.CENTER);
 			JLabel copyright = new JLabel(
-					"(C) Copyright 2026 Logan C. GPLv3 or later." +
+					"(C) Copyright 2026 Logan C. GPLv3 or later. " +
 					"Not produced by, licensed by, or associated with Mattel, Inc.",
 					SwingConstants.LEFT
 			);
-			final Color blue = new Color(151, 213, 252);
 			
-			Util.commonComponentInit(text, Util.WHITE);
-			Util.commonComponentInit(join, blue);
-			Util.commonComponentInit(host, blue);
-			Util.commonComponentInit(exit, blue);
+			Util.commonComponentInit(text, textColor);
+			Util.commonComponentInit(join, accentColor);
+			Util.commonComponentInit(host, accentColor);
+			Util.commonComponentInit(packs, accentColor);
+			Util.commonComponentInit(exit, accentColor);
 
 			setLayout(new BorderLayout());
 			start.setLayout(new BoxLayout(start, BoxLayout.Y_AXIS));
@@ -162,6 +166,14 @@ public class UnoGame implements GameHandler, ActionListener {
 				}
 			});
 			innerMain.add(host);
+			
+			packs.setAlignmentX(CENTER_ALIGNMENT);
+			packs.addMouseListener(new MouseAdapter() {
+				public void mouseClicked(MouseEvent e) {
+					layout.show(mainScreen, "packs");
+				}
+			});
+			innerMain.add(packs);
 
 			exit.setAlignmentX(CENTER_ALIGNMENT);
 			exit.addMouseListener(new MouseAdapter() {
@@ -191,7 +203,7 @@ public class UnoGame implements GameHandler, ActionListener {
 			
 			copyright.setFont(Util.getSmallFont());
 			copyright.addComponentListener(Util.SmallResizeListener);
-			copyright.setForeground(Util.WHITE);
+			copyright.setForeground(textColor);
 
 			add(copyright, BorderLayout.SOUTH);
 			
@@ -214,25 +226,24 @@ public class UnoGame implements GameHandler, ActionListener {
 	
 	// TODO: Find a way to make it so that you can't enter a non number for the port.
 	private class JoinMenu extends JPanel {
-		private JTextField player = new JTextField(40);
-		private JTextField host = new JTextField(40);
-		private JLabel error = new JLabel("", SwingConstants.CENTER);
-
 		JoinMenu() {
 			JPanel inner = new JPanel(new GridBagLayout());
 			JLabel playerLabel = new JLabel("Name", SwingConstants.CENTER);
 			JLabel hostLabel = new JLabel("Server", SwingConstants.CENTER);
 			JButton start = new JButton("Join");
 			JButton back = new JButton("Back");
+			final JTextField player = new JTextField(40);
+			final JTextField host = new JTextField(40);
+			final JLabel error = new JLabel("", SwingConstants.CENTER);
 			GridBagConstraints c = new GridBagConstraints();
 
-			Util.commonComponentInit(hostLabel, Util.WHITE);
-			Util.commonComponentInit(playerLabel, Util.WHITE);
+			Util.commonComponentInit(hostLabel, textColor);
+			Util.commonComponentInit(playerLabel, textColor);
 			Util.commonComponentInit(player, Util.BLACK);
 			Util.commonComponentInit(host, Util.BLACK);
 			Util.commonComponentInit(start, Util.BLACK);
 			Util.commonComponentInit(back, Util.BLACK);
-			Util.commonComponentInit(error, Util.WHITE);
+			Util.commonComponentInit(error, textColor);
 
 			setLayout(null);
 			setOpaque(false);
@@ -269,14 +280,14 @@ public class UnoGame implements GameHandler, ActionListener {
 					int port;
 
 					try {
-						port = (splitHost[1] == null) ? 23770 : Integer.parseInt(splitHost[1]);
+						port = (splitHost.length > 1) ? Integer.parseInt(splitHost[1]) : 23770;
 					} catch (NumberFormatException e2) {
 						error.setText("Invalid port number!");
 						return;
 					}
 
 					if (name != null && splitHost[0] != null && name.length() != 0 && splitHost[0].length() != 0) {
-						gameState = new NetworkGameClient(deck, unoGame, name, splitHost[0], port);
+						gameState = new NetworkGameClient(theme, unoGame, name, splitHost[0], port);
 						parentContainer.remove(mainScreen);
 						parentContainer.add(gameState);
 						parentContainer.validate();
@@ -305,11 +316,6 @@ public class UnoGame implements GameHandler, ActionListener {
 	}
 	
 	private class HostMenu extends JPanel {
-		private JTextField player = new JTextField(40);
-		private JTextField port = new JTextField("23770", 6);
-		private JCheckBox[] ruleBoxes = new JCheckBox[ruleFactories.size()];
-		private JLabel error = new JLabel("", SwingConstants.CENTER);
-		
 		HostMenu() {
 			JPanel inner = new JPanel(new GridBagLayout());
 			JLabel[] ruleLabels = new JLabel[ruleFactories.size()];
@@ -318,16 +324,20 @@ public class UnoGame implements GameHandler, ActionListener {
 			JLabel rulesLabel = new JLabel("Rules", SwingConstants.CENTER);
 			JButton start = new JButton("Host");
 			JButton back = new JButton("Back");
+			final JTextField player = new JTextField(40);
+			final JTextField port = new JTextField("23770", 6);
+			final JCheckBox[] ruleBoxes = new JCheckBox[ruleFactories.size()];
+			final JLabel error = new JLabel("", SwingConstants.CENTER);
 			GridBagConstraints c = new GridBagConstraints();
 
-			Util.commonComponentInit(portLabel, Util.WHITE);
-			Util.commonComponentInit(playerLabel, Util.WHITE);
-			Util.commonComponentInit(rulesLabel, Util.WHITE);
+			Util.commonComponentInit(portLabel, textColor);
+			Util.commonComponentInit(playerLabel, textColor);
+			Util.commonComponentInit(rulesLabel, textColor);
 			Util.commonComponentInit(player, Util.BLACK);
 			Util.commonComponentInit(port, Util.BLACK);
 			Util.commonComponentInit(start, Util.BLACK);
 			Util.commonComponentInit(back, Util.BLACK);
-			Util.commonComponentInit(error, Util.WHITE);
+			Util.commonComponentInit(error, textColor);
 
 			setLayout(null);
 			setOpaque(false);
@@ -363,7 +373,7 @@ public class UnoGame implements GameHandler, ActionListener {
 					box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
 	
 					ruleLabels[i] = new JLabel(factory.getName(), SwingConstants.CENTER);
-					ruleLabels[i].setForeground(Util.WHITE);
+					ruleLabels[i].setForeground(textColor);
 					ruleLabels[i].setFont(Util.getSmallFont());
 					ruleLabels[i].addComponentListener(Util.SmallResizeListener);
 					ruleLabels[i].setAlignmentX(CENTER_ALIGNMENT);
@@ -397,7 +407,7 @@ public class UnoGame implements GameHandler, ActionListener {
 						} catch (IOException e2) {
 							e2.printStackTrace();
 						}
-						gameState = new NetworkGameClient(deck, unoGame, player.getText(), "127.0.0.1", portNum);
+						gameState = new NetworkGameClient(theme, unoGame, player.getText(), "127.0.0.1", portNum);
 						for (int i = 0; i < ruleFactories.size(); i++) {
 							if (ruleBoxes[i].isSelected()) {
 								rules.addElement(((RuleFactory)ruleFactories.elementAt(i)).create());
@@ -433,6 +443,364 @@ public class UnoGame implements GameHandler, ActionListener {
 			
 			inner.setOpaque(false);
 			add(inner);
+		}
+	}
+	
+	private class ResourcePackSelectionMenu extends JPanel {
+		private JPanel inner = new JPanel(new GridBagLayout());
+		private JPanel packContainer = new JPanel();
+		private JScrollPane packScroll = new JScrollPane(packContainer);
+		private JPanel finalUI = new JPanel();
+		private volatile Vector packs = new Vector();
+		private Vector remotePacks = new Vector();
+		private ResourcePack defaultPack = new DefaultResourcePack();
+
+		ResourcePackSelectionMenu() {
+			JLabel title = new JLabel("Resource Pack Selection", SwingConstants.CENTER);
+			JButton back = new JButton("Back");
+			JLabel remoteURLLabel = new JLabel("Load remote resource pack", SwingConstants.LEFT);
+			final JTextField remoteURL = new JTextField();
+			JButton load = new JButton("Load");
+			final JTextArea error = new JTextArea();
+			
+			GridBagConstraints c = new GridBagConstraints();
+			
+			Util.commonComponentInit(title, textColor);
+			Util.commonComponentInit(back, Util.BLACK);
+			Util.commonComponentInit(remoteURLLabel, textColor);
+			Util.commonComponentInit(remoteURL, Util.BLACK);
+			Util.commonComponentInit(load, Util.BLACK);
+			error.setForeground(textColor);
+			error.setFont(Util.getSmallFont());
+			error.addComponentListener(Util.SmallResizeListener);
+			
+			setLayout(new GridLayout(1, 1));
+			setOpaque(false);
+			
+			c.gridx = 0;
+			c.gridy = 0;
+			c.gridwidth = 2;
+			c.gridheight = 1;
+			c.weightx = 1;
+			c.fill = GridBagConstraints.HORIZONTAL;
+			inner.add(title, c);
+			
+			c.gridy++;
+			packContainer.setLayout(new GridBagLayout());
+			packContainer.setOpaque(false);
+			packScroll.getViewport().setOpaque(false);
+			packScroll.setOpaque(false);
+			packScroll.setBorder(null);
+			c.fill = GridBagConstraints.BOTH;
+			c.weighty = 1;
+			inner.add(packScroll, c);
+			
+			c.gridy++;
+			c.weighty = 0;
+			inner.add(remoteURLLabel, c);
+			
+			c.gridy++;
+			inner.add(remoteURL, c);
+
+			c.gridy++;
+			c.gridwidth = 1;
+			load.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					final String path = remoteURL.getText();
+
+					if (path == null || path.length() == 0) {
+						return;
+					}
+					new Thread(new Runnable() {
+						public void run() {
+							try {
+								ZIPResourcePack pack = new ZIPResourcePack(new URLStreamAdapter(new URL(remoteURL.getText())));
+								synchronized(pack) {
+									packs.addElement(pack);
+								}
+								synchronized(remotePacks) {
+									remotePacks.addElement(pack);
+								}
+								SwingUtilities.invokeLater(new Runnable() {
+									public void run() {
+										showPacks();
+									}
+								});
+							} catch (final Exception err) {
+								SwingUtilities.invokeLater(new Runnable() {
+									public void run() {
+										error.setText(err.getMessage());
+									}
+								});
+							}
+						}
+					}).start();
+				}
+			});
+			inner.add(load, c);
+
+			c.gridx++;
+			back.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					layout.show(mainScreen, "main");
+				}
+			});
+			inner.add(back, c);
+			inner.setOpaque(false);
+			
+			c.gridx = 0;
+			c.gridy++;
+			c.gridwidth = 2;
+			error.setLineWrap(true);
+			error.setEditable(false);
+			error.setOpaque(false);
+			inner.add(error, c);
+
+			finalUI.setLayout(null);
+			finalUI.setOpaque(false);
+			finalUI.add(inner);
+			finalUI.addComponentListener(new Util.CenteringColumn(inner));
+			
+			addComponentListener(new ComponentAdapter() {
+				public void componentShown(ComponentEvent e) {
+					scan();
+				}
+			});
+		}
+		
+		void scan() {
+			JLabel loading = new JLabel("Loading, please wait...");
+			Util.commonComponentInit(loading, textColor);
+			removeAll();
+			add(loading, SwingConstants.CENTER);
+
+			new Thread(new Runnable() {
+				public void run() {
+					String[] packPaths;
+					File resourcePackDir = new File("resourcepacks");
+
+					try {
+						synchronized(packs) {
+							packs = new Vector();
+							packs.addElement(defaultPack);
+							if (resourcePackDir.exists()) {
+								packPaths = new File("resourcepacks").list(new FilenameFilter() {
+									public boolean accept(File dir, String name) {
+										String extension = name.substring(name.length() - 4);
+										return extension.equalsIgnoreCase(".zip");
+									}
+								});
+								
+								for (int i = 0; i < remotePacks.size(); i++) {
+									packs.addElement(remotePacks.elementAt(i));
+								}
+								for (int i = 0; i < packPaths.length; i++) {
+									try {
+										packs.addElement(new ZIPResourcePack(new FileStreamAdapter(new File(resourcePackDir, packPaths[i]))));
+									} catch (Exception e) {};
+								}
+							} else {
+								resourcePackDir.mkdir();
+							}
+						}
+					} catch (SecurityException e) {}
+					
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							showPacks();
+						}
+					});
+				}
+			}).start();
+		}
+		
+		private void showPacks() {
+			GridBagConstraints c = new GridBagConstraints();
+			
+			c.gridx = 0;
+			c.gridy = 0;
+			c.gridwidth = 1;
+			c.gridheight = 1;
+			c.weightx = 1;
+			c.fill = GridBagConstraints.HORIZONTAL;
+			packContainer.removeAll();
+
+			if (packs.size() > 0) {
+				for (int i = 0; i < packs.size();) {
+					JPanel row = new JPanel(new GridLayout(1, 4));
+					for (int j = 0; i < packs.size() && j < 3; i++, j++) {
+						final ResourcePack pack = (ResourcePack) packs.elementAt(i);
+						final Image packIcon = pack.getIcon();
+						final ImageIcon icon = new ImageIcon(packIcon);
+						JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
+						JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
+						JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+						JPanel box = new JPanel();
+						JButton inspect = new JButton("Inspect");
+						
+						Util.commonComponentInit(inspect, Util.BLACK);
+						Util.commonComponentInit(name, textColor);
+
+						author.setForeground(textColor);
+						author.setFont(Util.getSmallFont());
+						author.addComponentListener(Util.SmallResizeListener);
+
+						box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+						
+						iconLabel.setAlignmentX(CENTER_ALIGNMENT);
+						box.add(iconLabel);
+						
+						inspect.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent e) {
+								mainScreen.add(new ResourcePackScreen(pack), "packscreen");
+								layout.show(mainScreen, "packscreen");
+							}
+						});
+						
+						name.setAlignmentX(CENTER_ALIGNMENT);
+						box.add(name);
+						
+						author.setAlignmentX(CENTER_ALIGNMENT);
+						box.add(author);
+						
+						inspect.setAlignmentX(CENTER_ALIGNMENT);
+						box.add(inspect);
+						
+						box.addComponentListener(new ComponentAdapter() {
+							public void componentResized(ComponentEvent e) {
+								updatePackIcon(packIcon, icon, e);
+							}
+							
+							public void componentMoved(ComponentEvent e) {
+								updatePackIcon(packIcon, icon, e);
+							}
+						});
+						box.setOpaque(false);
+						row.add(box);
+					}
+					row.setOpaque(false);
+					packContainer.add(row, c);
+					c.gridy++;
+				}
+			} else {
+				JLabel noneFoundError = new JLabel("No resource packs were found.", SwingConstants.CENTER);
+				Util.commonComponentInit(noneFoundError, textColor);
+				packContainer.add(noneFoundError, c);
+			}
+			removeAll();
+			add(finalUI);
+			validate();
+		}
+		
+		private void updatePackIcon(Image packIcon, ImageIcon icon, ComponentEvent e) {
+			Rectangle bounds = packContainer.getBounds();
+			if (bounds.width > bounds.height) {
+				icon.setImage(packIcon.getScaledInstance(-1, bounds.height/3 - (int)(5*Util.getScaleFactor()), Image.SCALE_FAST));
+			} else {
+				icon.setImage(packIcon.getScaledInstance(bounds.width/3 - (int)(5*Util.getScaleFactor()), -1, Image.SCALE_FAST));
+			}
+			e.getComponent().invalidate();
+			validate();
+		}
+	}
+	
+	private class ResourcePackScreen extends JPanel {
+		private Image packIcon;
+		private ImageIcon icon = new ImageIcon();
+
+		ResourcePackScreen(final ResourcePack pack) {
+			JPanel inner = new JPanel(new GridBagLayout());
+			JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+			JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
+			JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
+			JTextArea description = new JTextArea(pack.getDescription());
+			final JButton use = new JButton("Use");
+			final JButton back = new JButton("Back");
+			final JLabel error = new JLabel("", SwingConstants.CENTER);
+			GridBagConstraints c = new GridBagConstraints();
+
+			packIcon = pack.getIcon();
+			icon.setImage(packIcon);
+			Util.commonComponentInit(name, textColor);
+			Util.commonComponentInit(author, textColor);
+			Util.commonComponentInit(use, Util.BLACK);
+			Util.commonComponentInit(back, Util.BLACK);
+			Util.commonComponentInit(error, textColor);
+			
+			description.setForeground(textColor);
+			description.setFont(Util.getSmallFont());
+			description.addComponentListener(Util.SmallResizeListener);
+
+			setLayout(null);
+			setOpaque(false);
+			addComponentListener(new Util.CenteringColumn(inner));
+			addComponentListener(new ComponentAdapter() {
+				public void componentResized(ComponentEvent e) {
+					Rectangle bounds = getBounds();
+					if (bounds.width > bounds.height) {
+						icon.setImage(packIcon.getScaledInstance(-1, bounds.height / 3, Image.SCALE_FAST));
+					} else {
+						icon.setImage(packIcon.getScaledInstance(bounds.width / 3, -1, Image.SCALE_FAST));
+					}
+					validate();
+				}
+			});
+			
+			c.gridx = 0;
+			c.gridy = 0;
+			c.gridwidth = 2;
+			c.gridheight = 1;
+			c.weightx = 1;
+			c.fill = GridBagConstraints.HORIZONTAL;
+			inner.add(iconLabel,c);
+			
+			c.gridy++;
+			inner.add(name, c);
+			
+			c.gridy++;
+			description.setLineWrap(true);
+			description.setEditable(false);
+			description.setOpaque(false);
+			inner.add(description, c);
+			
+			c.gridy++;
+			inner.add(author, c);
+			
+			c.gridy++;
+			inner.add(error, c);
+			
+			c.gridy++;
+			c.gridwidth = 1;
+			use.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					try {
+						setTheme(pack.produce());
+						cleanup();
+					} catch (Exception err) {
+						err.printStackTrace();
+						error.setText(err.getMessage());
+					}
+				}
+			});
+			inner.add(use, c);
+			
+			c.gridx++;
+			back.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					cleanup();
+				}
+			});
+			inner.add(back, c);
+			
+			inner.add(Box.createVerticalGlue());
+			inner.setOpaque(false);
+			add(inner);
+			validate();
+		}
+		
+		private void cleanup() {
+			layout.show(mainScreen, "packs");
+			mainScreen.remove(this);
 		}
 	}
 	

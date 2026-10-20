@@ -26,6 +26,7 @@
  	* Implement the UI for challenging wild draw 4s (done)
  	* Fully implement the action for the wild draw 4 (done)
  * Implement custom decks
+ 	* Expand this to include custom themes.
  * Fix applet loading screen
  * Server-side turn validation
  	* Reimplement games & cards as interfaces to simulate multiple inheritance.
@@ -37,6 +38,7 @@ Post 1.0 release checklist:
    but punishes you for pressing it too early.
  * Local AI players
  * Loadable, scriptable decks
+ * Cascading themes (like Minecraft)
  * Scriptable rules
  * Testing tools
  * Fuzzing tools

@@ -1,10 +1,9 @@
 package com.loganius.Uno;
 
 import java.awt.Image;
-import java.net.URL;
 
 final class WildDraw4Type extends WildChangeColorType {
-	WildDraw4Type(URL front, CardFace[] back) {
+	WildDraw4Type(Image front, CachedImage[] back) {
 		super(front, back);
 		value = Value.DRAW_4;
 	}

@@ -1,7 +1,5 @@
 package com.loganius.Uno;
 
-import java.awt.Image;
-import java.net.URL;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -11,8 +9,8 @@ class WildChangeColorType extends CardType {
 	private JPanel buttonSpace = new JPanel();
 	private ComponentAdapter listener = new Util.Centering(buttonSpace);
 
-	WildChangeColorType(URL front, CardFace[] back) {
-		super(front, back, Color.WILD, Value.CHANGE_COLOR, true);
+	WildChangeColorType(Image front, CachedImage[] back) {
+		super(front, back, Color.WILD, Value.CHANGE_COLOR, 4);
 		buttonSpace.setLayout(new GridBagLayout());
 		buttonSpace.setOpaque(false);
 	}

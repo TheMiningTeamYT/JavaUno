@@ -13,7 +13,11 @@ class ForcePlay extends Rule {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				game.setHandPlayable(false);
-				drawn.played();
+				if (game.getUno()) {
+					drawn.setPlayable(true);
+				} else {
+					drawn.played();
+				}
 			}
 		});
 		return STOP;

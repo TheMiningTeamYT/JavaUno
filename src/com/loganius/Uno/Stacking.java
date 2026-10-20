@@ -33,7 +33,7 @@ class Stacking extends Rule implements ActionHandler {
 		cardsToDraw = new NetworkInt(game, CARDS_SLOT, 0);
 
 		cardsToDrawLabel = new JLabel("", SwingConstants.CENTER);
-		cardsToDrawLabel.setForeground(new Color(105, 0, 204));
+		cardsToDrawLabel.setForeground(game.getTheme().getGameAccent());
 		cardsToDrawLabel.setFont(Util.getLargeFont());
 		cardsToDrawLabel.addComponentListener(Util.LargeResizeListener);
 	}

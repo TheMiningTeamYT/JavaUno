@@ -14,24 +14,42 @@ class UnoButton extends JComponent {
 	private static int height = 240;
 	
 	private Game game;
-	private Image buttonUp = Util.bufferImage(Util.getImage(getClass().getResource("Assets/uno.gif")));
-	private Image buttonDown = Util.bufferImage(Util.getImage(getClass().getResource("Assets/uno_down.gif")));
-	private Image button = buttonUp;
+	private CachedImage buttonUp;
+	private CachedImage buttonDown;
+	private CachedImage button;
 
 	UnoButton(Game game) {
 		super();
+		
+		CachedImage[] button = game.getTheme().getUnoButton();
 		this.game = game;
+		buttonUp = button[0];
+		buttonDown = button[1];
+		this.button = buttonUp;
+
 		setVisible(false);
 		addMouseListener(new ClickListener());
 	}
 	
 	public void paintComponent(Graphics g) {
 		Rectangle bounds = getBounds();
-		g.drawImage(button, 0, 0, bounds.width, bounds.height, this);
+		g.drawImage(button.get(), 0, 0, this);
 	}
 	
 	public Dimension getPreferredSize() {
 		return new Dimension(width, height);
+	}
+	
+	public void addNotify() {
+		super.addNotify();
+		buttonUp.using();
+		buttonDown.using();
+	}
+	
+	public void removeNotify() {
+		super.removeNotify();
+		buttonUp.stopUsing();
+		buttonDown.stopUsing();
 	}
 	
 	// TODO: Animate the draw button.

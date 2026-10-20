@@ -12,7 +12,7 @@ public class SevenZero extends Rule {
 	// Defacto constructor.
 	void bind(Game game) {
 		instruction = new JLabel("Choose player to swap with", SwingConstants.CENTER);
-		instruction.setForeground(Util.WHITE);
+		instruction.setForeground(game.getTheme().getGameText());
 		instruction.setFont(Util.getScaledFont());
 		instruction.addComponentListener(Util.ResizeListener);
 	}

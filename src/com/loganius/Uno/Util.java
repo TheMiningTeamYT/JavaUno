@@ -4,6 +4,9 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
 import java.net.*;
+import java.io.InputStream;
+import java.io.IOException;
+import java.util.Vector;
 
 public class Util {
 	private static Font largeFont = new Font("Arial", Font.PLAIN, 40);
@@ -63,6 +66,10 @@ public class Util {
 	
 	public static Image getImage(URL path) {
 		return Toolkit.getDefaultToolkit().getImage(path);
+	}
+	
+	public static Image getImage(InputStream in, int expectedSize) throws IOException {
+		return Toolkit.getDefaultToolkit().createImage(getFile(in, expectedSize));
 	}
 	
 	public static Image bufferScaledImage(Image img, int width, int height) {
@@ -140,16 +147,84 @@ public class Util {
 	}
 	
 	public static String[] splitBy(String src, String split) {
-		String[] result = new String[2];
+		Vector subStrings = new Vector();
+		String[] result;
 		int index;
-		if ((index = src.indexOf(split)) != -1) {
-			result[0] = src.substring(0, index);
-			result[1] = src.substring(index + 1);
-		} else {
-			result[0] = src;
-			result[1] = null;
+
+		while ((index = src.indexOf(split)) != -1) {
+			if (index != 0) {
+				subStrings.addElement(src.substring(0, index));
+			}
+			src = src.substring(index + split.length());
 		}
+		subStrings.addElement(src);
+
+		result = new String[subStrings.size()];
+		subStrings.copyInto(result);
 		return result;
+	}
+	
+	public static String replace(String src, String find, String replacement) {
+		Vector subStrings = new Vector();
+		String result = "";
+		int index;
+		
+		while ((index = src.indexOf(find)) != -1) {
+			subStrings.addElement(src.substring(0, index));
+			subStrings.addElement(replacement);
+			src = src.substring(index + find.length());
+		}
+		subStrings.addElement(src);
+		
+		for (int i = 0; i < subStrings.size(); i++) {
+			result = result.concat((String) subStrings.elementAt(i));
+		}
+		
+		return result;
+	}
+	
+	 public static Rectangle transformBBox(Rectangle rect, double angle) {
+        double minx = Double.POSITIVE_INFINITY;
+        double miny = Double.POSITIVE_INFINITY;
+        double maxx = Double.NEGATIVE_INFINITY;
+        double maxy = Double.NEGATIVE_INFINITY;
+        double[] coord = new double[2];
+
+        for (int y = 0; y <= 1; y++) {
+            for (int x = 0; x <= 1; x++) {
+            	coord[0] = rect.x + Math.cos(angle)*x*rect.width + Math.sin(angle)*y*rect.height;
+            	coord[1] = rect.y + Math.cos(angle)*y*rect.height - Math.sin(angle)*x*rect.width;
+
+                minx = Math.min(minx, coord[0]);
+                miny = Math.min(miny, coord[1]);
+                maxx = Math.max(maxx, coord[0]);
+                maxy = Math.max(maxy, coord[1]);
+            }
+        }
+
+        return new Rectangle((int)Math.round(minx), (int)Math.round(miny), 
+           (int)Math.round(maxx - minx), 
+           (int)Math.round(maxy - miny));
+    }
+	 
+	public static byte[] getFile(InputStream in, int expectedSize) throws IOException {
+		byte[] buffer = new byte[(expectedSize > 0) ? expectedSize : 262144];
+		byte[] newBuf;
+		int index = 0;
+		int read;
+		
+		while ((read = in.read(buffer, index, buffer.length - index)) != -1) {
+			index += read;
+			if (index == buffer.length) {
+				newBuf = new byte[buffer.length * 2];
+				System.arraycopy(buffer, 0, newBuf, 0, index);
+				buffer = newBuf;
+			}
+		}
+		
+		newBuf = new byte[index];
+		System.arraycopy(buffer, 0, newBuf, 0, index);
+		return newBuf;
 	}
 	
 	// TODO: Make this a layout manager?
