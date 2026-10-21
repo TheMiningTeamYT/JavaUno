@@ -21,18 +21,19 @@ class Game extends JLayeredPane implements ActionListener {
 	private GameHandler handler;
 	private RuleSet rules = new RuleSet.Standard();
 	protected Hand[] hands = {
-			new Hand(this, 0, 360, 640, 120, 0, true, false),
+			new Hand(this, 0, 360, 640, 120, 0, false, false),
 			new Hand(this, 0, 130, 120, 220, 270, false, false),
 			new Hand(this, 0, 0, 400, 120, 180, false, false),
 			new Hand(this, 520, 130, 120, 220, 90, false, false),
 	};
 	protected DiscardHand discardHand = new DiscardHand(this, 0, 360, 640, 120);
-	protected Hand[] screenHands;
 	private Theme theme;
 	private Deck deck;
 	private Card lastDrawn = null;
 	private int turnOrder = CLOCKWISE;
 	private int players = 1;
+	private int player = 0;
+	private int playerGoing = 0;
 	private boolean started = false;
 	private boolean drew = false;
 	private boolean uno = false;
@@ -64,7 +65,6 @@ class Game extends JLayeredPane implements ActionListener {
 		backgroundBounds = Util.scaleAndCrop(new Rectangle(bgSource.getWidth(null), bgSource.getHeight(null)), new Rectangle(640, 480));
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 		deck = theme.getDeck();
-		screenHands = (Hand[])hands.clone();
 		preInit();
 
 		deck.reset();
@@ -129,28 +129,15 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 
 	void setTurnOrder(int order) {
-		if (order == turnOrder) {
-			return;
-		}
-		doReverse();
+		turnOrder = order;
 	}
 	
 	private void doReverse() {
-		rotate();
-
-		for (int i = 0; i < players / 2; i++) {
-            Hand temp = hands[i];
-            hands[i] = hands[players - 1 - i];
-            hands[players - 1 - i] = temp;
-        }
-
 		if (turnOrder == CLOCKWISE) {
 			turnOrder = COUNTER_CLOCKWISE;
 		} else {
 			turnOrder = CLOCKWISE;
 		}
-		
-		repaint(arcBounds);
 	}
 	
 	Deck getDeck() {
@@ -159,31 +146,6 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	Theme getTheme() {
 		return theme;
-	}
-	
-	protected void rotate() {
-		rotate(COUNTER_CLOCKWISE);
-
-	}
-	
-	private void rotate(int direction) {
-		Hand temp1;
-		Hand temp2;
-		if (direction == CLOCKWISE) {
-			temp1 = hands[players - 1];
-			for (int i = 0; i < players; i++) {
-				temp2 = hands[i];
-				hands[i] = temp1;
-				temp1 = temp2;
-			}
-		} else {
-			temp1 = hands[0];
-			for (int i = players - 1; i >= 0; i--) {
-				temp2 = hands[i];
-				hands[i] = temp1;
-				temp1 = temp2;
-			}
-		}
 	}
 	
 	JPanel getCustomUISpace() {
@@ -216,20 +178,20 @@ class Game extends JLayeredPane implements ActionListener {
 		return canBePlayed(0);
 	}
 	
-	boolean canBePlayed(int hand) {
-		return hands[hand].canBePlayed();
+	boolean canBePlayed(int turnPos) {
+		return findPlayerHand(turnPos).canBePlayed();
 	}
 	
-	boolean getHandPlayable(int hand) {
-		return hands[hand].getPlayable();
+	boolean getHandPlayable(int turnPos) {
+		return findPlayerHand(turnPos).getPlayable();
 	}
 	
 	void setHandPlayable(boolean playable) {
 		setHandPlayable(playable, 0);
 	}
 	
-	void setHandPlayable(boolean playable, int hand) {
-		hands[hand].setPlayable(playable);
+	void setHandPlayable(boolean playable, int turnPos) {
+		findPlayerHand(turnPos).setPlayable(playable);
 	}
 	
 	boolean isLegal(Card card) {
@@ -240,27 +202,27 @@ class Game extends JLayeredPane implements ActionListener {
 		rules.onDraw(this);
 	}
 	
-	protected int findScreenHand(int hand) {
-		for (int i = 0; i < screenHands.length; i++) {
-			if (hands[hand] == screenHands[i]) {
-				return i;
-			}
+	protected int findPlayer(int turnPos) {
+		if (turnOrder == CLOCKWISE) {
+			return (playerGoing + turnPos) % players;
+		} else {
+			return (playerGoing + players - turnPos) % players;
 		}
-
-		return -1;
 	}
 	
-	protected int findHand(int hand) {
-		for (int i = 0; i < screenHands.length; i++) {
-			if (screenHands[hand] == hands[i]) {
-				return i;
-			}
-		}
-
-		return -1;
+	protected Hand findPlayerHand(int turnPos) {
+		return hands[findPlayer(turnPos)];
 	}
 	
-	int findHand(Card card) {
+	protected int findTurnPos(int player) {
+		if (turnOrder == CLOCKWISE) {
+			return (player + players - playerGoing) % players;
+		} else {
+			return (playerGoing + players - player) % players;
+		}
+	}
+	
+	protected int findPlayer(Card card) {
 		if (card.isInHand(discardHand)) {
 			for (int i = 0; i < players; i++) {
 				if (card.wasInHand(hands[i])) {
@@ -277,6 +239,14 @@ class Game extends JLayeredPane implements ActionListener {
 		return -1;
 	}
 	
+	int findTurnPos(Card card) {
+		return findTurnPos(findPlayer(card));
+	}
+	
+	int findTurnPosFromScreenPos(int screenPos) {
+		return findTurnPos((screenPos + player) % players);
+	}
+	
 	boolean isHandPlayer(int hand) {
 		return true;
 	}
@@ -285,58 +255,45 @@ class Game extends JLayeredPane implements ActionListener {
 		int cardHeight = Card.getHeight(0);
 		Rectangle size = getBounds();
 
-		screenHands[0].onResize(0, size.height - cardHeight, size.width, cardHeight);
-		screenHands[1].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
-		screenHands[2].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
-		screenHands[3].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		hands[player].onResize(0, size.height - cardHeight, size.width, cardHeight);
+		if (players > 1) {
+			hands[(player + 1) % players].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		}
+		if (players > 2) {
+			hands[(player + 2) % players].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
+		}
+		if (players > 3) {
+			hands[(player + 3) % players].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		}
 		repaint();
-	}
-	
-	protected void rotateScreenHands(int direction) {
-		Hand temp1;
-		Hand temp2;
-		boolean[] playableBefore = new boolean[players];
-		boolean[] upBefore = new boolean[players];
-		int[] orientationBefore = new int[players];
-
-		for (int i = 0; i < players; i++) {
-			playableBefore[i] = screenHands[i].getPlayable();
-			upBefore[i] = screenHands[i].getUp();
-			orientationBefore[i] = screenHands[i].getOrientation();
-		}
-
-		if (direction == CLOCKWISE) {
-			temp1 = screenHands[players - 1];
-			for (int i = 0; i < players; i++) {
-				temp2 = screenHands[i];
-				screenHands[i] = temp1;
-				temp1 = temp2;
-			}
-		} else {
-			temp1 = screenHands[0];
-			for (int i = players - 1; i >= 0; i--) {
-				temp2 = screenHands[i];
-				screenHands[i] = temp1;
-				temp1 = temp2;
-			}
-		}
-		
-		for (int i = 0; i < players; i++) {
-			screenHands[i].setUp(upBefore[i]);
-			screenHands[i].setPlayable(playableBefore[i]);
-			screenHands[i].setOrientation(orientationBefore[i]);
-		}
-		
-		resizeHands();
 	}
 	
 	int getPlayers() {
 		return players;
 	}
 	
-	void setPlayers(int players) {
-		if (players > 0 && players <= MAX_PLAYERS) {
+	protected int getPlayer() {
+		return player;
+	}
+	
+	protected int getPlayerGoing() {
+		return playerGoing;
+	}
+	
+	protected void setPlayerGoing(int playerGoing) {
+		if (playerGoing >= 0 && playerGoing < players) {
+			this.playerGoing = playerGoing;
+		}
+	}
+	
+	protected void setPlayer(int player, int players) {
+		if (players > 0 && players <= MAX_PLAYERS && player >= 0 && player < players) {
+			this.player = player;
 			this.players = players;
+			for (int i = 0; i < players; i++) {
+				hands[i].setOrientation((360 - 90*((i + players - player) % players)) % 360);
+			}
+			resizeHands();
 		}
 	}
 	
@@ -378,30 +335,30 @@ class Game extends JLayeredPane implements ActionListener {
 		gameOver();
 	}
 	
-	boolean handContains(int hand, int cardType) {
-		return hands[hand].contains(cardType);
+	boolean handContains(int turnPos, int cardType) {
+		return findPlayerHand(turnPos).contains(cardType);
 	}
 	
-	boolean handContainsColor(int hand, int color) {
-		return hands[hand].containsColor(color);
+	boolean handContainsColor(int turnPos, int color) {
+		return findPlayerHand(turnPos).containsColor(color);
 	}
 	
-	void setTypePlayable(int type, boolean playable, int hand) {
-		hands[hand].setTypePlayable(type, playable);
-	}
-
 	void setTypePlayable(int type, boolean playable) {
 		setTypePlayable(type, playable, 0);
+	}
+	
+	void setTypePlayable(int type, boolean playable, int turnPos) {
+		findPlayerHand(turnPos).setTypePlayable(type, playable);
 	}
 
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
-	Card drawToHand(int hand) {
-		return drawToHand(hand, deck.random());
+	Card drawToHand(int turnPos) {
+		return drawToHand(turnPos, deck.random());
 	}
 
-	Card drawToHand(int hand, int type) {
-		lastDrawn = new Card(type, hands[hand]);
+	Card drawToHand(int turnPos, int type) {
+		lastDrawn = new Card(type, findPlayerHand(turnPos));
 		return (lastDrawn);
 	}
 	
@@ -409,8 +366,8 @@ class Game extends JLayeredPane implements ActionListener {
 		return lastDrawn;
 	}
 	
-	void removeFromHand(int hand, Card card) {
-		hands[hand].remove(card);
+	void removeFromHand(int turnPos, Card card) {
+		findPlayerHand(turnPos).remove(card);
 		remove(card);
 	}
 	
@@ -423,16 +380,45 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	void rotateHands() {
-		if (hands[0].numCards() <= 0) {
-			return;
+		Hand temp1;
+		Hand temp2;
+		boolean[] playableBefore = new boolean[players];
+		boolean[] upBefore = new boolean[players];
+		int[] orientationBefore = new int[players];
+
+		for (int i = 0; i < players; i++) {
+			playableBefore[i] = hands[i].getPlayable();
+			upBefore[i] = hands[i].getUp();
+			orientationBefore[i] = hands[i].getOrientation();
 		}
-		rotate(CLOCKWISE);
-		rotateScreenHands(turnOrder);
+
+		if (turnOrder == CLOCKWISE) {
+			temp1 = hands[players - 1];
+			for (int i = 0; i < players; i++) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
+		} else {
+			temp1 = hands[0];
+			for (int i = players - 1; i >= 0; i--) {
+				temp2 = hands[i];
+				hands[i] = temp1;
+				temp1 = temp2;
+			}
+		}
+		
+		for (int i = 0; i < players; i++) {
+			hands[i].setUp(upBefore[i]);
+			hands[i].setPlayable(playableBefore[i]);
+			hands[i].setOrientation(orientationBefore[i]);
+		}
+		
 		resizeHands();
 	}
 	
 	boolean checkUno() {
-		if (hands[0].numCards() == 2 && canBePlayed()) {
+		if (findPlayerHand(0).numCards() == 2 && canBePlayed()) {
 			uno = false;
 			unoButton.setVisible(true);
 			return true;
@@ -440,22 +426,20 @@ class Game extends JLayeredPane implements ActionListener {
 		return false;
 	}
 	
-	void swapHands(int hand1, int hand2) {
-		if (hands[hand1].numCards() <= 0 && hands[hand2].numCards() <= 0) {
-			return;
-		}
-
+	void swapHands(int turnPos1, int turnPos2) {
+		int hand1 = findPlayer(turnPos1);
+		int hand2 = findPlayer(turnPos2);
 		boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
 		boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
 		int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
-		int screenHand1 = findScreenHand(hand1);
-		int screenHand2 = findScreenHand(hand2);
 		Hand temp = hands[hand1];
+
+		if (hands[hand1].numCards() <= 0 && hands[hand2].numCards() <= 0) {
+			return;
+		}
 		
 		hands[hand1] = hands[hand2];
-		screenHands[screenHand1] = hands[hand2];
 		hands[hand2] = temp;
-		screenHands[screenHand2] = temp;
 		
 		hands[hand1].setUp(upBefore[0]);
 		hands[hand1].setPlayable(playableBefore[0]);
@@ -470,14 +454,18 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void onTurn() {
 		if (!isInterrupted()) {
-			hands[0].setPlayable(false);
+			hands[playerGoing].setPlayable(false);
 			unoButton.setVisible(false);
 			drew = false;
 			uno = false;
-			if (hands[0].numCards() == 0) {
+			if (hands[playerGoing].numCards() == 0) {
 				onWin();
 			} else {
-				rotate();
+				if (turnOrder == CLOCKWISE) {
+					playerGoing = (playerGoing + 1) % players;
+				} else {
+					playerGoing = (playerGoing + players - 1) % players;
+				}
 				checkUno();
 			}
 		}
@@ -549,7 +537,7 @@ class Game extends JLayeredPane implements ActionListener {
 			 * fault.
 			 */
 			throw new RuntimeException(
-					"Dear developer, you appear not to have implemented your" +
+					"Dear Developer, you appear not to have implemented your" +
 					"subclass of Game properly. Please fix that." + 
 					"-Developer");
 		}
@@ -560,15 +548,15 @@ class Game extends JLayeredPane implements ActionListener {
 		if (challengeActive) {
 			endWildCardChallenge();
 			if (challenged) {
-				final boolean upBefore = hands[0].getUp();
-				hands[0].setUp(true);
+				final boolean upBefore = findPlayerHand(0).getUp();
+				findPlayerHand(0).setUp(true);
 				
 				Timer handleDelay = new Timer(2000, new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						int color = discardHand.getSecondToLastCard().getCardType().getColor();
 
-						hands[0].setUp(upBefore);
-						if (hands[0].containsColor(color)) {
+						findPlayerHand(0).setUp(upBefore);
+						if (findPlayerHand(0).containsColor(color)) {
 							for (int i = 0; i < 4; i++) {
 								drawToHand(0);
 							}
@@ -576,9 +564,8 @@ class Game extends JLayeredPane implements ActionListener {
 							for (int i = 0; i < 6; i++) {
 								drawToHand(1);
 							}
+							onTurn();
 						}
-
-						onTurn();
 						onTurn();
 					}
 				});
@@ -645,7 +632,7 @@ class Game extends JLayeredPane implements ActionListener {
 	
 	void callUno(int player) {
 		if (!uno) {
-			if (player != 0 && hands[0].numCards() == 2 && canBePlayed()) {
+			if (player != 0 && findPlayerHand(0).numCards() == 2 && canBePlayed()) {
 				drawToHand(0);
 				drawToHand(0);
 			}

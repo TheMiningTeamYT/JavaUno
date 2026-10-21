@@ -16,6 +16,8 @@ class NetGameUI extends JPanel implements ActionListener {
 			new JLabel("Waiting...", SwingConstants.RIGHT),
 	};
 	private JButton startButton = new JButton("Start");
+	private int player = 0;
+	private int numPlayers = 4;
 	private int activePlayer = 0;
 
 	NetGameUI(NetworkGameClient parent) {
@@ -52,35 +54,32 @@ class NetGameUI extends JPanel implements ActionListener {
 	}
 	
 	void start(int player, int numPlayers) {
-		int adjustment = player;
-		JLabel temp1;
-		JLabel temp2;
-
-		if (adjustment != 0) {
-			for (int i = 0; i < adjustment; i++) {
-				temp1 = players[0];
-				for (int j = numPlayers - 1; j >= 0; j--) {
-					temp2 = players[j];
-					players[j] = temp1;
-					temp1 = temp2;
-				}
-			}
-
-			players[0].setHorizontalAlignment(SwingConstants.CENTER);
-			players[1].setHorizontalAlignment(SwingConstants.LEFT);
-			players[2].setHorizontalAlignment(SwingConstants.CENTER);
-			players[3].setHorizontalAlignment(SwingConstants.RIGHT);
-			onResize();
-		}
+		this.player = player;
+		this.numPlayers = numPlayers;
 
 		for (int i = numPlayers; i < players.length; i++) {
 			players[i].setVisible(false);
 		}
+		
+		players[player].setHorizontalAlignment(SwingConstants.CENTER);
+		if (numPlayers > 1) {
+			players[(player + 1) % numPlayers].setHorizontalAlignment(SwingConstants.LEFT);
+		}
+		if (numPlayers > 2) {
+			players[(player + 2) % numPlayers].setHorizontalAlignment(SwingConstants.CENTER);
+		}
+		if (numPlayers > 3) {
+			players[(player + 3) % numPlayers].setHorizontalAlignment(SwingConstants.RIGHT);
+		}
+		
 		startButton.setVisible(false);
+		onResize();
 	}
 	
 	void showStartButton() {
+		Rectangle bounds = getBounds();
 		startButton.setVisible(true);
+		startButton.setBounds(bounds.width / 2 - (bounds.height * 3) / 32, (bounds.height * 7) / 16, (bounds.height * 3) / 16, bounds.height / 8);
 	}
 	
 	void setActivePlayer(int player) {
@@ -94,11 +93,19 @@ class NetGameUI extends JPanel implements ActionListener {
 		Rectangle bounds = getBounds();
 		int cardHeight = Card.getHeight(0);
 
-		players[0].setBounds(0, bounds.height - cardHeight - (int)(Util.scale(20)) - 50, bounds.width, 100);
-		players[1].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
-		players[2].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
-		players[3].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
-		startButton.setBounds(bounds.width / 2 - (bounds.height * 3) / 32, (bounds.height * 7) / 16, (bounds.height * 3) / 16, bounds.height / 8);
+		players[player].setBounds(0, bounds.height - cardHeight - (int)(Util.scale(20)) - 50, bounds.width, 100);
+		if (numPlayers > 1) {
+			players[(player + 1) % numPlayers].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
+		}
+		if (numPlayers > 2) {
+			players[(player + 2) % numPlayers].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
+		}
+		if (numPlayers > 3) {
+			players[(player + 3) % numPlayers].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
+		}
+		if (startButton.isVisible()) {
+			startButton.setBounds(bounds.width / 2 - (bounds.height * 3) / 32, (bounds.height * 7) / 16, (bounds.height * 3) / 16, bounds.height / 8);
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {

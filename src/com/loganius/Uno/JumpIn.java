@@ -137,14 +137,14 @@ public class JumpIn extends Rule implements ActionHandler {
 			int type = parent.getType();
 			final Game game = parent.getGame();
 			if (active.get(game) >= 0) {
-				int hand = game.findHand(parent);
+				int turnPos = game.findTurnPos(parent);
 				finish(game);
 				
 				if (game instanceof NetworkGameClient) {
 					((NetworkGameClient)game).sendAction(END_JUMP_IN, null);
 				}
 
-				for (int i = 0; i < hand; i++) {
+				for (int i = 0; i < turnPos; i++) {
 					game.onTurn();
 				}
 			} else {

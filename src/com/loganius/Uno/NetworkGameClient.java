@@ -11,11 +11,8 @@ import java.util.Hashtable;
 import java.util.Date;
 
 /**
- * TODO: Add the ability for users to set usernames.
  * TODO: Handle network errors gracefully.
  * TODO: Some more GUI flair for joining a game.
- * TODO: Ensure the network representation is in sync the game representation
- * note: Can get a font of a given size using the Font constructor
  */
 class NetworkGameClient extends Game {
 	private Socket socket = null;
@@ -25,8 +22,6 @@ class NetworkGameClient extends Game {
 	private Thread outThread;
 	private GameState state;
 	private NetGameUI netGameUI;
-	private int moves = 0;
-	private int player = 0;
 	private String[] names;
 	private Timer queueHandler = new Timer(20, new TimerListener());
 	private Hashtable actionHandlers;
@@ -66,50 +61,52 @@ class NetworkGameClient extends Game {
 	
 	void start() {
 		super.start();
-		if (player == 0) {
+		if (getPlayer() == 0) {
 			deal();
 		}
-		netGameUI.setActivePlayer(findScreenHand(0));
+		netGameUI.setActivePlayer(0);
+		setHandPlayable(isHandPlayer(0));
+		hands[getPlayer()].setUp(true);
 	}
 	
-	Card drawToHand(int hand, int type) {
-		if (isHandPlayer(hand)) {
+	Card drawToHand(int turnPos, int type) {
+		if (isHandPlayer(turnPos)) {
 			lastMove = new Date().getTime();
 		}
 
 		if (!handlingMessages) {
-			state.drawToHand(hand, type);
+			state.drawToHand(turnPos, type);
 			synchronized(outQueue) {
-				outQueue.addElement(Action.drawToHand(hand, type, state));
+				outQueue.addElement(Action.drawToHand(turnPos, type, state));
 			}
 		}
 
-		return super.drawToHand(hand, type);
+		return super.drawToHand(turnPos, type);
 	}
 	
-	void removeFromHand(int hand, Card card) {
-		super.removeFromHand(hand, card);
+	void removeFromHand(int turnPos, Card card) {
+		super.removeFromHand(turnPos, card);
 
 		if (!handlingMessages) {
-			state.removeFromHand(hand, card.getType());
+			state.removeFromHand(turnPos, card.getType());
 			synchronized(outQueue) {
-				outQueue.addElement(Action.removeFromHand(hand, card.getType(), state));
+				outQueue.addElement(Action.removeFromHand(turnPos, card.getType(), state));
 			}
 		}
 	}
 	
 	void discard(Card card) {
-		int hand = findHand(card);
+		int turnPos = findTurnPos(card);
 		super.discard(card);
 		
-		if (isHandPlayer(hand)) {
+		if (turnPos == findTurnPos(getPlayer())) {
 			lastMove = new Date().getTime();
 		}
 
 		if (!handlingMessages) {
-			state.discard(card.getType(), hand);
+			state.discard(card.getType(), turnPos);
 			synchronized(outQueue) {
-				outQueue.addElement(Action.discard(card.getType(), hand, state));
+				outQueue.addElement(Action.discard(card.getType(), turnPos, state));
 			}
 		}
 	}
@@ -127,10 +124,9 @@ class NetworkGameClient extends Game {
 	
 	void rotateHands() {
 		super.rotateHands();
-		move(true);
 		
 		if (!handlingMessages) {
-			state.move(true);
+			state.rotate();
 			synchronized(outQueue) {
 				outQueue.addElement(Action.rotateHands(state));
 			}
@@ -139,14 +135,14 @@ class NetworkGameClient extends Game {
 	
 	void onTurn() {
 		super.onTurn();
-		move(false);
+		move();
 		
 		if (isHandPlayer(0)) {
 			lastMove = (new Date()).getTime();
 		}
 		
 		if (!handlingMessages) {
-			state.move(false);
+			state.turn();
 			state.setLastPlayed(getLastPlayed().getType());
 			synchronized(outQueue) {
 				outQueue.addElement(Action.turn(state, getLastPlayed().getType()));
@@ -242,31 +238,26 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	boolean isHandPlayer(int hand) {
-		return (findHand(0) == hand);
+	boolean isHandPlayer(int turnPos) {
+		return (findPlayer(turnPos) == getPlayer());
 	}
 	
-	private void move(boolean reverse) {
-		if (hands[0].numCards() > 0) {
-			if (getTurnOrder() == 0) {
-				moves += (reverse) ? -1 : 1;
-			} else {
-				moves += (reverse) ? 1 : -1;
-			}
-			hands[0].setPlayable(isHandPlayer(0));
-			netGameUI.setActivePlayer(findScreenHand(0));
+	private void move() {
+		if (findPlayerHand(0).numCards() > 0) {
+			setHandPlayable(isHandPlayer(0));
+			netGameUI.setActivePlayer(getPlayerGoing());
 		}
 	}
 	
-	private void removeFromHand(int hand, int cardType) {
-		Card toBeRemoved = hands[hand].getCardByType(cardType);
+	private void removeFromHand(int turnPos, int cardType) {
+		Card toBeRemoved = findPlayerHand(turnPos).getCardByType(cardType);
 		if (toBeRemoved != null) {
-			super.removeFromHand(hand, toBeRemoved);
+			super.removeFromHand(turnPos, toBeRemoved);
 		}
 	}
 	
-	private void discard(int cardType, int hand) {
-		Card toBeDiscarded = hands[hand].getCardByType(cardType);
+	private void discard(int cardType, int turnPos) {
+		Card toBeDiscarded = findPlayerHand(turnPos).getCardByType(cardType);
 		if (toBeDiscarded != null) {
 			super.discard(toBeDiscarded);
 		}
@@ -274,7 +265,6 @@ class NetworkGameClient extends Game {
 	
 	private void setState(GameState newState) {
 		Integer[][] newHands = newState.getHands();
-		int adjustMoves = ((newState.getMoves()) - moves) % getPlayers();
 		boolean handlingBefore = handlingMessages;
 		handlingMessages = false;
 
@@ -284,29 +274,16 @@ class NetworkGameClient extends Game {
 		for (int i = 0; i < getPlayers(); i++) {
 			hands[i].removeAll();
 			hands[i].setPlayable(false);
-		}
-
-		if (adjustMoves < 0) {
-			adjustMoves += getPlayers();
-		}
-		if (getTurnOrder() == 1) {
-			adjustMoves = (getPlayers() - adjustMoves) % getPlayers();
-		}
-
-		for (int i = 0; i < adjustMoves; i++) {
-			rotate();
-		}
-		moves = newState.getMoves();
-		hands[0].setPlayable(isHandPlayer(0));
-		netGameUI.setActivePlayer(findScreenHand(0));
-		setUno(newState.getUno());
-		setChallengeActive(newState.getChallengeActive());
-		
-		for (int i = 0; i < getPlayers(); i++) {
 			for (int j = 0; j < newHands[i].length; j++) {
 				new Card(newHands[i][j].intValue(), hands[i]);
 			}
 		}
+
+		setHandPlayable(isHandPlayer(0));
+		netGameUI.setActivePlayer(state.getPlayerGoing());
+		setUno(newState.getUno());
+		setChallengeActive(newState.getChallengeActive());
+		setPlayerGoing(state.getPlayerGoing());
 		
 		// TODO: Put the last 2 cards played into the game state
 		new Card(newState.getLastPlayed(), discardHand);
@@ -374,10 +351,11 @@ class NetworkGameClient extends Game {
 	
 	boolean verify() {
 		Integer[][] stateHands;
-		if (state.getPlayers() != getPlayers() || state.getTurnOrder() != getTurnOrder() ||
+		if (state.getPlayers() != getPlayers() || state.getPlayerGoing() != getPlayerGoing() || 
+			state.getTurnOrder() != getTurnOrder() ||
 			(getLastPlayed() != null && state.getLastPlayed() != getLastPlayed().getType()) ||
-			state.getMoves() != moves || !state.getRules().equals(getRuleSet()) ||
-			state.getUno() != getUno() || state.getChallengeActive() != getChallengeActive()) {
+			!state.getRules().equals(getRuleSet()) || state.getUno() != getUno() || 
+			state.getChallengeActive() != getChallengeActive()) {
 			return false;
 		}
 
@@ -467,10 +445,9 @@ class NetworkGameClient extends Game {
 					break;
 				}
 
-				player = hello.getPlayer();
-				setPlayers(hello.getNumPlayers());
+				setPlayer(hello.getPlayer(), hello.getNumPlayers());
 				state.setPlayers(newNumPlayers);
-				if (player == 0 && getPlayers() > 1) {
+				if (getPlayer() == 0 && getPlayers() > 1) {
 					netGameUI.showStartButton();
 				}
 
@@ -481,15 +458,7 @@ class NetworkGameClient extends Game {
 				netGameUI.setPlayers(names);
 				break;
 			} case Action.START_GAME: {
-				int adjustment = player;
-				if (adjustment != 0) {
-					for (int i = 0; i < adjustment; i++) {
-						rotateScreenHands(COUNTER_CLOCKWISE);
-					}
-					resizeHands();
-				}
-				screenHands[0].setUp(true);
-				netGameUI.start(player, getPlayers());
+				netGameUI.start(getPlayer(), getPlayers());
 				start();
 				break;
 			}

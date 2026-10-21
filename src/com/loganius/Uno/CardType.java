@@ -60,7 +60,6 @@ class CardType {
 	void useFace(int orientation) {
 		face[orientation / 90].using();
 		face[0].using();
-		face[0].update();
 	}
 	
 	void stopUsingFace(int orientation) {
@@ -71,7 +70,6 @@ class CardType {
 	void useBack(int orientation) {
 		back[orientation / 90].using();
 		face[0].using();
-		face[0].update();
 	}
 	
 	void stopUsingBack(int orientation) {

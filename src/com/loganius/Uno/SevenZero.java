@@ -118,7 +118,7 @@ public class SevenZero extends Rule {
 					JPanel customUISpace = game.getCustomUISpace();
 					customUISpace.removeAll();
 					customUISpace.setVisible(false);
-					game.swapHands(0, game.findHand(hand));
+					game.swapHands(0, game.findTurnPosFromScreenPos(hand));
 					game.onTurn();
 				}
 			});

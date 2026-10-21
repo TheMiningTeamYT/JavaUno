@@ -10,7 +10,7 @@ import java.io.*;
  * TODO: Add the ability for plugins to track custom values in the game state.
  */
 class GameState implements Serializable {
-	private static final long serialVersionUID = 8L;
+	private static final long serialVersionUID = 9L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -24,8 +24,8 @@ class GameState implements Serializable {
 	private RuleSet rules = new RuleSet.Standard();
 	private int lastPlayed;
 	private int turnOrder = Game.CLOCKWISE;
-	private int moves = 0;
 	private int players = 0;
+	private int playerGoing = 0;
 	private boolean uno = false;
 	private boolean challengeActive = false;
 
@@ -44,8 +44,8 @@ class GameState implements Serializable {
 		rules = other.rules;
 		lastPlayed = other.lastPlayed;
 		turnOrder = other.turnOrder;
-		moves = other.moves;
 		players = other.players;
+		playerGoing = other.playerGoing;
 		uno = other.uno;
 		challengeActive = other.challengeActive;
 	}
@@ -54,13 +54,13 @@ class GameState implements Serializable {
 		this.players = players;
 	}
 
-	void drawToHand(int hand, int card) {
-		hands[hand].addElement(new Integer(card));
+	void drawToHand(int turnPos, int card) {
+		findPlayerHand(turnPos).addElement(new Integer(card));
 	}
 
-	void removeFromHand(int hand, int card) {
-		if (hand >= 0) {
-			hands[hand].removeElement(new Integer(card));
+	void removeFromHand(int turnPos, int card) {
+		if (turnPos >= 0) {
+			findPlayerHand(turnPos).removeElement(new Integer(card));
 		}
 	}
 	
@@ -70,14 +70,6 @@ class GameState implements Serializable {
 	}
 
 	void reverse() {
-		rotate(Game.COUNTER_CLOCKWISE);
-
-		for (int i = 0; i < players / 2; i++) {
-            Vector temp = hands[i];
-            hands[i] = hands[players - 1 - i];
-            hands[players - 1 - i] = temp;
-        }
-
 		if (turnOrder == Game.CLOCKWISE) {
 			turnOrder = Game.COUNTER_CLOCKWISE;
 		} else {
@@ -85,17 +77,17 @@ class GameState implements Serializable {
 		}
 	}
 
-	void rotate(int direction) {
+	void rotate() {
 		Vector temp1;
 		Vector temp2;
-		if (direction == Game.CLOCKWISE) {
+		if (turnOrder == Game.CLOCKWISE) {
 			temp1 = hands[players - 1];
 			for (int i = 0; i < players; i++) {
 				temp2 = hands[i];
 				hands[i] = temp1;
 				temp1 = temp2;
 			}
-		} else if (direction == Game.COUNTER_CLOCKWISE) {
+		} else {
 			temp1 = hands[0];
 			for (int i = players - 1; i >= 0; i--) {
 				temp2 = hands[i];
@@ -105,14 +97,13 @@ class GameState implements Serializable {
 		}
 	}
 	
-	void move(boolean reverse) {
+	void turn() {
 		uno = false;
-		if (hands[0].size() > 0) {
-			rotate(reverse ? Game.CLOCKWISE : Game.COUNTER_CLOCKWISE);
+		if (hands[playerGoing].size() > 0) {
 			if (turnOrder == Game.CLOCKWISE) {
-				moves += (reverse) ? -1 : 1;
+				playerGoing = (playerGoing + 1) % players;
 			} else {
-				moves += (reverse) ? 1 : -1;
+				playerGoing = (playerGoing + players - 1) % players;
 			}
 		}
 	}
@@ -133,7 +124,9 @@ class GameState implements Serializable {
 		return rules;
 	}
 	
-	void swapHands(int hand1, int hand2) {
+	void swapHands(int turnPos1, int turnPos2) {
+		int hand1 = findPlayer(turnPos1);
+		int hand2 = findPlayer(turnPos2);
 		Vector temp = hands[hand1];
 		hands[hand1] = hands[hand2];
 		hands[hand2] = temp;
@@ -227,7 +220,7 @@ class GameState implements Serializable {
 				if (a.getArgument() != null) {
 					break;
 				}
-				move(true);
+				rotate();
 				break;
 			case Action.TURN:
 				if (a.getArgument().getClass() != Integer.class) {
@@ -235,7 +228,7 @@ class GameState implements Serializable {
 				}
 				arg = (Integer) a.getArgument();
 				lastPlayed = arg.intValue();
-				move(false);
+				turn();
 				break;
 			case Action.SET_STATE:
 				if (a.getArgument().getClass() != GameState.class) {
@@ -321,6 +314,18 @@ class GameState implements Serializable {
 		}
 	}
 	
+	private int findPlayer(int turnPos) {
+		if (turnOrder == Game.CLOCKWISE) {
+			return (playerGoing + turnPos) % players;
+		} else {
+			return (playerGoing + players - turnPos) % players;
+		}
+	}
+	
+	private Vector findPlayerHand(int turnPos) {
+		return hands[findPlayer(turnPos)];
+	}
+	
 	Integer[][] getHands() {
 		Integer[][] rawHands = new Integer[][] {
 			new Integer[hands[0].size()],
@@ -346,12 +351,12 @@ class GameState implements Serializable {
 		return turnOrder;
 	}
 	
-	int getMoves() {
-		return moves;
-	}
-	
 	int getPlayers() {
 		return players;
+	}
+	
+	int getPlayerGoing() {
+		return playerGoing;
 	}
 	
 	boolean getUno() {
@@ -381,9 +386,9 @@ class GameState implements Serializable {
 		out.writeByte(-1);
 		out.writeInt(turnOrder);
 		out.writeByte(-1);
-		out.writeInt(moves);
-		out.writeByte(-1);
 		out.writeInt(players);
+		out.writeByte(-1);
+		out.writeInt(playerGoing);
 		out.writeByte(-1);
 		out.writeBoolean(uno);
 		out.writeByte(-1);
