@@ -22,7 +22,7 @@ class DefaultResourcePack extends ResourcePack {
 		return defaultIcon;
 	}
 
-	public Theme produce() throws IOException {
+	public Theme produce(Theme current) throws IOException {
 		return defaultTheme;
 	}
 

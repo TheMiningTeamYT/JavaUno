@@ -10,6 +10,8 @@ import java.io.*;
 import java.net.URL;
 
 import java.util.Vector;
+import java.util.Hashtable;
+import java.util.Enumeration;
 
 // TODO: Handle scaling the game from the get go rather than starting at 640x480
 public class UnoGame implements GameHandler {
@@ -20,23 +22,35 @@ public class UnoGame implements GameHandler {
 
 	private Container mainScreen;
 	private Container parentContainer;
-	private CardLayout layout = new CardLayout();
-	private Image bgSource;
-	private Image bgImage;
-	private Rectangle bgBounds = new Rectangle(0, -80, 640, 640);
-	private Theme theme = new Theme();
 	private UnoGame unoGame = this;
-	private Color textColor = theme.getMainScreenText();
-	private Color accentColor = theme.getMainScreenAccent();
+
+	private CardLayout layout = new CardLayout();
+	private volatile Hashtable knownPacks = new Hashtable();
+	private Vector loadedThemes = new Vector();
+	private volatile Image bgSource;
+	private volatile Image bgImage;
+	private volatile Rectangle bgBounds = new Rectangle(0, -80, 640, 640);
+	private volatile Theme theme;
+	private volatile Color textColor;
+	private volatile Color accentColor;
 	private int frame = 0;
 	
 	UnoGame() {
+		ResourcePack defaultPack = new DefaultResourcePack();
 		ruleFactories.addElement(new DrawToMatch.Factory());
 		ruleFactories.addElement(new ForcePlay.Factory());
 		ruleFactories.addElement(new SevenZero.Factory());
 		ruleFactories.addElement(new JumpIn.Factory());
 		ruleFactories.addElement(new Stacking.Factory());
 		ruleFactories.addElement(new NoBluffing.Factory());
+		knownPacks.put(defaultPack.getName(), defaultPack);
+		try {
+			loadedThemes.addElement((theme = defaultPack.produce(null)));
+		} catch (IOException e) {
+			throw new RuntimeException("wat");
+		}
+		textColor = theme.getMainScreenText();
+		accentColor = theme.getMainScreenAccent();
 	}
 	
 	public void init(Container parent) {
@@ -86,7 +100,7 @@ public class UnoGame implements GameHandler {
 		bgImage = Util.bufferScaledImage(bgSource, bgBounds.width, bgBounds.height);
 	}
 	
-	private void setTheme(Theme theme) {
+	private synchronized void setTheme(Theme theme) {
 		this.theme = theme;
 		bgSource = theme.getMainScreenBackground();
 		textColor = theme.getMainScreenText();
@@ -105,6 +119,25 @@ public class UnoGame implements GameHandler {
 		parentContainer.validate();
 		layout.show(mainScreen, "main");
 		gameState = null;
+	}
+	
+	private int packInUse(ResourcePack pack) {
+		String name = pack.getName();
+		for (int i = 0; i < loadedThemes.size(); i++) {
+			if (((Theme)loadedThemes.elementAt(i)).getName().equals(name)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	private synchronized void reloadPacks(int startFrom) throws IOException {
+		Theme currentTheme = (startFrom > 0) ? (Theme) loadedThemes.elementAt(startFrom - 1) : null;
+		for (int i = startFrom; i < loadedThemes.size(); i++) {
+			currentTheme = ((ResourcePack)knownPacks.get(((Theme)loadedThemes.elementAt(i)).getName())).produce(currentTheme);
+			loadedThemes.setElementAt(currentTheme, i);
+		}
+		setTheme(currentTheme);
 	}
 	
 	private class MainMenu extends JPanel {
@@ -461,8 +494,6 @@ public class UnoGame implements GameHandler {
 		};
 		private JScrollPane packScroll = new JScrollPane(packContainer);
 		private JPanel finalUI = new JPanel();
-		private volatile Vector packs = new Vector();
-		private Vector remotePacks = new Vector();
 		private ResourcePack defaultPack = new DefaultResourcePack();
 
 		ResourcePackSelectionMenu() {
@@ -525,11 +556,10 @@ public class UnoGame implements GameHandler {
 						public void run() {
 							try {
 								ZIPResourcePack pack = new ZIPResourcePack(new URLStreamAdapter(new URL(remoteURL.getText())));
-								synchronized(pack) {
-									packs.addElement(pack);
-								}
-								synchronized(remotePacks) {
-									remotePacks.addElement(pack);
+								if (!pack.getName().equalsIgnoreCase("Default")) {
+									synchronized(knownPacks) {
+										knownPacks.put(pack.getName(), pack);
+									}
 								}
 								SwingUtilities.invokeLater(new Runnable() {
 									public void run() {
@@ -588,16 +618,7 @@ public class UnoGame implements GameHandler {
 				public void run() {
 					String[] packPaths;
 					File resourcePackDir = new File("resourcepacks");
-
-					try {
-						synchronized(packs) {
-							packs = new Vector();
-							packs.addElement(defaultPack);
-
-							for (int i = 0; i < remotePacks.size(); i++) {
-								packs.addElement(remotePacks.elementAt(i));
-							}
-
+						try {
 							if (resourcePackDir.exists()) {
 								packPaths = new File("resourcepacks").list(new FilenameFilter() {
 									public boolean accept(File dir, String name) {
@@ -608,14 +629,18 @@ public class UnoGame implements GameHandler {
 
 								for (int i = 0; i < packPaths.length; i++) {
 									try {
-										packs.addElement(new ZIPResourcePack(new FileStreamAdapter(new File(resourcePackDir, packPaths[i]))));
+										ResourcePack newPack = new ZIPResourcePack(new FileStreamAdapter(new File(resourcePackDir, packPaths[i])));
+										synchronized(knownPacks) {
+											if (!newPack.getName().equalsIgnoreCase("Default")) {
+												knownPacks.put(newPack.getName(), newPack);
+											}
+										}
 									} catch (Exception e) {};
 								}
 							} else {
 								resourcePackDir.mkdir();
 							}
-						}
-					} catch (SecurityException e) {}
+						} catch (SecurityException e) {}
 					
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
@@ -637,67 +662,69 @@ public class UnoGame implements GameHandler {
 			c.fill = GridBagConstraints.HORIZONTAL;
 			packContainer.removeAll();
 
-			if (packs.size() > 0) {
-				for (int i = 0; i < packs.size();) {
-					JPanel row = new JPanel(new GridLayout(1, 4));
-					for (int j = 0; i < packs.size() && j < 3; i++, j++) {
-						final ResourcePack pack = (ResourcePack) packs.elementAt(i);
-						final Image packIcon = pack.getIcon();
-						final ImageIcon icon = new ImageIcon();
-						JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
-						JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
-						JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
-						JPanel box = new JPanel();
-						JButton inspect = new JButton("Inspect");
-						
-						Util.commonComponentInit(inspect, Util.BLACK);
-						Util.commonComponentInit(name, textColor);
-
-						author.setForeground(textColor);
-						author.setFont(Util.getSmallFont());
-						author.addComponentListener(Util.SmallResizeListener);
-
-						box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
-						
-						iconLabel.setAlignmentX(CENTER_ALIGNMENT);
-						box.add(iconLabel);
-						
-						inspect.addActionListener(new ActionListener() {
-							public void actionPerformed(ActionEvent e) {
-								mainScreen.add(new ResourcePackScreen(pack), "packscreen");
-								layout.show(mainScreen, "packscreen");
-							}
-						});
-						
-						name.setAlignmentX(CENTER_ALIGNMENT);
-						box.add(name);
-						
-						author.setAlignmentX(CENTER_ALIGNMENT);
-						box.add(author);
-						
-						inspect.setAlignmentX(CENTER_ALIGNMENT);
-						box.add(inspect);
-						
-						box.addComponentListener(new ComponentAdapter() {
-							public void componentResized(ComponentEvent e) {
-								updatePackIcon(packIcon, icon, e.getComponent());
-							}
+			synchronized(knownPacks) {
+				if (knownPacks.size() > 0) {
+					for (Enumeration e = knownPacks.elements(); e.hasMoreElements();) {
+						JPanel row = new JPanel(new GridLayout(1, 4));
+						for (int j = 0; e.hasMoreElements() && j < 3; j++) {
+							final ResourcePack pack = (ResourcePack) e.nextElement();
+							final Image packIcon = pack.getIcon();
+							final ImageIcon icon = new ImageIcon();
+							JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
+							JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
+							JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+							JPanel box = new JPanel();
+							JButton inspect = new JButton("Inspect");
 							
-							public void componentMoved(ComponentEvent e) {
-								updatePackIcon(packIcon, icon, e.getComponent());
-							}
-						});
-						box.setOpaque(false);
-						row.add(box);
+							Util.commonComponentInit(inspect, Util.BLACK);
+							Util.commonComponentInit(name, textColor);
+	
+							author.setForeground(textColor);
+							author.setFont(Util.getSmallFont());
+							author.addComponentListener(Util.SmallResizeListener);
+	
+							box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+							
+							iconLabel.setAlignmentX(CENTER_ALIGNMENT);
+							box.add(iconLabel);
+							
+							inspect.addActionListener(new ActionListener() {
+								public void actionPerformed(ActionEvent e) {
+									mainScreen.add(new ResourcePackScreen(pack), "packscreen");
+									layout.show(mainScreen, "packscreen");
+								}
+							});
+							
+							name.setAlignmentX(CENTER_ALIGNMENT);
+							box.add(name);
+							
+							author.setAlignmentX(CENTER_ALIGNMENT);
+							box.add(author);
+							
+							inspect.setAlignmentX(CENTER_ALIGNMENT);
+							box.add(inspect);
+							
+							box.addComponentListener(new ComponentAdapter() {
+								public void componentResized(ComponentEvent e) {
+									updatePackIcon(packIcon, icon, e.getComponent());
+								}
+								
+								public void componentMoved(ComponentEvent e) {
+									updatePackIcon(packIcon, icon, e.getComponent());
+								}
+							});
+							box.setOpaque(false);
+							row.add(box);
+						}
+						row.setOpaque(false);
+						packContainer.add(row, c);
+						c.gridy++;
 					}
-					row.setOpaque(false);
-					packContainer.add(row, c);
-					c.gridy++;
+				} else {
+					JLabel noneFoundError = new JLabel("No resource packs were found.", SwingConstants.CENTER);
+					Util.commonComponentInit(noneFoundError, textColor);
+					packContainer.add(noneFoundError, c);
 				}
-			} else {
-				JLabel noneFoundError = new JLabel("No resource packs were found.", SwingConstants.CENTER);
-				Util.commonComponentInit(noneFoundError, textColor);
-				packContainer.add(noneFoundError, c);
 			}
 			removeAll();
 			add(finalUI);
@@ -731,7 +758,7 @@ public class UnoGame implements GameHandler {
 			JLabel name = new JLabel(pack.getName(), SwingConstants.CENTER);
 			JLabel author = new JLabel(pack.getAuthor(), SwingConstants.CENTER);
 			JTextArea description = new JTextArea(pack.getDescription());
-			final JButton use = new JButton("Use");
+			final JButton use = new JButton(packInUse(pack) >= 0 ? "Unload" : "Load");
 			final JButton back = new JButton("Back");
 			final JLabel error = new JLabel("", SwingConstants.CENTER);
 			GridBagConstraints c = new GridBagConstraints();
@@ -793,9 +820,48 @@ public class UnoGame implements GameHandler {
 			c.gridwidth = 1;
 			use.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					if (pack.getName().equalsIgnoreCase("Default")) {
+						return;
+					}
+
 					try {
-						setTheme(pack.produce());
-						cleanup();
+						final int packIndex = packInUse(pack);
+						if (packIndex == 0) {
+							return;
+						}
+						if (packIndex > 0) {
+							synchronized(loadedThemes) {
+								loadedThemes.removeElementAt(packIndex);
+								if (packIndex == loadedThemes.size()) {
+									setTheme((Theme)loadedThemes.elementAt(packIndex - 1));
+									use.setText("Load");
+								} else {
+									new Thread(new Runnable() {
+										public void run() {
+											try {
+												reloadPacks(packIndex);
+												SwingUtilities.invokeLater(new Runnable() {
+													public void run() {
+														use.setText("Load");
+													}
+												});
+											} catch (final Exception err) {
+												SwingUtilities.invokeLater(new Runnable() {
+													public void run() {
+														err.printStackTrace();
+														error.setText(err.getMessage());
+													}
+												});
+											}
+										}
+									}).start();
+								}
+							}
+						} else {
+							setTheme(pack.produce(theme));
+							loadedThemes.addElement(theme);
+							use.setText("Unload");
+						}
 					} catch (Exception err) {
 						err.printStackTrace();
 						error.setText(err.getMessage());

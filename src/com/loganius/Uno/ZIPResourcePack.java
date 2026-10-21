@@ -76,12 +76,22 @@ class ZIPResourcePack extends ResourcePack {
 		"red_draw4",
 		"yellow_draw4",
 		"green_draw4",
-		"blue_draw4"
+		"blue_draw4",
 	};
 	
-	private static int DECORATIVE = 0;
-	private static int SCRIPTED = 1;
-	private static int JAVA = 2;
+	private static final String[] otherNames = {
+		"main_background",
+		"game_background",
+		"uno_up",
+		"uno_down",
+		"draw_up",
+		"draw_down",
+		"logo",
+	};
+	
+	private static final int DECORATIVE = 0;
+	private static final int SCRIPTED = 1;
+	private static final int JAVA = 2;
 
 	private StreamAdapter source;
 	private int type;
@@ -149,6 +159,21 @@ class ZIPResourcePack extends ResourcePack {
 						return false;
 					}
 				}
+				
+				for (int i = 0; i < otherNames.length; i++) {
+					String path = properties.getProperty(otherNames[i]);
+					ZipEntry file;
+
+					if (path == null) {
+						continue;
+					}
+					
+					file = (ZipEntry) files.get(path);
+
+					if (file == null || file.isDirectory() || file.getSize() == 0) {
+						return false;
+					}
+				}
 				return true;
 			}
 
@@ -195,7 +220,7 @@ class ZIPResourcePack extends ResourcePack {
 		}
 	}
 	
-	public Theme produce() throws IOException {
+	public Theme produce(Theme current) throws IOException {
 		InputStream in = source.openStream();
 		ZipInputStream zip = new ZipInputStream(in);
 		ZipEntry entry;
@@ -240,13 +265,17 @@ class ZIPResourcePack extends ResourcePack {
 		}
 		
 		if (type == DECORATIVE) {
-			Image[] cards = new Image[cardNames.length];
-			for (int i = 0; i < cardNames.length; i++) {
+			Image[] cards = new Image[Deck.NUM_CARDS];
+			Image back = null;
+			if ((path = properties.getProperty(cardNames[0])) != null && (file = (byte[])files.get(path)) != null) {
+				back = toolkit.createImage(file);
+			}
+			for (int i = 1; i < cardNames.length; i++) {
 				if ((path = properties.getProperty(cardNames[i])) != null && (file = (byte[])files.get(path)) != null) {
-					cards[i] = toolkit.createImage(file);
+					cards[i - 1] = toolkit.createImage(file);
 				}
 			}
-			deck = new Deck(cards);
+			deck = createDeck(cards, back, current);
 		} else {
 			throw new RuntimeException("Unimplemented!");
 		}
@@ -267,6 +296,10 @@ class ZIPResourcePack extends ResourcePack {
 			drawButtonDown = toolkit.createImage(file);
 		}
 		
+		if ((unoButtonUp == null) != (unoButtonDown == null) || (drawButtonUp == null) != (drawButtonDown == null)) {
+			throw new RuntimeException("Resource pack defined button up but not button down (or vice versa)!");
+		}
+		
 		if ((path = properties.getProperty("logo")) != null && (file = (byte[])files.get(path)) != null) {
 			logo = toolkit.createImage(file);
 		}
@@ -279,8 +312,9 @@ class ZIPResourcePack extends ResourcePack {
 			gameBackground = toolkit.createImage(file);
 		}
 
-		return new Theme(unoButtonUp, unoButtonDown, drawButtonUp, drawButtonDown, 
-			logo, mainScreenBackground, gameBackground, deck, mainScreenText,
-			mainScreenAccent, gameText, gameAccent); 
+		return new Theme(current, getName(), new Image[] {unoButtonUp, unoButtonDown},
+			new Image[] {drawButtonUp, drawButtonDown}, logo, mainScreenBackground,
+			gameBackground, deck, mainScreenText, mainScreenAccent, gameText,
+			gameAccent);
 	}
 }

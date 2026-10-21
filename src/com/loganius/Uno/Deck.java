@@ -7,6 +7,8 @@ import com.loganius.Uno.CardType.*;
 
 /* TODO: Add actually different images for the different change color results */
 class Deck {
+	static final int NUM_CARDS = 62;
+
 	static final int RED_0 = 0;
 	static final int RED_1 = 1;
 	static final int RED_2 = 2;
@@ -70,8 +72,8 @@ class Deck {
 	static final int GREEN_DRAW4 = 60;
 	static final int BLUE_DRAW4 = 61;
 	
+	private static final URL fallbackBack = Util.getResource("Assets/UnoCorns/0.gif");
 	private static final URL[] fallback = {
-		Util.getResource("Assets/UnoCorns/0.gif"),
 		Util.getResource("Assets/UnoCorns/r0.gif"),
 		Util.getResource("Assets/UnoCorns/r1.gif"),
 		Util.getResource("Assets/UnoCorns/r2.gif"),
@@ -146,10 +148,6 @@ class Deck {
 		updateWeights();
 	}
 	
-	Deck(Image[] cards) {
-		this(createCompositeCards(cards));
-	}
-	
 	Deck() {
 		this(createDefaultCards());
 	}
@@ -160,6 +158,10 @@ class Deck {
 	
 	CardType getCard(int type) {
 		return cards[type];
+	}
+	
+	CardType[] getCards() {
+		return (CardType[]) originalDeck.clone();
 	}
 	
 	int addCard(CardType newCard) {
@@ -211,93 +213,70 @@ class Deck {
 	}
 	
 	static CardType[] createDefaultCards() {
-		return createCompositeCards(null);
-	}
-	
-	static CardType[] createCompositeCards(Image[] overrideCards) {
-		Image[] cards = new Image[fallback.length];
-		
-		for (int i = 0; i < cards.length; i++) {
-			try {
-				cards[i] = overrideCards[i];
-			} catch (IndexOutOfBoundsException e) {
-				
-			} catch (NullPointerException e) {}
-			
-			if (cards[i] == null) {
-				cards[i] = Util.getImage(fallback[i]);
-			}
-		}
-		
-		return createCards(cards);
-	}
-	
-	static CardType[] createCards(Image[] cards) {
-		CachedImage[] back = CardType.generateImageList(cards[0]);
-		
+		CachedImage[] back = CardType.generateImageList(Util.getImage(fallbackBack));
 		return new CardType[] {
-			new CardType(cards[1], back, Color.RED, 0, 1),
-			new CardType(cards[2], back, Color.RED, 1, 2),
-			new CardType(cards[3], back, Color.RED, 2, 2),
-			new CardType(cards[4], back, Color.RED, 3, 2),
-			new CardType(cards[5], back, Color.RED, 4, 2),
-			new CardType(cards[6], back, Color.RED, 5, 2),
-			new CardType(cards[7], back, Color.RED, 6, 2),
-			new CardType(cards[8], back, Color.RED, 7, 2),
-			new CardType(cards[9], back, Color.RED, 8, 2),
-			new CardType(cards[10], back, Color.RED, 9, 2),
-			new DrawTwoCardType(cards[11], back, Color.RED),
-			new SkipCardType(cards[12], back, Color.RED),
-			new ReverseCardType(cards[13], back, Color.RED),
-			new CardType(cards[14], back, Color.YELLOW, 0, 1),
-			new CardType(cards[15], back, Color.YELLOW, 1, 2),
-			new CardType(cards[16], back, Color.YELLOW, 2, 2),
-			new CardType(cards[17], back, Color.YELLOW, 3, 2),
-			new CardType(cards[18], back, Color.YELLOW, 4, 2),
-			new CardType(cards[19], back, Color.YELLOW, 5, 2),
-			new CardType(cards[20], back, Color.YELLOW, 6, 2),
-			new CardType(cards[21], back, Color.YELLOW, 7, 2),
-			new CardType(cards[22], back, Color.YELLOW, 8, 2),
-			new CardType(cards[23], back, Color.YELLOW, 9, 2),
-			new DrawTwoCardType(cards[24], back, Color.YELLOW),
-			new SkipCardType(cards[25], back, Color.YELLOW),
-			new ReverseCardType(cards[26], back, Color.YELLOW),
-			new CardType(cards[27], back, Color.GREEN, 0, 1),
-			new CardType(cards[28], back, Color.GREEN, 1, 2),
-			new CardType(cards[29], back, Color.GREEN, 2, 2),
-			new CardType(cards[30], back, Color.GREEN, 3, 2),
-			new CardType(cards[31], back, Color.GREEN, 4, 2),
-			new CardType(cards[32], back, Color.GREEN, 5, 2),
-			new CardType(cards[33], back, Color.GREEN, 6, 2),
-			new CardType(cards[34], back, Color.GREEN, 7, 2),
-			new CardType(cards[35], back, Color.GREEN, 8, 2),
-			new CardType(cards[36], back, Color.GREEN, 9, 2),
-			new DrawTwoCardType(cards[37], back, Color.GREEN),
-			new SkipCardType(cards[38], back, Color.GREEN),
-			new ReverseCardType(cards[39], back, Color.GREEN),
-			new CardType(cards[40], back, Color.BLUE, 0, 1),
-			new CardType(cards[41], back, Color.BLUE, 1, 2),
-			new CardType(cards[42], back, Color.BLUE, 2, 2),
-			new CardType(cards[43], back, Color.BLUE, 3, 2),
-			new CardType(cards[44], back, Color.BLUE, 4, 2),
-			new CardType(cards[45], back, Color.BLUE, 5, 2),
-			new CardType(cards[46], back, Color.BLUE, 6, 2),
-			new CardType(cards[47], back, Color.BLUE, 7, 2),
-			new CardType(cards[48], back, Color.BLUE, 8, 2),
-			new CardType(cards[49], back, Color.BLUE, 9, 2),
-			new DrawTwoCardType(cards[50], back, Color.BLUE),
-			new SkipCardType(cards[51], back, Color.BLUE),
-			new ReverseCardType(cards[52], back, Color.BLUE),
-			new WildChangeColorType(cards[53], back),
-			new CardType(cards[54], back, Color.RED, -1, 0),
-			new CardType(cards[55], back, Color.YELLOW, -1, 0),
-			new CardType(cards[56], back, Color.GREEN, -1, 0),
-			new CardType(cards[57], back, Color.BLUE, -1, 0),
-			new WildDraw4Type(cards[58], back),
-			new CardType(cards[59], back, Color.RED, -1, 0),
-			new CardType(cards[60], back, Color.YELLOW, -1, 0),
-			new CardType(cards[61], back, Color.GREEN, -1, 0),
-			new CardType(cards[62], back, Color.BLUE, -1, 0),
+			new CardType(Util.getImage(fallback[0]), back, Color.RED, 0, 1),
+			new CardType(Util.getImage(fallback[1]), back, Color.RED, 1, 2),
+			new CardType(Util.getImage(fallback[2]), back, Color.RED, 2, 2),
+			new CardType(Util.getImage(fallback[3]), back, Color.RED, 3, 2),
+			new CardType(Util.getImage(fallback[4]), back, Color.RED, 4, 2),
+			new CardType(Util.getImage(fallback[5]), back, Color.RED, 5, 2),
+			new CardType(Util.getImage(fallback[6]), back, Color.RED, 6, 2),
+			new CardType(Util.getImage(fallback[7]), back, Color.RED, 7, 2),
+			new CardType(Util.getImage(fallback[8]), back, Color.RED, 8, 2),
+			new CardType(Util.getImage(fallback[9]), back, Color.RED, 9, 2),
+			new DrawTwo(Util.getImage(fallback[10]), back, Color.RED),
+			new Skip(Util.getImage(fallback[11]), back, Color.RED),
+			new Reverse(Util.getImage(fallback[12]), back, Color.RED),
+			new CardType(Util.getImage(fallback[13]), back, Color.YELLOW, 0, 1),
+			new CardType(Util.getImage(fallback[14]), back, Color.YELLOW, 1, 2),
+			new CardType(Util.getImage(fallback[15]), back, Color.YELLOW, 2, 2),
+			new CardType(Util.getImage(fallback[16]), back, Color.YELLOW, 3, 2),
+			new CardType(Util.getImage(fallback[17]), back, Color.YELLOW, 4, 2),
+			new CardType(Util.getImage(fallback[18]), back, Color.YELLOW, 5, 2),
+			new CardType(Util.getImage(fallback[19]), back, Color.YELLOW, 6, 2),
+			new CardType(Util.getImage(fallback[20]), back, Color.YELLOW, 7, 2),
+			new CardType(Util.getImage(fallback[21]), back, Color.YELLOW, 8, 2),
+			new CardType(Util.getImage(fallback[22]), back, Color.YELLOW, 9, 2),
+			new DrawTwo(Util.getImage(fallback[23]), back, Color.YELLOW),
+			new Skip(Util.getImage(fallback[24]), back, Color.YELLOW),
+			new Reverse(Util.getImage(fallback[25]), back, Color.YELLOW),
+			new CardType(Util.getImage(fallback[26]), back, Color.GREEN, 0, 1),
+			new CardType(Util.getImage(fallback[27]), back, Color.GREEN, 1, 2),
+			new CardType(Util.getImage(fallback[28]), back, Color.GREEN, 2, 2),
+			new CardType(Util.getImage(fallback[29]), back, Color.GREEN, 3, 2),
+			new CardType(Util.getImage(fallback[30]), back, Color.GREEN, 4, 2),
+			new CardType(Util.getImage(fallback[31]), back, Color.GREEN, 5, 2),
+			new CardType(Util.getImage(fallback[32]), back, Color.GREEN, 6, 2),
+			new CardType(Util.getImage(fallback[33]), back, Color.GREEN, 7, 2),
+			new CardType(Util.getImage(fallback[34]), back, Color.GREEN, 8, 2),
+			new CardType(Util.getImage(fallback[35]), back, Color.GREEN, 9, 2),
+			new DrawTwo(Util.getImage(fallback[36]), back, Color.GREEN),
+			new Skip(Util.getImage(fallback[37]), back, Color.GREEN),
+			new Reverse(Util.getImage(fallback[38]), back, Color.GREEN),
+			new CardType(Util.getImage(fallback[39]), back, Color.BLUE, 0, 1),
+			new CardType(Util.getImage(fallback[40]), back, Color.BLUE, 1, 2),
+			new CardType(Util.getImage(fallback[41]), back, Color.BLUE, 2, 2),
+			new CardType(Util.getImage(fallback[42]), back, Color.BLUE, 3, 2),
+			new CardType(Util.getImage(fallback[43]), back, Color.BLUE, 4, 2),
+			new CardType(Util.getImage(fallback[44]), back, Color.BLUE, 5, 2),
+			new CardType(Util.getImage(fallback[45]), back, Color.BLUE, 6, 2),
+			new CardType(Util.getImage(fallback[46]), back, Color.BLUE, 7, 2),
+			new CardType(Util.getImage(fallback[47]), back, Color.BLUE, 8, 2),
+			new CardType(Util.getImage(fallback[48]), back, Color.BLUE, 9, 2),
+			new DrawTwo(Util.getImage(fallback[49]), back, Color.BLUE),
+			new Skip(Util.getImage(fallback[50]), back, Color.BLUE),
+			new Reverse(Util.getImage(fallback[51]), back, Color.BLUE),
+			new WildChangeColorType(Util.getImage(fallback[52]), back),
+			new CardType(Util.getImage(fallback[53]), back, Color.RED, -1, 0),
+			new CardType(Util.getImage(fallback[54]), back, Color.YELLOW, -1, 0),
+			new CardType(Util.getImage(fallback[55]), back, Color.GREEN, -1, 0),
+			new CardType(Util.getImage(fallback[56]), back, Color.BLUE, -1, 0),
+			new WildDraw4Type(Util.getImage(fallback[57]), back),
+			new CardType(Util.getImage(fallback[58]), back, Color.RED, -1, 0),
+			new CardType(Util.getImage(fallback[59]), back, Color.YELLOW, -1, 0),
+			new CardType(Util.getImage(fallback[60]), back, Color.GREEN, -1, 0),
+			new CardType(Util.getImage(fallback[61]), back, Color.BLUE, -1, 0),
 		};
 	}
 }

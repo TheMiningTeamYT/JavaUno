@@ -99,6 +99,10 @@ class CardType {
 	int getWeight() {
 		return weight;
 	}
+	
+	boolean canBeSkinned() {
+		return true;
+	}
 
 	/**
 	 * Take an action when the card is played.
@@ -109,8 +113,8 @@ class CardType {
 		parent.getGame().onTurn();
 	};
 	
-	static final class SkipCardType extends CardType {
-		SkipCardType(Image front, CachedImage[] back, int color) {
+	static final class Skip extends CardType {
+		Skip(Image front, CachedImage[] back, int color) {
 			super(front, back, color, Value.SKIP, 2);
 		}
 		
@@ -121,8 +125,8 @@ class CardType {
 		};
 	}
 	
-	static final class ReverseCardType extends CardType {
-		ReverseCardType(Image front, CachedImage[] back, int color) {
+	static final class Reverse extends CardType {
+		Reverse(Image front, CachedImage[] back, int color) {
 			super(front, back, color, Value.REVERSE, 2);
 		}
 		
@@ -133,8 +137,8 @@ class CardType {
 		};
 	}
 	
-	static final class DrawTwoCardType extends CardType {
-		DrawTwoCardType(Image front, CachedImage[] back, int color) {
+	static final class DrawTwo extends CardType {
+		DrawTwo(Image front, CachedImage[] back, int color) {
 			super(front, back, color, Value.PLUS2, 2);
 		}
 		
@@ -146,5 +150,28 @@ class CardType {
 			game.onTurn();
 			game.onTurn();
 		};
+	}
+	
+	static final class Skinned extends CardType {
+		private CardType parent;
+
+		Skinned(CardType parent, CachedImage[] face, CachedImage back[]) {
+			super(parent);
+			if (parent instanceof Skinned) {
+				this.parent = ((Skinned) parent).parent;
+			} else {
+				this.parent = parent;
+			}
+			if (face != null) {
+				this.face = face;
+			}
+			if (back != null) {
+				this.back = back;
+			}
+		}
+		
+		void played(Card parent) {
+			this.parent.played(parent);
+		}
 	}
 }
