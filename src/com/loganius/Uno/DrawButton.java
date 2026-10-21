@@ -30,7 +30,6 @@ class DrawButton extends JComponent {
 	
 	public void paintComponent(Graphics g) {
 		Rectangle bounds = getBounds();
-		g.setColor(Util.WHITE);
 		g.drawImage(button.get(), 0, 0, this);
 	}
 	

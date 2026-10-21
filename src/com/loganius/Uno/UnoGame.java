@@ -364,7 +364,7 @@ public class UnoGame implements GameHandler {
 			final JTextField player = new JTextField(40);
 			final JTextField port = new JTextField("23770", 6);
 			final JCheckBox[] ruleBoxes = new JCheckBox[ruleFactories.size()];
-			final JLabel error = new JLabel("", SwingConstants.CENTER);
+			final JTextArea error = new JTextArea("");
 			GridBagConstraints c = new GridBagConstraints();
 
 			Util.commonComponentInit(portLabel, textColor);
@@ -375,6 +375,8 @@ public class UnoGame implements GameHandler {
 			Util.commonComponentInit(start, Util.BLACK);
 			Util.commonComponentInit(back, Util.BLACK);
 			Util.commonComponentInit(error, textColor);
+			error.setEditable(false);
+			error.setOpaque(false);
 
 			setLayout(null);
 			setOpaque(false);

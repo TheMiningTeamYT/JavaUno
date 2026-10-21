@@ -148,6 +148,14 @@ class Game extends JLayeredPane implements ActionListener {
 		return theme;
 	}
 	
+	Color getTextColor() {
+		return theme.getGameText();
+	}
+	
+	Color getAccentColor() {
+		return theme.getGameAccent();
+	}
+	
 	JPanel getCustomUISpace() {
 		return customUISpace;
 	}
@@ -243,7 +251,7 @@ class Game extends JLayeredPane implements ActionListener {
 		return findTurnPos(findPlayer(card));
 	}
 	
-	int findTurnPosFromScreenPos(int screenPos) {
+	int screenToTurnPos(int screenPos) {
 		return findTurnPos((screenPos + player) % players);
 	}
 	
@@ -523,7 +531,7 @@ class Game extends JLayeredPane implements ActionListener {
 			customUISpace.setVisible(true);
 		} else {
 			JLabel waiting = new JLabel("Waiting for player to challenge.", SwingConstants.CENTER);
-			Util.commonComponentInit(waiting, Util.BLACK);
+			Util.commonComponentInit(waiting, getTextColor());
 			customUISpace.setLayout(new GridLayout(1, 1));
 			customUISpace.add(waiting);
 			customUISpace.setVisible(true);

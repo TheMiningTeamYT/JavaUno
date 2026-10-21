@@ -28,7 +28,7 @@ class WildChangeColorType extends CardType {
 		GridBagConstraints c = new GridBagConstraints();
 		this.parentCard = parent;
 		
-		Util.commonComponentInit(instruction, Util.WHITE);
+		Util.commonComponentInit(instruction, parent.getGame().getTextColor());
 		
 		buttonSpace.removeAll();
 		buttonSpace.setBounds(size.width / 4, size.height / 4, size.width / 2, size.height / 2);

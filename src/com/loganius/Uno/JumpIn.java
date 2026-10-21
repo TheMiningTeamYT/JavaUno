@@ -25,7 +25,7 @@ public class JumpIn extends Rule implements ActionHandler {
 		active = new NetworkInt(game, SLOT, -1);
 
 		instruction = new JLabel("Jump In!", SwingConstants.CENTER);
-		instruction.setForeground(game.getTheme().getGameAccent());
+		instruction.setForeground(game.getAccentColor());
 		instruction.setFont(Util.getLargeFont());
 		instruction.addComponentListener(Util.LargeResizeListener);
 	}
