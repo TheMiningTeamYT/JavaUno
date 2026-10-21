@@ -45,12 +45,12 @@ public class Theme {
 			Color gameAccent) {
 		this.name = name;
 		this.unoButton = (unoButton == null) ? fallback.unoButton : new CachedImage[] {
-				new CachedImage(unoButton[0], 0, 120, 120),
-				new CachedImage(unoButton[1], 0, 120, 120),
+				(unoButton[0] == null) ? fallback.unoButton[0] : new CachedImage(unoButton[0], 0, 120, 120),
+				(unoButton[1] == null) ? fallback.unoButton[1] : new CachedImage(unoButton[1], 0, 120, 120),
 		};
 		this.drawButton = (drawButton == null) ? fallback.drawButton : new CachedImage[] {
-				new CachedImage(drawButton[0], 0, 120, 120),
-				new CachedImage(drawButton[1], 0, 120, 120),
+				(drawButton[0] == null) ? fallback.drawButton[0] : new CachedImage(drawButton[0], 0, 120, 120),
+				(drawButton[1] == null) ? fallback.drawButton[1] : new CachedImage(drawButton[1], 0, 120, 120),
 		};
 		this.logo = (logo == null) ? fallback.logo : logo;
 		this.mainScreenBackground = (mainScreenBackground == null) ? fallback.mainScreenBackground : mainScreenBackground;
