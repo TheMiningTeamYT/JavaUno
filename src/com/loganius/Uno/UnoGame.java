@@ -566,7 +566,7 @@ public class UnoGame implements GameHandler {
 								SwingUtilities.invokeLater(new Runnable() {
 									public void run() {
 										showPacks();
-									}
+										remoteURL.setText("");									}
 								});
 							} catch (final Exception err) {
 								SwingUtilities.invokeLater(new Runnable() {
@@ -822,52 +822,55 @@ public class UnoGame implements GameHandler {
 			c.gridwidth = 1;
 			use.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					final int packIndex = packInUse(pack);
+
 					if (pack.getName().equalsIgnoreCase("Default")) {
 						return;
 					}
 
-					try {
-						final int packIndex = packInUse(pack);
-						if (packIndex == 0) {
-							return;
-						}
-						if (packIndex > 0) {
-							synchronized(loadedThemes) {
-								loadedThemes.removeElementAt(packIndex);
-								if (packIndex == loadedThemes.size()) {
-									setTheme((Theme)loadedThemes.elementAt(packIndex - 1));
-									use.setText("Load");
-								} else {
-									new Thread(new Runnable() {
-										public void run() {
-											try {
-												reloadPacks(packIndex);
-												SwingUtilities.invokeLater(new Runnable() {
-													public void run() {
-														use.setText("Load");
-													}
-												});
-											} catch (final Exception err) {
-												SwingUtilities.invokeLater(new Runnable() {
-													public void run() {
-														err.printStackTrace();
-														error.setText(err.getMessage());
-													}
-												});
-											}
-										}
-									}).start();
-								}
-							}
-						} else {
-							setTheme(pack.produce(theme));
-							loadedThemes.addElement(theme);
-							use.setText("Unload");
-						}
-					} catch (Exception err) {
-						err.printStackTrace();
-						error.setText(err.getMessage());
+					if (packIndex == 0) {
+						return;
 					}
+
+					new Thread(new Runnable() {
+						public void run() {
+							try {
+								if (packIndex > 0) {
+									synchronized(loadedThemes) {
+										loadedThemes.removeElementAt(packIndex);
+										if (packIndex == loadedThemes.size()) {
+											setTheme((Theme)loadedThemes.elementAt(packIndex - 1));
+										} else {
+											reloadPacks(packIndex);
+										}
+										SwingUtilities.invokeLater(new Runnable() {
+											public void run() {
+												use.setText("Load");
+											}
+										});
+									}
+								} else {
+									final Theme newTheme = pack.produce(theme);
+									synchronized(loadedThemes) {
+										loadedThemes.addElement(newTheme);
+									}
+									setTheme(newTheme);
+									SwingUtilities.invokeLater(new Runnable() {
+										public void run() {
+											use.setText("Unload");
+										}
+									});
+								}
+							} catch (final Exception err) {
+								SwingUtilities.invokeLater(new Runnable() {
+									public void run() {
+										err.printStackTrace();
+										error.setText(err.getMessage());
+									}
+								});
+							}
+						}
+					}).start();
 				}
 			});
 			inner.add(use, c);
@@ -888,7 +891,9 @@ public class UnoGame implements GameHandler {
 		
 		private void cleanup() {
 			layout.show(mainScreen, "packs");
-			mainScreen.remove(this);
+			if (mainScreen.isAncestorOf(this)) {
+				mainScreen.remove(this);
+			}
 		}
 	}
 	

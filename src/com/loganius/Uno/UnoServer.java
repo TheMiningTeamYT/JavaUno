@@ -8,12 +8,7 @@ import java.lang.Thread;
 public class UnoServer {
 	private ServerSocket server = null;
 	private Socket[] sockets = new Socket[] {null, null, null, null};
-	private volatile Vector[] inQueue = new Vector[] {
-			new Vector(),
-			new Vector(),
-			new Vector(),
-			new Vector(),
-	};
+	private volatile Vector inQueue = new Vector();
 	private volatile Vector[] outQueue = new Vector[] {
 			new Vector(),
 			new Vector(),
@@ -91,97 +86,75 @@ public class UnoServer {
 		GameState state = new GameState();
 		public void processQueue() {
 			GameState newState = new GameState(state);
-			for (int client = 0; client < players; client++) {
-				Action a = null;
-				Vector acts = new Vector();
-				synchronized(inQueue[client]) {
-					if (inQueue[client].size() == 0) {
-						continue;
-					}
-					while (inQueue[client].size() > 0) {
-						Action[] actionSet = (Action[])inQueue[client].firstElement();
-						for (int action = 0; action < actionSet.length; action++) {
-							a = actionSet[action];
-							// System.out.println("Received type " + a.getType() + " from " + client);
-							switch (a.getType()) {
-								case Action.SEND_STATE:
-									synchronized(outQueue[client]) {
-										outQueue[client].addElement(Action.setState(state));
+			synchronized(inQueue) {
+				while (inQueue.size() > 0) {
+					ClientActionSet actionSet = (ClientActionSet)inQueue.firstElement();
+					int client = actionSet.getClient();
+					for (int i = 0; i < actionSet.size(); i++) {
+						Action a = actionSet.getAction(i);
+						boolean send = true;
+						
+						// System.out.println("Received type " + a.getType() + " from " + client);
+						switch (a.getType()) {
+							case Action.SEND_STATE:
+								synchronized(outQueue[client]) {
+									outQueue[client].addElement(Action.setState(state));
+								}
+								continue;
+							case Action.HELLO: {
+								Object received = a.getArgument();
+								if (received.getClass() != String.class) {
+									continue;
+								}
+								names[client] = (String)received;
+								String[] currentNames = new String[players];
+								System.arraycopy(names, 0, currentNames, 0, players);
+								for (int j = 0; j < players; j++) {
+									synchronized(outQueue[j]) {
+										outQueue[j].addElement(Action.welcome(currentNames, j, players));
 									}
-									break;
-								case Action.HELLO: {
-									Object received = a.getArgument();
-									if (received.getClass() != String.class) {
-										break;
-									}
-									names[client] = (String)received;
-									String[] currentNames = null;
-									if (players > 0) {
-										currentNames = new String[players];
-										synchronized(names) {
-											System.arraycopy(names, 0, currentNames, 0, players);
+								}
+								continue;
+							}
+							case Action.REQUEST_START:
+								if (client == 0) {
+									start = true;
+								}
+								continue;
+							case Action.CREATE_SLOT:
+							case Action.UPDATE_SLOT:
+								send = false;
+							default:
+								newState.applyAction(a);
+								break;
+						}
+						if (a.verify(newState)) {
+							state = newState;
+							newState = new GameState(state);
+							if (send) {
+								for (int j = 0; j < players; j++) {
+									if (client != j) {
+										synchronized(outQueue[j]) {
+											outQueue[j].addElement(a);
 										}
 									}
-									for (int i = 0; i < players; i++) {
-										synchronized(outQueue[i]) {
-											outQueue[i].addElement(Action.welcome(currentNames, i, players));
-										}
-									}
-									break;
-								}
-								case Action.REQUEST_START:
-									if (client == 0) {
-										start = true;
-									}
-									break;
-								case Action.CREATE_SLOT:
-								case Action.UPDATE_SLOT:
-									newState.applyAction(a);
-									break;
-								case Action.SET_RULES:
-									if (client != 0 && !start) {
-										break;
-									}
-									acts.addElement(a);
-									newState.applyAction(a);
-									break;
-								default:
-									acts.addElement(a);
-									newState.applyAction(a);
-									break;
-							}
-						}
-						inQueue[client].removeElementAt(0);
-					}
-				}
-
-				if (a == null) {
-					continue;
-				}
-
-				if (a.verify(newState)) {
-					for (int i = 0; i < players; i++) {
-						if (client != i) {
-							synchronized(outQueue[i]) {
-								for (int act = 0; act < acts.size(); act++) {
-									outQueue[i].addElement(acts.elementAt(act));
 								}
 							}
+						} else {
+							synchronized(outQueue[client]) {
+								outQueue[client].addElement(Action.setState(state));
+							}
+							for (int j = 1; j < inQueue.size(); j++) {
+								if (((ClientActionSet)inQueue.elementAt(j)).getClient() == client) {
+									inQueue.removeElementAt(j--);
+								}
+							}
+							newState = new GameState(state);
+							System.out.println("Desynced!");
+							System.out.println("Last action received: " + a.getType());
 						}
 					}
-					state = newState;
-				} else {
-					for (int j = 0; j < players; j++) {
-						synchronized(outQueue[j]) {
-							outQueue[j].addElement(Action.setState(state));
-						}
-						synchronized(inQueue[j]) {
-							inQueue[j].removeAllElements();
-						}
-					}
-					System.out.println("Desynced!");
-					System.out.println("Last action received: " + a.getType());
-					break;
+					inQueue.removeElementAt(0);
 				}
 			}
 			for (int i = 0; i < players; i++) {
@@ -277,11 +250,8 @@ public class UnoServer {
 						continue;
 					}
 					
-					synchronized(inQueue[id]) {
-						inQueue[id].addElement(received);
-					}
-
 					synchronized(inQueue) {
+						inQueue.addElement(new ClientActionSet((Action[]) received, id));
 						inQueue.notify();
 					}
 				} catch (Exception e) {
@@ -356,6 +326,32 @@ public class UnoServer {
 					}
 				}
 			}
+		}
+	}
+	
+	private static class ClientActionSet {
+		private Action[] acts;
+		private int client;
+		
+		ClientActionSet(Action[] acts, int client) {
+			this.acts = acts;
+			this.client = client;
+		}
+		
+		Action[] getActs() {
+			return acts;
+		}
+		
+		int size() {
+			return acts.length;
+		}
+		
+		Action getAction(int index) {
+			return acts[index];
+		}
+		
+		int getClient() {
+			return client;
 		}
 	}
 

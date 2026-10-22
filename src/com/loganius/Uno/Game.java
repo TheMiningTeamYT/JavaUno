@@ -325,7 +325,7 @@ class Game extends JLayeredPane implements ActionListener {
 		this.uno = uno; 
 	}
 	
-	boolean getChallengeActive() {
+	protected boolean getChallengeActive() {
 		return challengeActive;
 	}
 	
