@@ -86,14 +86,17 @@ public class UnoServer {
 		GameState state = new GameState();
 		public void processQueue() {
 			GameState newState = new GameState(state);
+			boolean[] desynced = new boolean[players];
 			synchronized(inQueue) {
 				while (inQueue.size() > 0) {
 					ClientActionSet actionSet = (ClientActionSet)inQueue.firstElement();
 					int client = actionSet.getClient();
+					inQueue.removeElementAt(0);
+
 					for (int i = 0; i < actionSet.size(); i++) {
 						Action a = actionSet.getAction(i);
 						boolean send = true;
-						
+
 						// System.out.println("Received type " + a.getType() + " from " + client);
 						switch (a.getType()) {
 							case Action.SEND_STATE:
@@ -128,7 +131,7 @@ public class UnoServer {
 								newState.applyAction(a);
 								break;
 						}
-						if (a.verify(newState)) {
+						if (!start || a.verify(newState)) {
 							state = newState;
 							newState = new GameState(state);
 							if (send) {
@@ -141,24 +144,26 @@ public class UnoServer {
 								}
 							}
 						} else {
-							synchronized(outQueue[client]) {
-								outQueue[client].addElement(Action.setState(state));
-							}
-							for (int j = 1; j < inQueue.size(); j++) {
+							for (int j = 0; j < inQueue.size(); j++) {
 								if (((ClientActionSet)inQueue.elementAt(j)).getClient() == client) {
 									inQueue.removeElementAt(j--);
 								}
 							}
+							desynced[client] = true;
 							newState = new GameState(state);
-							System.out.println("Desynced!");
+							System.out.println("Desynced on client " + client + "!");
 							System.out.println("Last action received: " + a.getType());
+							break;
 						}
 					}
-					inQueue.removeElementAt(0);
 				}
 			}
 			for (int i = 0; i < players; i++) {
 				synchronized(outQueue[i]) {
+					if (desynced[i]) {
+						outQueue[i].removeAllElements();
+						outQueue[i].addElement(Action.setState(state));
+					}
 					if (outQueue[i].size() > 0) {
 						outQueue[i].notify();
 					}

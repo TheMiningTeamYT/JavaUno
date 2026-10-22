@@ -152,7 +152,7 @@ public class JumpIn extends Rule implements ActionHandler {
 					if (game.handContains(i, type)) {
 						Timer jumpInDelay = new Timer(2000, new ActionListener() {
 							public void actionPerformed(ActionEvent e) {
-								if (active.get(game) >= 0) {
+								if (active.get(game) >= 0 && !game.getEnded()) {
 									finish(game);
 
 									if (game instanceof NetworkGameClient) {

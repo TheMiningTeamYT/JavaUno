@@ -12,6 +12,7 @@ local.properties
 Uno.jar
 uno.html
 resourcepacks/
+build/
 
 # External tool builders
 .externalToolBuilders/

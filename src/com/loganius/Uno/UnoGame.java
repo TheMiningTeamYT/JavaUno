@@ -141,12 +141,11 @@ public class UnoGame implements GameHandler {
 	}
 	
 	private class MainMenu extends JPanel {
-		private Image UnoLogo = theme.getLogo();
-		private ImageIcon icon = new ImageIcon(UnoLogo.getScaledInstance(-1, 160, Image.SCALE_FAST));
-		private JPanel main = new JPanel();
-		private JPanel innerMain = new JPanel();
+		private ImageIcon icon = new ImageIcon(theme.getLogo().getScaledInstance(-1, 160, Image.SCALE_FAST));
 
 		MainMenu() {
+			final JPanel main = new JPanel();
+			final JPanel innerMain = new JPanel();
 			JPanel start = new JPanel();
 			JLabel logo = new JLabel(icon);
 			JLabel text = new JLabel(
@@ -181,8 +180,6 @@ public class UnoGame implements GameHandler {
 			
 			start.setOpaque(false);
 			add(start, BorderLayout.NORTH);
-
-			innerMain.add(Box.createVerticalGlue());
 
 			join.setAlignmentX(CENTER_ALIGNMENT);
 			join.addMouseListener(new MouseAdapter() {
@@ -228,7 +225,15 @@ public class UnoGame implements GameHandler {
 				public void componentResized(ComponentEvent e) {
 					Rectangle outerBounds = getBounds();
 					Rectangle innerBounds = main.getBounds();
-					innerMain.setBounds(outerBounds.width / 4 - innerBounds.x, (outerBounds.height / 4) - innerBounds.y, outerBounds.width / 2, outerBounds.height / 2);
+					Dimension innerSize = innerMain.getPreferredSize();
+					int x = - innerBounds.x;
+					int y = outerBounds.height / 2 - innerSize.height / 2 - innerBounds.y + (int)(20 * Util.getScaleFactor());
+					int width = outerBounds.width;
+					int height = outerBounds.height / 2;
+					if (y < outerBounds.height / 3 - innerBounds.y) {
+						y = outerBounds.height / 3 - innerBounds.y;
+					}
+					innerMain.setBounds(x, y, width, height);
 					main.validate();
 				}
 			});
@@ -243,22 +248,27 @@ public class UnoGame implements GameHandler {
 			setOpaque(false);
 			addComponentListener(new ComponentAdapter() {
 				public void componentResized(ComponentEvent e) {
-					Rectangle bounds = getBounds();
-					double scaleFactor = Util.getScaleFactor();
-					Image previous = icon.getImage();
-
-					if (previous != null) {
-						previous.flush();
-					}
-					if (239*scaleFactor > bounds.height / 3) {
-						icon.setImage(UnoLogo.getScaledInstance(-1, bounds.height / 3, frame));
-					} else {
-						icon.setImage(UnoLogo.getScaledInstance(bounds.width / 2, -1, frame));
-					}
-					repaint();
+					updateLogo();
 				}
 			});
-		}	
+		}
+		
+		void updateLogo() {
+			Rectangle bounds = getBounds();
+			double scaleFactor = Util.getScaleFactor();
+			Image previous = icon.getImage();
+			Image logo = theme.getLogo();
+
+			if (previous != null) {
+				previous.flush();
+			}
+			if (239*scaleFactor > bounds.height / 3) {
+				icon.setImage(logo.getScaledInstance(-1, bounds.height / 3, frame));
+			} else {
+				icon.setImage(logo.getScaledInstance(bounds.width / 2, -1, frame));
+			}
+			repaint();
+		}
 	}
 	
 	// TODO: Find a way to make it so that you can't enter a non number for the port.
@@ -566,7 +576,8 @@ public class UnoGame implements GameHandler {
 								SwingUtilities.invokeLater(new Runnable() {
 									public void run() {
 										showPacks();
-										remoteURL.setText("");									}
+										remoteURL.setText("");
+									}
 								});
 							} catch (final Exception err) {
 								SwingUtilities.invokeLater(new Runnable() {
