@@ -264,14 +264,18 @@ class Game extends JLayeredPane implements ActionListener {
 		Rectangle size = getBounds();
 
 		hands[player].onResize(0, size.height - cardHeight, size.width, cardHeight);
-		if (players > 1) {
-			hands[(player + 1) % players].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
-		}
-		if (players > 2) {
-			hands[(player + 2) % players].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
-		}
-		if (players > 3) {
-			hands[(player + 3) % players].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+		if (players == 2) {
+			hands[(player + 1) % players].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
+		} else {
+			if ((player + 1) % MAX_PLAYERS < players) {
+				hands[(player + 1) % MAX_PLAYERS].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+			}
+			if ((player + 2) % MAX_PLAYERS < players) {
+				hands[(player + 2) % MAX_PLAYERS].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
+			}
+			if ((player + 3) % MAX_PLAYERS < players) {
+				hands[(player + 3) % MAX_PLAYERS].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+			}
 		}
 		repaint();
 	}
@@ -295,14 +299,20 @@ class Game extends JLayeredPane implements ActionListener {
 	}
 	
 	protected void setPlayer(int player, int players) {
-		if (players > 0 && players <= MAX_PLAYERS && player >= 0 && player < players) {
-			this.player = player;
-			this.players = players;
-			for (int i = 0; i < players; i++) {
-				hands[i].setOrientation((360 - 90*((i + players - player) % players)) % 360);
-			}
-			resizeHands();
+		if (players <= 0 || players > MAX_PLAYERS || player < 0 || player >= players) {
+			throw new IllegalArgumentException("Player count is out of bounds!");
 		}
+		this.player = player;
+		this.players = players;
+		if (players == 2) {
+			hands[player].setOrientation(0);
+			hands[(player + 1) % players].setOrientation(180);
+		} else {
+			for (int i = 0; i < players; i++) {
+				hands[i].setOrientation((360 - 90*((i + MAX_PLAYERS - player) % MAX_PLAYERS)) % 360);
+			}
+		}
+		resizeHands();
 	}
 	
 	void drew() {

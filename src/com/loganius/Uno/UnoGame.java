@@ -142,10 +142,10 @@ public class UnoGame implements GameHandler {
 	
 	private class MainMenu extends JPanel {
 		private ImageIcon icon = new ImageIcon(theme.getLogo().getScaledInstance(-1, 160, Image.SCALE_FAST));
+		private JPanel main = new JPanel();
+		private JPanel innerMain = new JPanel();
 
 		MainMenu() {
-			final JPanel main = new JPanel();
-			final JPanel innerMain = new JPanel();
 			JPanel start = new JPanel();
 			JLabel logo = new JLabel(icon);
 			JLabel text = new JLabel(
@@ -223,18 +223,11 @@ public class UnoGame implements GameHandler {
 			main.add(innerMain);
 			main.addComponentListener(new ComponentAdapter() {
 				public void componentResized(ComponentEvent e) {
-					Rectangle outerBounds = getBounds();
-					Rectangle innerBounds = main.getBounds();
-					Dimension innerSize = innerMain.getPreferredSize();
-					int x = - innerBounds.x;
-					int y = outerBounds.height / 2 - innerSize.height / 2 - innerBounds.y + (int)(20 * Util.getScaleFactor());
-					int width = outerBounds.width;
-					int height = outerBounds.height / 2;
-					if (y < outerBounds.height / 3 - innerBounds.y) {
-						y = outerBounds.height / 3 - innerBounds.y;
-					}
-					innerMain.setBounds(x, y, width, height);
-					main.validate();
+					updateMain();
+				}
+				
+				public void componentMoved(ComponentEvent e) {
+					updateMain();
 				}
 			});
 			add(main, BorderLayout.CENTER);
@@ -253,7 +246,7 @@ public class UnoGame implements GameHandler {
 			});
 		}
 		
-		void updateLogo() {
+		private void updateLogo() {
 			Rectangle bounds = getBounds();
 			double scaleFactor = Util.getScaleFactor();
 			Image previous = icon.getImage();
@@ -268,6 +261,21 @@ public class UnoGame implements GameHandler {
 				icon.setImage(logo.getScaledInstance(bounds.width / 2, -1, frame));
 			}
 			repaint();
+		}
+		
+		private void updateMain() {
+			Rectangle outerBounds = getBounds();
+			Rectangle innerBounds = main.getBounds();
+			Dimension innerSize = innerMain.getPreferredSize();
+			int x = - innerBounds.x;
+			int y = outerBounds.height / 2 - innerSize.height / 2 - innerBounds.y + (int)(20 * Util.getScaleFactor());
+			int width = outerBounds.width;
+			int height = outerBounds.height / 2;
+			if (y < outerBounds.height / 3 - innerBounds.y) {
+				y = outerBounds.height / 3 - innerBounds.y;
+			}
+			innerMain.setBounds(x, y, width, height);
+			main.validate();
 		}
 	}
 	
