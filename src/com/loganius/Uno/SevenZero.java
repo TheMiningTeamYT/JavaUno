@@ -29,8 +29,6 @@ public class SevenZero extends Rule {
 	}
 	
 	private class Seven extends CardType {
-		private SelectorTriangle[] triangles = new SelectorTriangle[3];
-
 		Seven(CardType parent) {
 			super(parent);
 		}
@@ -39,41 +37,56 @@ public class SevenZero extends Rule {
 			Game game = parent.getGame();
 			JPanel customUISpace = game.getCustomUISpace();
 			GridBagConstraints c = new GridBagConstraints();
+			SelectorTriangle[] triangles = new SelectorTriangle[Game.MAX_PLAYERS - 1];
+			int player = game.getPlayer();
+			int players = game.getPlayers();
 			
-			for (int i = 0; i < game.getPlayers() - 1; i++) {
-				triangles[i] = new SelectorTriangle(1.570796327 * (i + 1), 60, i + 1, game);
+			if (players == 2) {
+				triangles[0] = new SelectorTriangle(1.570796327 * 2, 60, 1, game);
+			} else {
+				for (int i = 0; i < Game.MAX_PLAYERS - 1; i++) {
+					triangles[i] = new SelectorTriangle(1.570796327 * i, 60, i + 1, game);
+				}
 			}
 
 			customUISpace.setLayout(new GridBagLayout());
 			
 			c.gridx = 0;
 			c.gridy = 0;
-			c.gridwidth = 0;
+			c.gridwidth = 1;
 			c.gridheight = 1;
 			c.fill = GridBagConstraints.NONE;
 			c.weightx = 0;
 			c.weighty = 0;
 			c.insets = new Insets(10, 10, 10, 10);
-
-			if (game.getPlayers() > 2) {
-				c.gridwidth = 3;
-				customUISpace.add(triangles[1], c);
+			if (players == 2) {
+				customUISpace.add(triangles[0], c);
 				c.gridy++;
+			} else {
+				if ((player + 2) % Game.MAX_PLAYERS < players) {
+					c.gridwidth = 3;
+					customUISpace.add(triangles[1], c);
+					c.gridy++;
+					c.gridwidth = 1;
+				}
+				if ((player + 1) % Game.MAX_PLAYERS < players) {
+					customUISpace.add(triangles[0], c);
+					c.gridx++;
+				}
 			}
-
-			c.gridwidth = 1;
-			customUISpace.add(triangles[0], c);
-
-			c.gridx++;
 			customUISpace.add(instruction, c);
 
-			if (game.getPlayers() > 3) {
+			if (players != 2 && (player + 3) % Game.MAX_PLAYERS < players) {
 				c.gridx++;
 				customUISpace.add(triangles[2], c);
 			}
 			
-			for (int i = 0; i < game.getPlayers() - 1; i++) {
-				triangles[i].calculatePoints();
+			if (players == 2) {
+				triangles[0].calculatePoints();
+			} else {
+				for (int i = 0; i < Game.MAX_PLAYERS - 1; i++) {
+					triangles[i].calculatePoints();
+				}
 			}
 
 			customUISpace.setVisible(true);
@@ -136,7 +149,6 @@ public class SevenZero extends Rule {
 		}
 		
 		void calculatePoints() {
-			Rectangle bounds = getBounds();
 			for (int i = 0; i < 3; i++) {
 				x[i] = (int)((points[i][0]*cos + 0.5 - points[i][1]*sin)*size*Util.getScaleFactor());
 				y[i] = (int)((points[i][0]*sin + 0.5 + points[i][1]*cos)*size*Util.getScaleFactor());

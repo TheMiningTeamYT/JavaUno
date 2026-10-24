@@ -27,7 +27,6 @@ class NetworkGameClient extends Game {
 	private Hashtable actionHandlers;
 	private boolean handlingMessages = false;
 	private Game game = this;
-	private long lastMove = new Date().getTime();
 
 	NetworkGameClient(Theme theme, GameHandler handler, String name, String server, int port) {
 		super(theme, handler);
@@ -70,10 +69,6 @@ class NetworkGameClient extends Game {
 	}
 	
 	Card drawToHand(int turnPos, int type) {
-		if (isHandPlayer(turnPos)) {
-			lastMove = new Date().getTime();
-		}
-
 		if (!handlingMessages) {
 			state.drawToHand(turnPos, type);
 			synchronized(outQueue) {
@@ -98,10 +93,6 @@ class NetworkGameClient extends Game {
 	void discard(Card card) {
 		int turnPos = findTurnPos(card);
 		super.discard(card);
-		
-		if (turnPos == findTurnPos(getPlayer())) {
-			lastMove = new Date().getTime();
-		}
 
 		if (!handlingMessages) {
 			state.discard(card.getType(), turnPos);
@@ -136,10 +127,6 @@ class NetworkGameClient extends Game {
 	void onTurn() {
 		super.onTurn();
 		move();
-		
-		if (isHandPlayer(0)) {
-			lastMove = (new Date()).getTime();
-		}
 		
 		if (!handlingMessages) {
 			state.turn();
@@ -598,17 +585,7 @@ class NetworkGameClient extends Game {
 			
 			handlingMessages = false;
 			
-			if (isHandPlayer(0)) {
-				if (!getStarted() || isInterrupted()) {
-					lastMove = new Date().getTime();
-				} else if (new Date().getTime() - lastMove > 60000) {
-					game.onTurn();
-				} else if (new Date().getTime() - lastMove > 30000) {
-					if (!game.getDrew()) {
-						game.onDraw();
-					}
-				} 
-			}
+			// TODO: Handle timeouts more comprehensively
 
 			synchronized(outQueue) {
 				if (!appliedSuccessfully) {

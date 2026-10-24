@@ -284,7 +284,7 @@ class Game extends JLayeredPane implements ActionListener {
 		return players;
 	}
 	
-	protected int getPlayer() {
+	int getPlayer() {
 		return player;
 	}
 	
