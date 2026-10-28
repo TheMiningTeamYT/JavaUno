@@ -8,7 +8,7 @@ import java.awt.event.*;
  *  TODO: Add a delay between showing the final cards to draw
  *  and actually drawing the cards
  */
-class Stacking extends Rule implements ActionHandler {
+class Stacking extends Rule implements Plugin {
 	private static final long serialVersionUID = 1L;
 	private static final int STACK = 1024;
 	private static final int FINISH_STACK = 1025;
@@ -24,29 +24,31 @@ class Stacking extends Rule implements ActionHandler {
 	private NetworkInt cardsToDraw;
 
 	// Defacto constructor.
-	void bind(Game game) {
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).registerAction(STACK, this);
-			((NetworkGameClient)game).registerAction(FINISH_STACK, this);
+	public void bind(Game game) {
+		if (game instanceof UIGame) {
+			if (game instanceof NetworkGameClient) {
+				((NetworkGameClient)game).registerAction(STACK, this);
+				((NetworkGameClient)game).registerAction(FINISH_STACK, this);
+			}
+	
+			cardsToDrawLabel = new JLabel("", SwingConstants.CENTER);
+			cardsToDrawLabel.setForeground(((UIGame)game).getAccentColor());
+			cardsToDrawLabel.setFont(Util.getLargeFont());
+			cardsToDrawLabel.addComponentListener(Util.LargeResizeListener);
 		}
 		stacking = new NetworkInt(game, STACKING_SLOT, NOT_STACKING);
 		cardsToDraw = new NetworkInt(game, CARDS_SLOT, 0);
-
-		cardsToDrawLabel = new JLabel("", SwingConstants.CENTER);
-		cardsToDrawLabel.setForeground(game.getAccentColor());
-		cardsToDrawLabel.setFont(Util.getLargeFont());
-		cardsToDrawLabel.addComponentListener(Util.LargeResizeListener);
 	}
 	
-	void unbind(Game game) {
+	public void unbind(Game game) {
 		if (game instanceof NetworkGameClient) {
 			((NetworkGameClient)game).unregisterAction(STACK);
 			((NetworkGameClient)game).unregisterAction(FINISH_STACK);
-			stacking.release(game);
-			cardsToDraw.release(game);
-			stacking = null;
-			cardsToDraw = null;
 		}
+		stacking.release(game);
+		cardsToDraw.release(game);
+		stacking = null;
+		cardsToDraw = null;
 	}
 	
 	void bind(Deck deck) {
@@ -116,60 +118,22 @@ class Stacking extends Rule implements ActionHandler {
 		}
 	}
 	
-	private class StackingDrawTwoType extends CardType {
-		private final int[] args = {
-				STACKING_2,
-				Deck.RED_PLUS2,
-				Deck.YELLOW_PLUS2,
-				Deck.GREEN_PLUS2,
-				Deck.BLUE_PLUS2,
-		};
-		
-		StackingDrawTwoType(CardType parent) {
-			super(parent);
-		}
-
-		void played(Card parent) {
-			// TODO: Maybe play an animation for drawing?
-			stackNext(parent.getGame(), args);
-		};
-	}
-	
-	private class StackingDrawFourType extends WildChangeColorType {
-		private final int[] args = {
-				STACKING_4,
-				Deck.WILD_DRAW4,
-		};
-
-		StackingDrawFourType(CardType parent) {
-			super(parent);
-		}
-		
-		void played(Card parent) {
-			parent.getGame().getCustomUISpace().removeAll();
-			super.played(parent);
-			
-		}
-		
-		protected void cardAction(Card parent, int color) {
-			Game game = parent.getGame();
-			start(game);
-			parent.setType(Deck.RED_DRAW4 + color);
-			stackNext(game, args);
-		};
-	}
-	
 	private void start(Game game) {
-		JPanel customUISpace = game.getCustomUISpace();
+		if (game instanceof UIGame) {
+			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 
-		customUISpace.setLayout(new GridLayout(1, 1));
-		customUISpace.add(cardsToDrawLabel);
-		customUISpace.setVisible(true);
+			customUISpace.setLayout(new GridLayout(1, 1));
+			customUISpace.add(cardsToDrawLabel);
+			customUISpace.setVisible(true);
+		}
 	}
 	
 	private void stack(Game game, int value) {
 		cardsToDraw.set(game, cardsToDraw.get(game) + value);
-		cardsToDrawLabel.setText("+" + cardsToDraw.get(game));
+
+		if (game instanceof UIGame) {
+			cardsToDrawLabel.setText("+" + cardsToDraw.get(game));
+		}
 
 		if (stacking.get(game) == NOT_STACKING) {
 			start(game);
@@ -210,9 +174,11 @@ class Stacking extends Rule implements ActionHandler {
 	}
 	
 	private void finish(Game game) {
-		JPanel customUISpace = game.getCustomUISpace();
-		customUISpace.removeAll();
-		customUISpace.setVisible(false);
+		if (game instanceof UIGame) {
+			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
+			customUISpace.removeAll();
+			customUISpace.setVisible(false);
+		}
 		cardsToDraw.set(game, 0);
 		stacking.set(game, NOT_STACKING);
 	}
@@ -247,7 +213,7 @@ class Stacking extends Rule implements ActionHandler {
 		
 	}
 	
-	public void actionDryRun(int type, Object argument, Game game) {
+	public void simulate(int type, Object argument, Game game) {
 		switch (type) {
 			case STACK: {
 				int[] args;
@@ -267,6 +233,51 @@ class Stacking extends Rule implements ActionHandler {
 				break;
 		}
 		
+	}
+	
+	private class StackingDrawTwoType extends CardType {
+		private final int[] args = {
+				STACKING_2,
+				Deck.RED_PLUS2,
+				Deck.YELLOW_PLUS2,
+				Deck.GREEN_PLUS2,
+				Deck.BLUE_PLUS2,
+		};
+		
+		StackingDrawTwoType(CardType parent) {
+			super(parent);
+		}
+
+		void played(Card parent) {
+			// TODO: Maybe play an animation for drawing?
+			stackNext(parent.getGame(), args);
+		};
+	}
+	
+	private class StackingDrawFourType extends WildChangeColorType {
+		private final int[] args = {
+				STACKING_4,
+				Deck.WILD_DRAW4,
+		};
+
+		StackingDrawFourType(CardType parent) {
+			super(parent);
+		}
+		
+		void played(Card parent) {
+			Game game = parent.getGame();
+			if (game instanceof UIGame) {
+				((UIGame)game).getCustomUISpace().removeAll();
+			}
+			super.played(parent);
+		}
+		
+		protected void cardAction(Card parent, int color) {
+			Game game = parent.getGame();
+			start(game);
+			parent.setType(Deck.RED_DRAW4 + color);
+			stackNext(game, args);
+		};
 	}
 	
 	static class Factory implements RuleFactory {

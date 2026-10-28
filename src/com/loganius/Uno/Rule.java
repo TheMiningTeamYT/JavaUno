@@ -48,7 +48,7 @@ abstract class Rule implements Serializable {
 	 */
 	int onDraw(Game game) {return ALLOW;};
 	
-	static void drawToHand(final int hand, final Game game) {
+	protected static void drawToHand(final int hand, final Game game) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				game.drawToHand(hand);

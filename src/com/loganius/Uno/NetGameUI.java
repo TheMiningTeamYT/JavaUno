@@ -65,14 +65,14 @@ class NetGameUI extends JPanel implements ActionListener {
 		if (numPlayers == 2) {
 			players[(player + 1) % numPlayers].setHorizontalAlignment(SwingConstants.CENTER);
 		} else {
-			if ((player + 1) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 1) % Game.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.LEFT);
+			if ((player + 1) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 1) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.LEFT);
 			}
-			if ((player + 2) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 2) % Game.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.CENTER);
+			if ((player + 2) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 2) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.CENTER);
 			}
-			if ((player + 3) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 3) % Game.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.RIGHT);
+			if ((player + 3) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 3) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.RIGHT);
 			}
 		}
 		startButton.setVisible(false);
@@ -94,20 +94,20 @@ class NetGameUI extends JPanel implements ActionListener {
 	
 	private void onResize() {
 		Rectangle bounds = getBounds();
-		int cardHeight = Card.getHeight(0);
+		int cardHeight = UICard.getHeight(0);
 
 		players[player].setBounds(0, bounds.height - cardHeight - (int)(Util.scale(20)) - 50, bounds.width, 100);
 		if (numPlayers == 2) {
 			players[(player + 1) % numPlayers].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
 		} else {
-			if ((player + 1) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 1) % Game.MAX_PLAYERS].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
+			if ((player + 1) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 1) % UIGame.MAX_PLAYERS].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
 			}
-			if ((player + 2) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 2) % Game.MAX_PLAYERS].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
+			if ((player + 2) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 2) % UIGame.MAX_PLAYERS].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
 			}
-			if ((player + 3) % Game.MAX_PLAYERS < numPlayers) {
-				players[(player + 3) % Game.MAX_PLAYERS].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
+			if ((player + 3) % UIGame.MAX_PLAYERS < numPlayers) {
+				players[(player + 3) % UIGame.MAX_PLAYERS].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
 			}
 		}
 		if (startButton.isVisible()) {

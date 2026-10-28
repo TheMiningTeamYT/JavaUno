@@ -36,7 +36,6 @@ abstract class RuleSet implements Serializable {
 	}
 	
 	static void finalizeDraw(Game game) {
-		game.drew();
 		if (game.canBePlayed(0)) {
 			game.checkUno();
 		} else {
@@ -68,10 +67,8 @@ abstract class RuleSet implements Serializable {
 
 		void onDraw(Game game) {
 			if (game.getHandPlayable(0) && !game.getDrew()) {
-				Card card;
+				Card card = game.drawToHand(0);
 				game.setHandPlayable(false);
-				card = game.drawToHand(0);
-				game.drew();
 				if (game.isLegal(card)) {
 					card.setPlayable(true);
 					game.checkUno();

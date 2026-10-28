@@ -13,12 +13,12 @@ class UnoButton extends JComponent {
 	private static int width = 240;
 	private static int height = 240;
 	
-	private Game game;
+	private UIGame game;
 	private CachedImage buttonUp;
 	private CachedImage buttonDown;
 	private CachedImage button;
 
-	UnoButton(Game game) {
+	UnoButton(UIGame game) {
 		super();
 		
 		CachedImage[] button = game.getTheme().getUnoButton();

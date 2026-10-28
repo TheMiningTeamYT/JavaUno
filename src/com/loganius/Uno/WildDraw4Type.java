@@ -1,10 +1,8 @@
 package com.loganius.Uno;
 
-import java.awt.Image;
-
 final class WildDraw4Type extends WildChangeColorType {
-	WildDraw4Type(Image front, CachedImage[] back) {
-		super(front, back);
+	WildDraw4Type(CardSkin skin) {
+		super(skin);
 		value = Value.DRAW_4;
 	}
 	

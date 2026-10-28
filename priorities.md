@@ -38,7 +38,15 @@
  	* Rewrite the Game and Card classes to be interfaces so that CardTypes can
  	  operate on both heavyweight UI versions of cards/games and lightweight
  	  network-friendly versions of cards/games to facilitate the server
- 	  checking the results.
+ 	  checking the results. (done)
+ 		* This codebase is going to be a disaster by the end of this.
+ 	* Rewrite all the played() functions to be able to operate gracefully on
+ 	  both headless and headful games.
+ 	* Maybe make Game into a class that implements a headless game instead of
+ 	  an interface?
+ 	* Figure out what to do about plays that depend on player actions taken
+ 	  after playing the card (ie: wild cards).
+ 		* Just copy what I did for wild card challenges?
  	* To avoid visible network lag, clients will still perform actions
  	  independent of the server, with the server merely checking their work and
  	  sending corrections if need be.

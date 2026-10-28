@@ -14,7 +14,7 @@ import java.util.Date;
  * TODO: Handle network errors gracefully.
  * TODO: Some more GUI flair for joining a game.
  */
-class NetworkGameClient extends Game {
+class NetworkGameClient extends UIGame {
 	private Socket socket = null;
 	private volatile Vector inQueue = new Vector();
 	private volatile Vector outQueue;
@@ -26,7 +26,7 @@ class NetworkGameClient extends Game {
 	private Timer queueHandler = new Timer(20, new TimerListener());
 	private Hashtable actionHandlers;
 	private boolean handlingMessages = false;
-	private Game game = this;
+	private UIGame game = this;
 
 	NetworkGameClient(Theme theme, GameHandler handler, String name, String server, int port) {
 		super(theme, handler);
@@ -58,7 +58,7 @@ class NetworkGameClient extends Game {
 		super.preInit();
 	}
 	
-	void start() {
+	public void start() {
 		super.start();
 		if (getPlayer() == 0) {
 			deal();
@@ -68,7 +68,7 @@ class NetworkGameClient extends Game {
 		hands[getPlayer()].setUp(true);
 	}
 	
-	Card drawToHand(int turnPos, int type) {
+	public Card drawToHand(int turnPos, int type) {
 		if (!handlingMessages) {
 			state.drawToHand(turnPos, type);
 			synchronized(outQueue) {
@@ -79,7 +79,7 @@ class NetworkGameClient extends Game {
 		return super.drawToHand(turnPos, type);
 	}
 	
-	void removeFromHand(int turnPos, Card card) {
+	public void removeFromHand(int turnPos, Card card) {
 		super.removeFromHand(turnPos, card);
 
 		if (!handlingMessages) {
@@ -90,7 +90,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void discard(Card card) {
+	public void discard(Card card) {
 		int turnPos = findTurnPos(card);
 		super.discard(card);
 
@@ -102,7 +102,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void reverse() {
+	public void reverse() {
 		super.reverse();
 		
 		if (!handlingMessages) {
@@ -113,7 +113,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void rotateHands() {
+	public void rotateHands() {
 		super.rotateHands();
 		
 		if (!handlingMessages) {
@@ -124,7 +124,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void onTurn() {
+	public void onTurn() {
 		super.onTurn();
 		move();
 		
@@ -137,7 +137,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void setRuleSet(RuleSet rules) {
+	public void setRuleSet(RuleSet rules) {
 		super.setRuleSet(rules);
 		
 		if (!handlingMessages) {
@@ -148,7 +148,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void callUno(int player) {
+	public void callUno(int player) {
 		// Bit of a hack
 		boolean handlingBefore = handlingMessages;
 
@@ -164,7 +164,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	boolean checkUno() {
+	public boolean checkUno() {
 		boolean unoActive = super.checkUno();
 		if (unoActive && !handlingMessages) {
 			state.startUno();
@@ -190,7 +190,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void swapHands(int hand1, int hand2) {
+	public void swapHands(int hand1, int hand2) {
 		super.swapHands(hand1, hand2);
 		
 		if (!handlingMessages) {
@@ -201,7 +201,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	void sendWildCardChallenge() {
+	public void sendWildCardChallenge() {
 		try {
 			super.sendWildCardChallenge();
 		} catch (RuntimeException e) {};
@@ -225,7 +225,7 @@ class NetworkGameClient extends Game {
 		}
 	}
 	
-	boolean isHandPlayer(int turnPos) {
+	public boolean isHandPlayer(int turnPos) {
 		return (findPlayer(turnPos) == getPlayer());
 	}
 	
@@ -262,7 +262,7 @@ class NetworkGameClient extends Game {
 			hands[i].removeAll();
 			hands[i].setPlayable(false);
 			for (int j = 0; j < newHands[i].length; j++) {
-				new Card(newHands[i][j].intValue(), hands[i]);
+				new UICard(newHands[i][j].intValue(), hands[i]);
 			}
 		}
 
@@ -273,14 +273,14 @@ class NetworkGameClient extends Game {
 		setPlayerGoing(state.getPlayerGoing());
 		
 		// TODO: Put the last 2 cards played into the game state
-		new Card(newState.getLastPlayed(), discardHand);
+		new UICard(newState.getLastPlayed(), discardHand);
 		resizeHands();
 		
 		outQueue.removeAllElements();
 		handlingMessages = handlingBefore;
 	}
 	
-	void registerAction(int type, ActionHandler handler) {
+	void registerAction(int type, Plugin handler) {
 		// Hack for the order in which Java initializes objects.
 		if (actionHandlers == null) {
 			actionHandlers = new Hashtable();
@@ -561,7 +561,7 @@ class NetworkGameClient extends Game {
 						for (int i = 0; i < acts.length; i++) {
 							a = acts[i];
 							if (!actionHandlers.containsKey(new Integer(a.getType()))
-								|| !((CustomAction)actionHandlers.get(new Integer(a.getType()))).dryRun(a)) {
+								|| !((CustomAction)actionHandlers.get(new Integer(a.getType()))).simulate(a)) {
 								state.applyAction(a);
 							}
 						}
@@ -602,9 +602,9 @@ class NetworkGameClient extends Game {
 	
 	private class CustomAction {
 		int type;
-		ActionHandler handler;
+		Plugin handler;
 
-		CustomAction(int type, ActionHandler handler) {
+		CustomAction(int type, Plugin handler) {
 			this.type = type;
 			this.handler = handler;
 			actionHandlers.put(new Integer(type), this);
@@ -618,9 +618,9 @@ class NetworkGameClient extends Game {
 			return false;
 		}
 		
-		boolean dryRun(Action a) {
+		boolean simulate(Action a) {
 			if (a.getType() == type) {
-				handler.actionDryRun(type, a.getArgument(), game);
+				handler.simulate(type, a.getArgument(), game);
 				return true;
 			}
 			return false;

@@ -17,7 +17,7 @@ import java.util.Enumeration;
 public class UnoGame implements GameHandler {
 	private Vector ruleFactories = new Vector();
 
-	private Game gameState = null;
+	private UIGame gameState = null;
 	private UnoServer server = null;
 
 	private Container mainScreen;

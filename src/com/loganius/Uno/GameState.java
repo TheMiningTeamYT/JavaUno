@@ -23,7 +23,7 @@ class GameState implements Serializable {
 	private Hashtable tracking = new Hashtable();
 	private RuleSet rules = new RuleSet.Standard();
 	private int lastPlayed;
-	private int turnOrder = Game.CLOCKWISE;
+	private int turnOrder = UIGame.CLOCKWISE;
 	private int players = 0;
 	private int playerGoing = 0;
 	private boolean uno = false;
@@ -70,17 +70,17 @@ class GameState implements Serializable {
 	}
 
 	void reverse() {
-		if (turnOrder == Game.CLOCKWISE) {
-			turnOrder = Game.COUNTER_CLOCKWISE;
+		if (turnOrder == UIGame.CLOCKWISE) {
+			turnOrder = UIGame.COUNTER_CLOCKWISE;
 		} else {
-			turnOrder = Game.CLOCKWISE;
+			turnOrder = UIGame.CLOCKWISE;
 		}
 	}
 
 	void rotate() {
 		Vector temp1;
 		Vector temp2;
-		if (turnOrder == Game.CLOCKWISE) {
+		if (turnOrder == UIGame.CLOCKWISE) {
 			temp1 = hands[players - 1];
 			for (int i = 0; i < players; i++) {
 				temp2 = hands[i];
@@ -100,7 +100,7 @@ class GameState implements Serializable {
 	void turn() {
 		uno = false;
 		if (hands[playerGoing].size() > 0) {
-			if (turnOrder == Game.CLOCKWISE) {
+			if (turnOrder == UIGame.CLOCKWISE) {
 				playerGoing = (playerGoing + 1) % players;
 			} else {
 				playerGoing = (playerGoing + players - 1) % players;
@@ -315,7 +315,7 @@ class GameState implements Serializable {
 	}
 	
 	private int findPlayer(int turnPos) {
-		if (turnOrder == Game.CLOCKWISE) {
+		if (turnOrder == UIGame.CLOCKWISE) {
 			return (playerGoing + turnPos) % players;
 		} else {
 			return (playerGoing + players - turnPos) % players;

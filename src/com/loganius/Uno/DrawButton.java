@@ -11,12 +11,12 @@ import javax.swing.*;
 class DrawButton extends JComponent {
 	private static final long serialVersionUID = 1L;
 
-	private Game game;
+	private UIGame game;
 	private CachedImage buttonUp;
 	private CachedImage buttonDown;
 	private CachedImage button;
 
-	DrawButton(Game game) {
+	DrawButton(UIGame game) {
 		super();
 
 		CachedImage[] button = game.getTheme().getDrawButton();
@@ -29,7 +29,6 @@ class DrawButton extends JComponent {
 	}
 	
 	public void paintComponent(Graphics g) {
-		Rectangle bounds = getBounds();
 		g.drawImage(button.get(), 0, 0, this);
 	}
 	

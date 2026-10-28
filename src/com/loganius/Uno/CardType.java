@@ -23,69 +23,25 @@ class CardType {
 		static final int DRAW_4 = -6;
 	}
 
-	protected CachedImage[] face;
-	protected CachedImage[] back;
-	private int width = -1;
-	private int height = -1;
+	protected CardSkin skin;
 	protected int color;
 	protected int value;
 	private int weight;
 
-	CardType(Image front, CachedImage[] back, int color, int value, int weight) {
-		face = generateImageList(front);
-		this.back = back;
+	CardType(CardSkin skin, int color, int value, int weight) {
+		this.skin = skin;
 		this.color = color;
 		this.value = value;
 		this.weight = weight;
 	}
 	
 	CardType(CardType parent) {
-		face = parent.face;
-		back = parent.back;
-		width = parent.width;
-		height = parent.height;
+		skin = parent.skin;
 		color = parent.color;
 		value = parent.value;
 		weight = parent.weight;
 	}
-	
-	Image getFace(int orientation) {
-		return face[orientation / 90].get();
-	}
-	
-	Image getBack(int orientation) {
-		return back[orientation / 90].get();
-	}
-	
-	void useFace(int orientation) {
-		face[orientation / 90].using();
-		face[0].using();
-	}
-	
-	void stopUsingFace(int orientation) {
-		face[orientation / 90].stopUsing();
-		face[0].stopUsing();
-	}
-	
-	void useBack(int orientation) {
-		back[orientation / 90].using();
-		face[0].using();
-	}
-	
-	void stopUsingBack(int orientation) {
-		back[orientation / 90].stopUsing();
-		face[0].stopUsing();
-	}
-	
-	static CachedImage[] generateImageList(Image src) {
-		return new CachedImage[] {
-			new CachedImage(src, 0, 80, 120),
-			new CachedImage(Util.rotate(src, 90), 90, 80, 120),
-			new CachedImage(Util.rotate(src, 180), 180, 80, 120),
-			new CachedImage(Util.rotate(src, 270), 270, 80, 120),
-		};
-	}
-	
+
 	int getColor() {
 		return color;
 	}
@@ -101,6 +57,10 @@ class CardType {
 	boolean canBeSkinned() {
 		return true;
 	}
+	
+	CardSkin getSkin() {
+		return skin;
+	}
 
 	/**
 	 * Take an action when the card is played.
@@ -112,8 +72,8 @@ class CardType {
 	};
 	
 	static final class Skip extends CardType {
-		Skip(Image front, CachedImage[] back, int color) {
-			super(front, back, color, Value.SKIP, 2);
+		Skip(CardSkin skin, int color) {
+			super(skin, color, Value.SKIP, 2);
 		}
 		
 		void played(Card parent) {
@@ -124,8 +84,8 @@ class CardType {
 	}
 	
 	static final class Reverse extends CardType {
-		Reverse(Image front, CachedImage[] back, int color) {
-			super(front, back, color, Value.REVERSE, 2);
+		Reverse(CardSkin skin, int color) {
+			super(skin, color, Value.REVERSE, 2);
 		}
 		
 		void played(Card parent) {
@@ -136,8 +96,8 @@ class CardType {
 	}
 	
 	static final class DrawTwo extends CardType {
-		DrawTwo(Image front, CachedImage[] back, int color) {
-			super(front, back, color, Value.PLUS2, 2);
+		DrawTwo(CardSkin skin, int color) {
+			super(skin, color, Value.PLUS2, 2);
 		}
 		
 		void played(Card parent) {
@@ -160,11 +120,8 @@ class CardType {
 			} else {
 				this.parent = parent;
 			}
-			if (face != null) {
-				this.face = face;
-			}
-			if (back != null) {
-				this.back = back;
+			if (canBeSkinned()) {
+				skin = new CardSkin(getSkin(), face, back);
 			}
 		}
 		

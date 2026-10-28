@@ -31,7 +31,7 @@ abstract class ResourcePack {
 		}
 		
 		if (useBack) {
-			back = CardType.generateImageList(backSource);
+			back = CardSkin.generateImageList(backSource);
 		}
 		
 		for (int i = 0; i < Deck.NUM_CARDS; i++) {
@@ -39,7 +39,7 @@ abstract class ResourcePack {
 				CachedImage[] front = null;
 				
 				if (useFaces && cardSources[i] != null) {
-					front = CardType.generateImageList(cardSources[i]);
+					front = CardSkin.generateImageList(cardSources[i]);
 				}
 				
 				if (front != null || back != null) {

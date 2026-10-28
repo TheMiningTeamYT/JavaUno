@@ -4,7 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-public class JumpIn extends Rule implements ActionHandler {
+// TODO: Proper Game vs UIGame distinction
+public class JumpIn extends Rule implements Plugin {
 	private static final long serialVersionUID = 1L;
 
 	private static final int START_JUMP_IN = 1026;
@@ -16,21 +17,23 @@ public class JumpIn extends Rule implements ActionHandler {
 	private NetworkInt active;
 
 	// Defacto constructor.
-	void bind(Game game) {
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).registerAction(START_JUMP_IN, this);
-			((NetworkGameClient)game).registerAction(END_JUMP_IN, this);
+	public void bind(Game game) {
+		if (game instanceof UIGame) {
+			UIGame uiGame = (UIGame)game;
+			if (game instanceof NetworkGameClient) {
+				((NetworkGameClient)game).registerAction(START_JUMP_IN, this);
+				((NetworkGameClient)game).registerAction(END_JUMP_IN, this);
+			}
+			instruction = new JLabel("Jump In!", SwingConstants.CENTER);
+			instruction.setForeground(uiGame.getAccentColor());
+			instruction.setFont(Util.getLargeFont());
+			instruction.addComponentListener(Util.LargeResizeListener);
 		}
-		playableBefore = new boolean[Game.MAX_PLAYERS];
+		playableBefore = new boolean[UIGame.MAX_PLAYERS];
 		active = new NetworkInt(game, SLOT, -1);
-
-		instruction = new JLabel("Jump In!", SwingConstants.CENTER);
-		instruction.setForeground(game.getAccentColor());
-		instruction.setFont(Util.getLargeFont());
-		instruction.addComponentListener(Util.LargeResizeListener);
 	}
 	
-	void unbind(Game game) {
+	public void unbind(Game game) {
 		if (game instanceof NetworkGameClient) {
 			((NetworkGameClient)game).unregisterAction(START_JUMP_IN);
 			((NetworkGameClient)game).unregisterAction(END_JUMP_IN);
@@ -57,9 +60,7 @@ public class JumpIn extends Rule implements ActionHandler {
 	}
 	
 	private void activate(Game game, int lastPlayed) {
-		JPanel customUISpace = game.getCustomUISpace();
 		boolean playerHasCard = false;
-		
 		for (int i = 0; i < game.getPlayers(); i++) {
 			playableBefore[i] = game.getHandPlayable(i);
 			if (game.isHandPlayer(i)) {
@@ -71,20 +72,26 @@ public class JumpIn extends Rule implements ActionHandler {
 			}
 		}
 
-		instruction.setText((playerHasCard) ? "Jump In!" : "Waiting...");
-		
-		customUISpace.setLayout(new GridLayout(1, 1));
-		customUISpace.add(instruction);
-		customUISpace.setVisible(true);
+		if (game instanceof UIGame) {
+			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
+	
+			instruction.setText((playerHasCard) ? "Jump In!" : "Waiting...");
+			
+			customUISpace.setLayout(new GridLayout(1, 1));
+			customUISpace.add(instruction);
+			customUISpace.setVisible(true);
+		}
 		
 		active.set(game, lastPlayed);
 	}
 	
 	private void finish(Game game) {
-		JPanel customUISpace = game.getCustomUISpace();
-
-		customUISpace.removeAll();
-		customUISpace.setVisible(false);
+		if (game instanceof UIGame) {
+			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
+	
+			customUISpace.removeAll();
+			customUISpace.setVisible(false);
+		}
 
 		for (int i = 0; i < game.getPlayers(); i++) {
 			game.setHandPlayable(playableBefore[i]);
@@ -109,7 +116,7 @@ public class JumpIn extends Rule implements ActionHandler {
 		}
 	}
 	
-	public void actionDryRun(int type, Object argument, Game game) {
+	public void simulate(int type, Object argument, Game game) {
 		switch (type) {
 			case START_JUMP_IN:
 				if (!(argument instanceof Integer)) {
@@ -132,10 +139,10 @@ public class JumpIn extends Rule implements ActionHandler {
 			super(parent);
 			this.parentType = parent;
 		}
-		
+
 		void played(final Card parent) {
 			int type = parent.getType();
-			final Game game = parent.getGame();
+			final UIGame game = (UIGame)parent.getGame();
 			if (active.get(game) >= 0) {
 				int turnPos = game.findTurnPos(parent);
 				finish(game);
