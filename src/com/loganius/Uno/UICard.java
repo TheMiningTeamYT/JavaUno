@@ -8,8 +8,6 @@ import javax.swing.*;
  * A card in the game of Uno.
  */
 class UICard extends JComponent implements Card {
-	private static final long serialVersionUID = 1L;
-
 	private int type;
 	private UIHand parent;
 	private UIHand oldParent = null;
@@ -75,8 +73,7 @@ class UICard extends JComponent implements Card {
 	}
 	
 	public CardType getCardType() {
-		UIGame game = (UIGame)getGame();
-		return game.getDeck().getCard(type);
+		return getGame().getDeck().getCard(type);
 	}
 	
 	public void setType(int type) {
@@ -116,8 +113,7 @@ class UICard extends JComponent implements Card {
 	
 	// TODO: Implement animations for played cards.
 	public void played() {
-		getGame().discard(this);
-		if (oldParent.numCards() == 0) {
+		if (oldParent != null && oldParent.numCards() == 0) {
 			getGame().onTurn();
 		} else {
 			getCardType().played(this);
@@ -190,8 +186,8 @@ class UICard extends JComponent implements Card {
 		}
 		
 		public void mouseClicked(MouseEvent e) {
-			if (playable && !((UIGame)getGame()).isInterrupted() && getGame().isLegal(card)) {
-				played();
+			if (playable) {
+				getGame().play(card);
 			}
 		}
 
@@ -226,9 +222,8 @@ class UICard extends JComponent implements Card {
 					repaint();
 				}
 				if (e.getX() + bounds.x >= discardBounds.x - 10 && e.getX() + bounds.x <= discardBounds.x + discardBounds.width + 10 &&
-					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10 &&
-					getGame().isLegal(card)) {
-					played();
+					e.getY() + bounds.y >= discardBounds.y - 10 && e.getY() + bounds.y <= discardBounds.y + discardBounds.height + 10 ) {
+					game.play(card);
 				}
 			}
 		}

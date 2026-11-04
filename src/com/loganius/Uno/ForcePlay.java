@@ -1,26 +1,20 @@
 package com.loganius.Uno;
 
-import javax.swing.*;
-
 class ForcePlay extends Rule {
 	private static final long serialVersionUID = 1L;
-
-	int onDraw(final Game game) {
+	
+	int finishDraw(Game game) {
 		final Card drawn = game.getLastDrawn();
 		if (drawn == null || !game.isLegal(drawn)) {
 			return ALLOW;
 		}
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				game.setHandPlayable(false);
-				if (game.checkUno()) {
-					drawn.setPlayable(true);
-				} else {
-					drawn.played();
-				}
-			}
-		});
-		return STOP;
+		game.setHandPlayable(false);
+		if (game.checkUno()) {
+			drawn.setPlayable(true);
+		} else {
+			drawn.played();
+		}
+		return PREVENT_FALLBACK;
 	}
 	
 	static class Factory implements RuleFactory {

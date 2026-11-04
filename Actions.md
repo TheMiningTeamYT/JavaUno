@@ -1,5 +1,8 @@
 Updated Network Protocol Documentation
 
+TODO: Add type for sending generic user input so that we can properly (safely)
+handle users selecting color
+
 '\*' indicates action types which are unverified (the game state is not
 checksummed and compared after processing it).
 
@@ -8,12 +11,11 @@ These are ONLY valid if sent from client to server.
  * Hello\* - The client requests to join a game on the server.
  	* Name - The player's name.
  	* Mods - A list of mod name & IDs being used by this client 
- 	  (if applicable).
+ 	  (if applicable). (TODO once mods are actually supported)
  * Play - The player has played a card
  	* Card - The type of the card played.
- 	* Player - The ID of the player who played the card.
  * Start Draw - The player has chosen to begin drawing cards via the draw button.
- * Drew - The player drew a card via the draw button.
+ * Draw - The player drew a card via the draw button.
  * End Draw - The player has finished drawing cards via the draw button.
  * Resolve Challenge - The player, who had previously received the prompt to
    challenge a wild card, has chosen to do so or not to do so.
@@ -21,6 +23,8 @@ These are ONLY valid if sent from client to server.
  * Request Start - A client requests the server to begin the game and deal
    the cards. ONLY valid if sent by player 0 (the first one to join).
  	* Rule Set - The ruleset to use this game.
+ * User Input - The user has input some kind of value
+ 	* Value - The input the user gave.
  * Send State\* - The client has encountered a desync and needs the server
    to send the current game state.
 
@@ -48,24 +52,27 @@ These are ONLY valid if sent from server to client.
  * Remove from Hand - A card is to be removed from the hand of a particular
    player.
  	* Card - The type of the card to be removed.
-    * Target - The turn position of the player from whose hand the card was
+ 	* Target - The turn position of the player from whose hand the card was
       removed.
  * Discard from Hand - A card was played by player and is now to be moved to
    the discard pile.
    	* Card - The type of the card to be discarded.
    	* Target - The turn position of the player who played (and discarded) the
    	  card.
+ * Reverse - Reverses the turn direction.
  * Rotate Hands - All hands are to be rotated one space in the direction
    of the turn order.
  * Turn - A turn of Uno has been completed and it is time for the next player
    to play.
-    * Card - The type of the last card played. This is needed because wild
+ 	* Card - The type of the last card played. This is needed because wild
       cards change their type between when they are played and when the turn
       advances.
  * Swap - 2 players are to swap hands.
-    * Target1 - The turn position of the first player who is to swap hands.
-    * Target2 - The turn position of the second player who is to swap hands.
+ 	* Target1 - The turn position of the first player who is to swap hands.
+ 	* Target2 - The turn position of the second player who is to swap hands.
  * Start Challenge - Begin a wild card challenge
+ 	* Type: the type resulting after the color was chosen for the given wild
+ 	  card.
  * End Challenge - End a running wildcard challenge.
 
 Client <-> Server Types:

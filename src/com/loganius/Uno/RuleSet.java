@@ -28,14 +28,25 @@ abstract class RuleSet implements Serializable {
 	void bind(Deck deck) {};
 	
 	abstract boolean wildcardChallenges(Game game);
+	
+	abstract protected void draw(Game game);
 
-	abstract void onDraw(Game game);
+	void onDraw(Game game) {
+		if (game.getHandPlayable(0) && !game.getDrew()) {
+			game.setHandPlayable(false);
+			draw(game);
+		}
+	}
 	
 	RuleSet getFallback() {
 		return this.fallback;
 	}
 	
-	static void finalizeDraw(Game game) {
+	void finishDraw(Game game) {
+		Card card = game.getLastDrawn();
+		if (game.isLegal(card)) {
+			card.setPlayable(true);
+		}
 		if (game.canBePlayed(0)) {
 			game.checkUno();
 		} else {
@@ -44,7 +55,14 @@ abstract class RuleSet implements Serializable {
 	}
 	
 	boolean equals(RuleSet other) {
+		if (other == null) {
+			return this == null;
+		}
 		return getClass() == other.getClass();
+	}
+	
+	boolean check() {
+		return true;
 	}
 	
 	/**
@@ -65,17 +83,9 @@ abstract class RuleSet implements Serializable {
 				card.getCardType().getValue() == lastPlayed.getCardType().getValue()));
 		}
 
-		void onDraw(Game game) {
-			if (game.getHandPlayable(0) && !game.getDrew()) {
-				Card card = game.drawToHand(0);
-				game.setHandPlayable(false);
-				if (game.isLegal(card)) {
-					card.setPlayable(true);
-					game.checkUno();
-				} else {
-					game.onTurn();
-				}
-			}
+		protected void draw(Game game) {
+			game.drawToHand(0);
+			game.finishDraw();
 		}
 		
 		boolean wildcardChallenges(Game game) {
@@ -148,39 +158,57 @@ abstract class RuleSet implements Serializable {
 			}
 		}
 		
-		void onDraw(final Game game) {
-			if (game.getHandPlayable(0) && !game.getDrew()) {
-				new Thread() {
-					public void run() {
-						boolean runFallback = true;
-						for (int i = 0; i < rules.length; i++) {
-							switch (rules[i].onDraw(game)) {
-								case Rule.STOP:
-									return;
-								case Rule.PREVENT_FALLBACK:
-									runFallback = false;
-									break;
-								case Rule.ALLOW:
-									break;
-								default:
-									break;
-							}
-						}
-						if (runFallback) {
-							SwingUtilities.invokeLater(new Runnable() {
-								public void run() {
-									fallback.onDraw(game);
-								}
-							});
-						} else {
-							SwingUtilities.invokeLater(new Runnable() {
-								public void run() {
-									RuleSet.finalizeDraw(game);
-								}
-							});
+		protected void draw(final Game game) {
+			new Thread() {
+				public void run() {
+					boolean runFallback = true;
+					for (int i = 0; i < rules.length; i++) {
+						switch (rules[i].onDraw(game)) {
+							case Rule.STOP:
+								return;
+							case Rule.PREVENT_FALLBACK:
+								runFallback = false;
+								break;
+							case Rule.ALLOW:
+								break;
+							default:
+								break;
 						}
 					}
-				}.start();
+					if (runFallback) {
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								fallback.onDraw(game);
+							}
+						});
+					} else {
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								game.finishDraw();
+							}
+						});
+					}
+				}
+			}.start();
+		}
+		
+		void finishDraw(Game game) {
+			boolean runFallback = true;
+			for (int i = 0; i < rules.length; i++) {
+				switch (rules[i].finishDraw(game)) {
+					case Rule.STOP:
+						return;
+					case Rule.PREVENT_FALLBACK:
+						runFallback = false;
+						break;
+					case Rule.ALLOW:
+						break;
+					default:
+						break;
+				}
+			}
+			if (runFallback) {
+				fallback.finishDraw(game);
 			}
 		}
 		
@@ -200,6 +228,9 @@ abstract class RuleSet implements Serializable {
 		}
 		
 		boolean equals(RuleSet other) {
+			if (other == null) {
+				return this == null;
+			}
 			if (getClass() != other.getClass()) {
 				return false;
 			}
@@ -211,6 +242,20 @@ abstract class RuleSet implements Serializable {
 					return false;
 				}
 			}
+			return true;
+		}
+		
+		boolean check() {
+			if (rules == null) {
+				return false;
+			}
+			
+			for (int i = 0; i < rules.length; i++) {
+				if (rules[i] == null) {
+					return false;
+				}
+			}
+			
 			return true;
 		}
 	}

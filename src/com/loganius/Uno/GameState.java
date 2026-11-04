@@ -6,11 +6,10 @@ import java.io.*;
 
 /**
  * A lightweight representation of the Uno game state, fit to be transmitted over the network.
- * TODO: More safety checks
- * TODO: Add the ability for plugins to track custom values in the game state.
+ * TODO: Track playability
  */
-class GameState implements Serializable {
-	private static final long serialVersionUID = 9L;
+final class GameState implements Serializable {
+	private static final long serialVersionUID = 10L;
 
 	// Array of int vectors (representing types of cards)
 	private Vector[] hands = {
@@ -23,7 +22,7 @@ class GameState implements Serializable {
 	private Hashtable tracking = new Hashtable();
 	private RuleSet rules = new RuleSet.Standard();
 	private int lastPlayed;
-	private int turnOrder = UIGame.CLOCKWISE;
+	private int turnOrder = GameUtils.CLOCKWISE;
 	private int players = 0;
 	private int playerGoing = 0;
 	private boolean uno = false;
@@ -50,11 +49,16 @@ class GameState implements Serializable {
 		challengeActive = other.challengeActive;
 	}
 	
+	public Object clone() {
+		return new GameState(this);
+	}
+	
 	void setPlayers(int players) {
 		this.players = players;
 	}
 
 	void drawToHand(int turnPos, int card) {
+		uno = false;
 		findPlayerHand(turnPos).addElement(new Integer(card));
 	}
 
@@ -70,17 +74,17 @@ class GameState implements Serializable {
 	}
 
 	void reverse() {
-		if (turnOrder == UIGame.CLOCKWISE) {
-			turnOrder = UIGame.COUNTER_CLOCKWISE;
+		if (turnOrder == GameUtils.CLOCKWISE) {
+			turnOrder = GameUtils.COUNTER_CLOCKWISE;
 		} else {
-			turnOrder = UIGame.CLOCKWISE;
+			turnOrder = GameUtils.CLOCKWISE;
 		}
 	}
 
 	void rotate() {
 		Vector temp1;
 		Vector temp2;
-		if (turnOrder == UIGame.CLOCKWISE) {
+		if (turnOrder == GameUtils.CLOCKWISE) {
 			temp1 = hands[players - 1];
 			for (int i = 0; i < players; i++) {
 				temp2 = hands[i];
@@ -100,20 +104,12 @@ class GameState implements Serializable {
 	void turn() {
 		uno = false;
 		if (hands[playerGoing].size() > 0) {
-			if (turnOrder == UIGame.CLOCKWISE) {
-				playerGoing = (playerGoing + 1) % players;
-			} else {
-				playerGoing = (playerGoing + players - 1) % players;
-			}
+			playerGoing = GameUtils.nextPlayer(turnOrder, players, playerGoing);
 		}
 	}
 	
 	void doUno() {
 		uno = true;
-	}
-	
-	void startUno() {
-		uno = false;
 	}
 	
 	void setRuleSet(RuleSet rules) {
@@ -186,126 +182,63 @@ class GameState implements Serializable {
 	}
 	
 	void applyAction(Action a) {
-		int[] args;
-		Integer arg;
+		if (!a.check()) {
+			return;
+		}
+
+		Object argument = a.getArgument();
 		switch (a.getType()) {
-			case Action.DRAW_TO_HAND:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
+			case Action.DRAW_TO_HAND: {
+				int args[] = (int[])argument;
 				drawToHand(args[0], args[1]);
 				break;
-			case Action.REMOVE_FROM_HAND:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
+			}
+			case Action.REMOVE_FROM_HAND: {
+				int args[] = (int[]) argument;
 				removeFromHand(args[0], args[1]);
 				break;
-			case Action.DISCARD:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
-				discard(args[0], args[1]);
+			}
+			case Action.DISCARD: {
+				int args[] = (int[]) argument;
+				discard(args[1], args[0]);
 				break;
+			}
 			case Action.REVERSE:
-				if (a.getArgument() != null) {
-					break;
-				}
 				reverse();
 				break;
 			case Action.ROTATE_HANDS:
-				if (a.getArgument() != null) {
-					break;
-				}
 				rotate();
 				break;
-			case Action.TURN:
-				if (a.getArgument().getClass() != Integer.class) {
-					break;
-				}
-				arg = (Integer) a.getArgument();
-				lastPlayed = arg.intValue();
+			case Action.TURN: {
+				int val = ((Integer)argument).intValue();
+				lastPlayed = val;
 				turn();
 				break;
-			case Action.SET_STATE:
-				if (a.getArgument().getClass() != GameState.class) {
-					break;
-				}
-				{
-					GameState state = (GameState) a.getArgument();
-					boolean valid = true;
-					if (state.hands == null) {
-						break;
-					}
-					for (int i = 0; i < state.hands.length; i++) {
-						if (state.hands[i] == null) {
-							valid = false;
-							break;
-						}
-						for (int j = 0; j < state.hands[i].size(); j++) {
-							if (state.hands[i].elementAt(j) == null) {
-								valid = false;
-								break;
-							}
-						}
-					}
-					if (state.tracking == null) {
-						break;
-					}
-					if (state.trackingCookies == null) {
-						break;
-					}
-					if (state.rules == null) {
-						break;
-					}
-					if (valid) {
-						clone(state);
-					}
+			}
+			case Action.SET_STATE: 
+			case Action.START: {
+				Action.State state = (Action.State)argument;
+				if (state.check()) {
+					clone(state.getState());
 				}
 				break;
+			}
 			case Action.CALL_UNO:
 				uno = true;
 				break;
-			case Action.SWAP:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
+			case Action.SWAP: {
+				int args[] = (int[]) argument;
 				swapHands(args[0], args[1]);
 				break;
-			case Action.CREATE_SLOT:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[])a.getArgument();
-				requestTrackingSlot(args[0], args[1]);
-				break;
-			case Action.UPDATE_SLOT:
-				if (a.getArgument().getClass() != int[].class) {
-					break;
-				}
-				args = (int[]) a.getArgument();
-				updateSlot(args[0], args[1]);
-				break;
+			}
 			case Action.SET_RULES:
-				if (!(a.getArgument() instanceof RuleSet)) {
-					break;
-				}
-				setRuleSet((RuleSet)a.getArgument());
+				setRuleSet((RuleSet)argument);
 				break;
-			case Action.START_UNO:
-				startUno();
+			case Action.SEND_CHALLENGE: {
+				int val = ((Integer) argument).intValue();
+				sendWildCardChallenge(val);
 				break;
-			case Action.SEND_CHALLENGE:
-				if (a.getArgument().getClass() != Integer.class) {
-					break;
-				}
-				arg = (Integer) a.getArgument();
-				sendWildCardChallenge(arg.intValue());
-				break;
+			}
 			case Action.END_CHALLENGE:
 				endWildCardChallenge();
 				break;
@@ -315,7 +248,7 @@ class GameState implements Serializable {
 	}
 	
 	private int findPlayer(int turnPos) {
-		if (turnOrder == UIGame.CLOCKWISE) {
+		if (turnOrder == GameUtils.CLOCKWISE) {
 			return (playerGoing + turnPos) % players;
 		} else {
 			return (playerGoing + players - turnPos) % players;
@@ -351,6 +284,10 @@ class GameState implements Serializable {
 		return turnOrder;
 	}
 	
+	void setTurnOrder(int order) {
+		turnOrder = order;
+	}
+	
 	int getPlayers() {
 		return players;
 	}
@@ -359,12 +296,121 @@ class GameState implements Serializable {
 		return playerGoing;
 	}
 	
+	void setPlayerGoing(int player) {
+		playerGoing = player;
+	}
+	
 	boolean getUno() {
 		return uno;
 	}
 	
+	void setUno(boolean uno) {
+		this.uno = uno;
+	}
+	
 	boolean getChallengeActive() {
 		return challengeActive;
+	}
+	
+	void setChallengeActive(boolean active) {
+		challengeActive = active;
+	}
+	
+	boolean check() {
+		int numCookies = 0;
+		int numSlots = 0;
+
+		if (hands == null) {
+			return false;
+		}
+		if (hands.length != GameUtils.MAX_PLAYERS) {
+			return false;
+		}
+		if (players <= 0 || players > GameUtils.MAX_PLAYERS) {
+			return false;
+		}
+		if (playerGoing < 0 || playerGoing >= players) {
+			return false;
+		}
+		if (turnOrder != GameUtils.CLOCKWISE && turnOrder != GameUtils.COUNTER_CLOCKWISE) {
+			return false;
+		}
+		
+		if (lastPlayed < 0) {
+			return false;
+		}
+
+		for (int i = 0; i < players; i++) {
+			if (hands[i] == null) {
+				return false;
+			}
+			for (int j = 0; j < hands[i].size(); j++) {
+				int card;
+				if (hands[i].elementAt(j) == null || hands[i].elementAt(j).getClass() != Integer.class) {
+					return false;
+				}
+				card = ((Integer)hands[i].elementAt(j)).intValue();
+				
+				// TODO: find a way to figure out how many cards should be in
+				// the deck.
+				if (card < 0) {
+					return false;
+				}
+			}
+		}
+		
+		if (rules == null) {
+			return false;
+		}
+		
+		if (!rules.check()) {
+			return false;
+		}
+
+		if (tracking == null) {
+			return false;
+		}
+		
+		if (trackingCookies == null) {
+			return false;
+		}
+		
+		for (int i = 0; i < trackingCookies.size(); i++) {
+			Integer cookie;
+			if (trackingCookies.elementAt(i).getClass() != Integer.class) {
+				return false;
+			}
+			cookie = ((Integer)trackingCookies.elementAt(i));
+			if (!(tracking.containsKey(cookie))) {
+				return false;
+			}
+		}
+		
+		for (Enumeration e = tracking.keys(); e.hasMoreElements();) {
+			Object key = e.nextElement();
+			if (key.getClass() != Integer.class) {
+				return false;
+			}
+			numCookies++;
+		}
+		
+		if (numCookies != trackingCookies.size()) {
+			return false;
+		}
+		
+		for (Enumeration e = tracking.elements(); e.hasMoreElements();) {
+			Object slot = e.nextElement();
+			if (slot.getClass() != Integer.class) {
+				return false;
+			}
+			numSlots++;
+		}
+		
+		if (numSlots != numCookies) {
+			return false;
+		}
+		
+		return true;
 	}
 	
 	long getCRC32() throws IOException {

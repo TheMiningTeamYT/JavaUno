@@ -4,11 +4,10 @@ import java.util.Vector;
 
 public class StandardHand implements Hand {
 	protected Vector cards = new Vector();
-	protected boolean playable;
+	protected boolean playable = false;
 	protected Game game;
 	
-	public StandardHand(Game game, boolean playable) {
-		this.playable = playable;
+	public StandardHand(Game game) {
 		this.game = game;
 	}
 	
@@ -17,21 +16,7 @@ public class StandardHand implements Hand {
 	 * @param card
 	 */
 	public void add(Card card) {
-		boolean added = false;
-
-		if (cards.size() != 0) {
-			for (int i = 0; i < cards.size(); i++) {
-				if (card.compareTo((Card)cards.elementAt(i)) >= 0) {
-					cards.insertElementAt(card, i);
-					added = true;
-					break;
-				}
-			}
-		}
-
-		if (!added) {
-			cards.addElement(card);
-		}
+		cards.addElement(card);
 	}
 
 	/**

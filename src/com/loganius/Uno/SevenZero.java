@@ -30,24 +30,25 @@ public class SevenZero extends Rule {
 		deck.overrideCard(Deck.BLUE_7, new Seven(deck.getCard(Deck.BLUE_7)));
 	}
 	
-	private class Seven extends CardType {
+	private class Seven extends CardType implements InputHandler {
 		Seven(CardType parent) {
 			super(parent);
 		}
 
 		void played(Card parent) {
-			if (parent.getGame() instanceof UIGame) {
+			parent.getGame().listenForInput(this);
+			if (!GameUtils.isServer(parent.getGame())) {
 				UIGame game = (UIGame)parent.getGame();
 				JPanel customUISpace = game.getCustomUISpace();
 				GridBagConstraints c = new GridBagConstraints();
-				SelectorTriangle[] triangles = new SelectorTriangle[UIGame.MAX_PLAYERS - 1];
+				SelectorTriangle[] triangles = new SelectorTriangle[GameUtils.MAX_PLAYERS - 1];
 				int player = game.getPlayer();
 				int players = game.getPlayers();
 				
 				if (players == 2) {
 					triangles[0] = new SelectorTriangle(1.570796327 * 2, 60, 1, game);
 				} else {
-					for (int i = 0; i < UIGame.MAX_PLAYERS - 1; i++) {
+					for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
 						triangles[i] = new SelectorTriangle(1.570796327 * i, 60, i + 1, game);
 					}
 				}
@@ -66,20 +67,20 @@ public class SevenZero extends Rule {
 					customUISpace.add(triangles[0], c);
 					c.gridy++;
 				} else {
-					if ((player + 2) % UIGame.MAX_PLAYERS < players) {
+					if ((player + 2) % GameUtils.MAX_PLAYERS < players) {
 						c.gridwidth = 3;
 						customUISpace.add(triangles[1], c);
 						c.gridy++;
 						c.gridwidth = 1;
 					}
-					if ((player + 1) % UIGame.MAX_PLAYERS < players) {
+					if ((player + 1) % GameUtils.MAX_PLAYERS < players) {
 						customUISpace.add(triangles[0], c);
 						c.gridx++;
 					}
 				}
 				customUISpace.add(instruction, c);
 	
-				if (players != 2 && (player + 3) % UIGame.MAX_PLAYERS < players) {
+				if (players != 2 && (player + 3) % GameUtils.MAX_PLAYERS < players) {
 					c.gridx++;
 					customUISpace.add(triangles[2], c);
 				}
@@ -87,7 +88,7 @@ public class SevenZero extends Rule {
 				if (players == 2) {
 					triangles[0].calculatePoints();
 				} else {
-					for (int i = 0; i < UIGame.MAX_PLAYERS - 1; i++) {
+					for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
 						triangles[i].calculatePoints();
 					}
 				}
@@ -95,6 +96,11 @@ public class SevenZero extends Rule {
 				customUISpace.setVisible(true);
 				game.setHandPlayable(false);
 			}
+		}
+		
+		public void handleUserInput(Game game, int value) {
+			game.swapHands(0, value);
+			game.onTurn();
 		}
 	}
 	
@@ -135,8 +141,7 @@ public class SevenZero extends Rule {
 					JPanel customUISpace = game.getCustomUISpace();
 					customUISpace.removeAll();
 					customUISpace.setVisible(false);
-					game.swapHands(0, game.screenToTurnPos(hand));
-					game.onTurn();
+					game.sendInput(game.screenToTurnPos(hand));
 				}
 			});
 			

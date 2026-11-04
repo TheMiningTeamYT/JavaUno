@@ -10,8 +10,8 @@ import java.awt.event.*;
  */
 class Stacking extends Rule implements Plugin {
 	private static final long serialVersionUID = 1L;
-	private static final int STACK = 1024;
-	private static final int FINISH_STACK = 1025;
+	private static final int STACK = 1025;
+	private static final int FINISH_STACK = 1026;
 	
 	private static final int NOT_STACKING = 0;
 	private static final int STACKING_2 = 2;
@@ -25,26 +25,21 @@ class Stacking extends Rule implements Plugin {
 
 	// Defacto constructor.
 	public void bind(Game game) {
-		if (game instanceof UIGame) {
-			if (game instanceof NetworkGameClient) {
-				((NetworkGameClient)game).registerAction(STACK, this);
-				((NetworkGameClient)game).registerAction(FINISH_STACK, this);
-			}
-	
+		if (!GameUtils.isServer(game)) {
 			cardsToDrawLabel = new JLabel("", SwingConstants.CENTER);
 			cardsToDrawLabel.setForeground(((UIGame)game).getAccentColor());
 			cardsToDrawLabel.setFont(Util.getLargeFont());
 			cardsToDrawLabel.addComponentListener(Util.LargeResizeListener);
 		}
+		game.registerAction(STACK, this);
+		game.registerAction(FINISH_STACK, this);
 		stacking = new NetworkInt(game, STACKING_SLOT, NOT_STACKING);
 		cardsToDraw = new NetworkInt(game, CARDS_SLOT, 0);
 	}
 	
 	public void unbind(Game game) {
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).unregisterAction(STACK);
-			((NetworkGameClient)game).unregisterAction(FINISH_STACK);
-		}
+		game.unregisterAction(STACK);
+		game.unregisterAction(FINISH_STACK);
 		stacking.release(game);
 		cardsToDraw.release(game);
 		stacking = null;
@@ -98,8 +93,8 @@ class Stacking extends Rule implements Plugin {
 			return;
 		}
 		stack(game, args[0]);
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).sendAction(STACK, args);
+		if (GameUtils.isServer(game)) {
+			game.sendAction(STACK, args);
 		}
 		setTypesPlayable(game, args);
 	}
@@ -111,15 +106,15 @@ class Stacking extends Rule implements Plugin {
 			draw(game, args[0], args[0]);
 		} else {
 			stack(game, args[0]);
-			if (game instanceof NetworkGameClient) {
-				((NetworkGameClient)game).sendAction(STACK, args);
+			if (GameUtils.isServer(game)) {
+				game.sendAction(STACK, args);
 			}
 			draw(game, cardsToDraw.get(game), args[0]);
 		}
 	}
 	
 	private void start(Game game) {
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 
 			customUISpace.setLayout(new GridLayout(1, 1));
@@ -131,7 +126,7 @@ class Stacking extends Rule implements Plugin {
 	private void stack(Game game, int value) {
 		cardsToDraw.set(game, cardsToDraw.get(game) + value);
 
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			cardsToDrawLabel.setText("+" + cardsToDraw.get(game));
 		}
 
@@ -162,8 +157,8 @@ class Stacking extends Rule implements Plugin {
 			Timer drawDelayTimer = new Timer(1000, new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					finish(game);
-					if (game instanceof NetworkGameClient) {
-						((NetworkGameClient)game).sendAction(FINISH_STACK, null);
+					if (GameUtils.isServer(game)) {
+						game.sendAction(FINISH_STACK, null);
 					}
 					drawCards(game, numCards);
 				}
@@ -174,7 +169,7 @@ class Stacking extends Rule implements Plugin {
 	}
 	
 	private void finish(Game game) {
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 			customUISpace.removeAll();
 			customUISpace.setVisible(false);
@@ -222,12 +217,12 @@ class Stacking extends Rule implements Plugin {
 				}
 
 				args = (int[]) argument;
-				cardsToDraw.set(game, cardsToDraw.get(game) + args[0], true);
-				stacking.set(game, args[0], true);
+				cardsToDraw.set(game, cardsToDraw.get(game) + args[0]);
+				stacking.set(game, args[0]);
 				break;
 			} case FINISH_STACK:
-				cardsToDraw.set(game, 0, true);
-				stacking.set(game, NOT_STACKING, true);
+				cardsToDraw.set(game, 0);
+				stacking.set(game, NOT_STACKING);
 				break;
 			default:
 				break;
@@ -266,7 +261,7 @@ class Stacking extends Rule implements Plugin {
 		
 		void played(Card parent) {
 			Game game = parent.getGame();
-			if (game instanceof UIGame) {
+			if (!GameUtils.isServer(game)) {
 				((UIGame)game).getCustomUISpace().removeAll();
 			}
 			super.played(parent);

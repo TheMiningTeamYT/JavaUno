@@ -22,8 +22,8 @@ class UIStandardHand extends StandardHand implements UIHand {
 	 * @param orientation
 	 * @param playable
 	 */
-	UIStandardHand(UIGame game, int x, int y, int width, int height, int orientation, boolean playable, boolean up) {
-		super(game, playable);
+	UIStandardHand(UIGame game, int x, int y, int width, int height, int orientation, boolean up) {
+		super(game);
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -38,7 +38,22 @@ class UIStandardHand extends StandardHand implements UIHand {
 	 */
 	public void add(Card card) {
 		UIGame game = (UIGame)this.game;
-		super.add(card);		
+		boolean added = false;
+
+		if (cards.size() != 0) {
+			for (int i = 0; i < cards.size(); i++) {
+				if (card.compareTo((Card)cards.elementAt(i)) >= 0) {
+					cards.insertElementAt(card, i);
+					added = true;
+					break;
+				}
+			}
+		}
+
+		if (!added) {
+			cards.addElement(card);
+		}
+
 		for (int i = 0; i < cards.size(); i++) {
 			game.setLayer((UICard)cards.elementAt(i), i);
 		}

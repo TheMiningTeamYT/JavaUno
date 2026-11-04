@@ -120,8 +120,8 @@ class CardType {
 			} else {
 				this.parent = parent;
 			}
-			if (canBeSkinned()) {
-				skin = new CardSkin(getSkin(), face, back);
+			if (parent.canBeSkinned()) {
+				skin = new CardSkin(parent.getSkin(), face, back);
 			}
 		}
 		

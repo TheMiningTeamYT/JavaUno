@@ -2,39 +2,48 @@ package com.loganius.Uno;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+
 import javax.swing.*;
+
 import java.util.Vector;
 import java.util.Date;
+import java.util.Hashtable;
+import java.util.Random;
 
 /**
  * Represents the space in which a game of Uno is played.
  * TODO: Add safety checks
  */
-class UIGame extends JLayeredPane implements ActionListener, Game {
-	public static final int MAX_PLAYERS = 4;
-	private static final long serialVersionUID = 1L;
+public class UIGame extends JLayeredPane implements ActionListener, Game {
 	private static final double arcRatio = 0.13962634;
 	private static final Color arcColor = new Color(0, 220, 255);
-	static final int CLOCKWISE = 0;
-	static final int COUNTER_CLOCKWISE = 1;
 
+	private Game game = this;
 	private GameHandler handler;
+	private ProtocolInterface io;
+	private InputHandler inHandler = null;
 	private RuleSet rules = new RuleSet.Standard();
 	protected UIStandardHand[] hands = {
-			new UIStandardHand(this, 0, 360, 640, 120, 0, false, false),
-			new UIStandardHand(this, 0, 130, 120, 220, 270, false, false),
-			new UIStandardHand(this, 0, 0, 400, 120, 180, false, false),
-			new UIStandardHand(this, 520, 130, 120, 220, 90, false, false),
+			new UIStandardHand(this, 0, 360, 640, 120, 0, false),
+			new UIStandardHand(this, 0, 130, 120, 220, 270, false),
+			new UIStandardHand(this, 0, 0, 400, 120, 180, false),
+			new UIStandardHand(this, 520, 130, 120, 220, 90, false),
 	};
 	protected UIDiscardHand discardHand = new UIDiscardHand(this, 0, 360);
 	private Theme theme;
 	private Deck deck;
 	private UICard lastDrawn = null;
-	private int turnOrder = CLOCKWISE;
+	private QueueHandler queueHandler = new QueueHandler();
+	private volatile GameState state = new GameState();
+	private Random RNG = new Random();
+	private Hashtable actionHandlers = new Hashtable();
+	private int turnOrder = GameUtils.CLOCKWISE;
 	private int players = 1;
 	private int player = 0;
 	private int playerGoing = 0;
 	private boolean started = false;
+	private boolean drawing = false;
 	private boolean drew = false;
 	private boolean uno = false;
 	private boolean ended = false;
@@ -46,17 +55,22 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	private JPanel customUISpace = new JPanel();
 	private Image bgSource;
 	private Image background;
+	private PlayerOverlay overlay = new PlayerOverlay(this);
 	private Rectangle backgroundBounds;
 	private Rectangle arcBounds = new Rectangle(640 / 4 - 30, 480 / 4 - 30, 640 / 2 + 60, 480 / 2 + 60);
+	private String[] names;
 	private int[] arcX = new int[43];
 	private int[] arcY = new int[43];
 	private long lastFrame = (new Date()).getTime();
 	private int frame = 0;
 	
-	UIGame(Theme theme, GameHandler handler) {
+	UIGame(Theme theme, String name, GameHandler handler, ProtocolInterface io) {
 		super();
+		Rectangle bounds = getBounds();
+
 		this.theme = theme;
 		this.handler = handler;
+		this.io = io;
 		
 		draw = new DrawButton(this);
 		unoButton = new UnoButton(this);
@@ -91,29 +105,35 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 				}
 			}
 		}).start();
+
+		names = new String[] { name };
+		
+		io.open(this);
+		io.queue(Action.hello(name));
+		io.send();
+		
+		queueHandler.start();
+	}
+	
+	void requestStart() {
+		io.queue(Action.requestStart(rules));
+		io.send();
 	}
 	
 	protected void preInit() {}
 	
-	public void start() {
-		started = true;
-		add(draw, 0);
-		add(unoButton, 0);
-	}
-	
-	void deal() {
-		for (int i = 0; i < players; i++) {
-			for (int j = 0; j < 7; j++) {
-				drawToHand(i);
+	protected void start(Action.State state) {
+		if (!started) {
+			Card first;
+			started = true;
+			add(draw, 0);
+			add(unoButton, 0);
+			setState(state);
+			first = (Card) getLastPlayed();
+			if (isHandPlayer(0) && first.getCardType().getColor() == CardType.Color.WILD) {
+				play(first);
 			}
 		}
-		
-		UICard first = new UICard(deck.random(), discardHand);
-		if (first.getCardType().getColor() == CardType.Color.WILD) {
-			first.played();
-		}
-
-		first.transfer(discardHand);
 	}
 	
 	public RuleSet getRuleSet() {
@@ -130,14 +150,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 
 	public void setTurnOrder(int order) {
 		turnOrder = order;
-	}
-	
-	private void doReverse() {
-		if (turnOrder == CLOCKWISE) {
-			turnOrder = COUNTER_CLOCKWISE;
-		} else {
-			turnOrder = CLOCKWISE;
-		}
+		state.setTurnOrder(order);
 	}
 	
 	public Deck getDeck() {
@@ -206,17 +219,22 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		return rules.isLegal(card, this);
 	}
 	
-	public void onDraw() {
+	public void draw() {
+		drawing = true;
+		io.queue(Action.startDraw(state));
 		rules.onDraw(this);
 		drew = true;
 	}
 	
+	public void finishDraw() {
+		rules.finishDraw(this);
+		drawing = false;
+		io.queue(Action.endDraw(state));
+		io.send();
+	}
+	
 	protected int findPlayer(int turnPos) {
-		if (turnOrder == CLOCKWISE) {
-			return (playerGoing + turnPos) % players;
-		} else {
-			return (playerGoing + players - turnPos) % players;
-		}
+		return GameUtils.findPlayer(turnPos, turnOrder, players, playerGoing);
 	}
 	
 	protected UIStandardHand findPlayerHand(int turnPos) {
@@ -224,11 +242,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	}
 	
 	protected int findTurnPos(int player) {
-		if (turnOrder == CLOCKWISE) {
-			return (player + players - playerGoing) % players;
-		} else {
-			return (playerGoing + players - player) % players;
-		}
+		return GameUtils.findTurnPos(player, turnOrder, players, playerGoing);
 	}
 	
 	protected int findPlayer(Card card) {
@@ -268,14 +282,14 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		if (players == 2) {
 			hands[(player + 1) % players].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
 		} else {
-			if ((player + 1) % MAX_PLAYERS < players) {
-				hands[(player + 1) % MAX_PLAYERS].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+			if ((player + 1) % GameUtils.MAX_PLAYERS < players) {
+				hands[(player + 1) % GameUtils.MAX_PLAYERS].onResize(0, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
 			}
-			if ((player + 2) % MAX_PLAYERS < players) {
-				hands[(player + 2) % MAX_PLAYERS].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
+			if ((player + 2) % GameUtils.MAX_PLAYERS < players) {
+				hands[(player + 2) % GameUtils.MAX_PLAYERS].onResize(cardHeight, 0, size.width - cardHeight * 2, cardHeight);
 			}
-			if ((player + 3) % MAX_PLAYERS < players) {
-				hands[(player + 3) % MAX_PLAYERS].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
+			if ((player + 3) % GameUtils.MAX_PLAYERS < players) {
+				hands[(player + 3) % GameUtils.MAX_PLAYERS].onResize(size.width - cardHeight, cardHeight + cardHeight/8, cardHeight, size.height - cardHeight * 2 - cardHeight / 4);
 			}
 		}
 		repaint();
@@ -296,11 +310,12 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	protected void setPlayerGoing(int playerGoing) {
 		if (playerGoing >= 0 && playerGoing < players) {
 			this.playerGoing = playerGoing;
+			state.setPlayerGoing(playerGoing);
 		}
 	}
 	
 	protected void setPlayer(int player, int players) {
-		if (players <= 0 || players > MAX_PLAYERS || player < 0 || player >= players) {
+		if (players <= 0 || players > GameUtils.MAX_PLAYERS || player < 0 || player >= players) {
 			throw new IllegalArgumentException("Player count is out of bounds!");
 		}
 		this.player = player;
@@ -310,7 +325,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			hands[(player + 1) % players].setOrientation(180);
 		} else {
 			for (int i = 0; i < players; i++) {
-				hands[i].setOrientation((360 - 90*((i + MAX_PLAYERS - player) % MAX_PLAYERS)) % 360);
+				hands[i].setOrientation((360 - 90*((i + GameUtils.MAX_PLAYERS - player) % GameUtils.MAX_PLAYERS)) % 360);
 			}
 		}
 		resizeHands();
@@ -329,7 +344,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	}
 	
 	protected void setUno(boolean uno) {
-		this.uno = uno; 
+		this.uno = uno;
 	}
 	
 	protected boolean getChallengeActive() {
@@ -369,12 +384,18 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	/* These functions here are intended to be intercepted so their work can be captured
 	 * and sent over the network. */
 	public Card drawToHand(int turnPos) {
-		return drawToHand(turnPos, deck.random());
+		return drawToHand(turnPos, deck.random(RNG));
 	}
 
 	public Card drawToHand(int turnPos, int type) {
 		lastDrawn = new UICard(type, findPlayerHand(turnPos));
-		return (lastDrawn);
+		state.drawToHand(turnPos, type);
+		checkUno();
+		if (drawing) {
+			io.queue(Action.draw(state));
+			io.send();
+		}
+		return lastDrawn;
 	}
 	
 	public Card getLastDrawn() {
@@ -385,54 +406,51 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		if (!(card instanceof UICard)) {
 			throw new IllegalArgumentException("Card is not a UICard!");
 		}
+		state.removeFromHand(turnPos, card.getType());
 		findPlayerHand(turnPos).remove(card);
 		remove((UICard)card);
 	}
 	
-	public void discard(Card card) {
+	private void discard(Card card) {
+		int turnPos = findTurnPos(card);
+		int type = card.getType();
 		card.transfer(discardHand);
+		state.discard(type, turnPos);
+	}
+	
+	public void play(Card card) {
+		if (!isInterrupted() && isLegal(card)) {
+			int type = card.getType();
+			discard(card);
+			card.played();
+			io.queue(Action.play(type, state));
+			io.send();
+		}
 	}
 	
 	public void reverse() {
-		doReverse();
+		turnOrder = GameUtils.reverse(turnOrder);
+		state.reverse();
 	}
 	
 	public void rotateHands() {
-		UIStandardHand temp1;
-		UIStandardHand temp2;
-		boolean[] playableBefore = new boolean[players];
 		boolean[] upBefore = new boolean[players];
 		int[] orientationBefore = new int[players];
 
 		for (int i = 0; i < players; i++) {
-			playableBefore[i] = hands[i].getPlayable();
 			upBefore[i] = hands[i].getUp();
 			orientationBefore[i] = hands[i].getOrientation();
 		}
 
-		if (turnOrder == CLOCKWISE) {
-			temp1 = hands[players - 1];
-			for (int i = 0; i < players; i++) {
-				temp2 = hands[i];
-				hands[i] = temp1;
-				temp1 = temp2;
-			}
-		} else {
-			temp1 = hands[0];
-			for (int i = players - 1; i >= 0; i--) {
-				temp2 = hands[i];
-				hands[i] = temp1;
-				temp1 = temp2;
-			}
-		}
+		GameUtils.rotateHands(hands, players, turnOrder);
 		
 		for (int i = 0; i < players; i++) {
 			hands[i].setUp(upBefore[i]);
-			hands[i].setPlayable(playableBefore[i]);
 			hands[i].setOrientation(orientationBefore[i]);
 		}
 		
 		resizeHands();
+		state.rotate();
 	}
 	
 	public boolean checkUno() {
@@ -447,24 +465,14 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 	public void swapHands(int target1, int target2) {
 		int hand1 = findPlayer(target1);
 		int hand2 = findPlayer(target2);
-		boolean[] playableBefore = {hands[hand1].getPlayable(), hands[hand2].getPlayable()};
 		boolean[] upBefore = {hands[hand1].getUp(), hands[hand2].getUp()};
 		int[] orientationBefore = {hands[hand1].getOrientation(), hands[hand2].getOrientation()};
-		UIStandardHand temp = hands[hand1];
-
-		if (hands[hand1].numCards() <= 0 && hands[hand2].numCards() <= 0) {
-			return;
-		}
 		
-		hands[hand1] = hands[hand2];
-		hands[hand2] = temp;
+		GameUtils.swapHands(target1, target2, turnOrder, players, playerGoing, hands);
 		
 		hands[hand1].setUp(upBefore[0]);
-		hands[hand1].setPlayable(playableBefore[0]);
-		hands[hand1].setOrientation(orientationBefore[0]);
-
 		hands[hand2].setUp(upBefore[1]);
-		hands[hand2].setPlayable(playableBefore[1]);
+		hands[hand1].setOrientation(orientationBefore[0]);
 		hands[hand2].setOrientation(orientationBefore[1]);
 		
 		resizeHands();
@@ -479,13 +487,14 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			if (hands[playerGoing].numCards() == 0) {
 				onWin();
 			} else {
-				if (turnOrder == CLOCKWISE) {
-					playerGoing = (playerGoing + 1) % players;
-				} else {
-					playerGoing = (playerGoing + players - 1) % players;
-				}
+				playerGoing = GameUtils.nextPlayer(turnOrder, players, playerGoing);
+				setHandPlayable(isHandPlayer(0));
+				overlay.setActivePlayer(playerGoing);
 				checkUno();
 			}
+			
+			state.turn();
+			state.setLastPlayed(getLastPlayed().getType());
 		}
 	}
 	
@@ -494,6 +503,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		deck.reset();
 		rules = ruleset;
 		rules.bind(this);
+		state.setRuleSet(ruleset);
 	}
 	
 	public void startWildCardChallenge() {
@@ -506,6 +516,18 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			onTurn();
 			onTurn();
 		}
+	}
+	
+	public void sendInput(int value) {
+		if (inHandler != null) {
+			inHandler.handleUserInput(this, value);
+			io.queue(Action.input(value, state));
+			io.send();
+		}
+	}
+	
+	public void listenForInput(InputHandler handler) {
+		inHandler = handler;
 	}
 	
 	public void sendWildCardChallenge() {
@@ -545,24 +567,12 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			customUISpace.setLayout(new GridLayout(1, 1));
 			customUISpace.add(waiting);
 			customUISpace.setVisible(true);
-			
-			/** 
-			 * Subclasses of Game which have non-local-player hands must handle
-			 * wildcard challenges on their own, or else the game would
-			 * softlock.
-			 * This exception is here to make sure they do.
-			 * If you wrap this in a try-catch and do nothing, that's your
-			 * fault.
-			 */
-			throw new RuntimeException(
-					"Dear Developer, you appear not to have implemented your" +
-					"subclass of Game properly. Please fix that." + 
-					"-Developer");
 		}
+		state.sendWildCardChallenge(getLastPlayed().getType());
 	}
 
 	// TODO: Add an animation for the outcome of the challenge.
-	public void handleWildCardChallenge(boolean challenged) {
+	public void handleWildCardChallenge(final boolean challenged) {
 		if (challengeActive) {
 			endWildCardChallenge();
 			if (challenged) {
@@ -585,6 +595,8 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 							onTurn();
 						}
 						onTurn();
+						io.queue(Action.resolveChallenge(challenged, state));
+						io.send();
 					}
 				});
 
@@ -597,6 +609,8 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 
 				onTurn();
 				onTurn();
+				io.queue(Action.resolveChallenge(challenged, state));
+				io.send();
 			}
 		}
 	}
@@ -605,7 +619,13 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		customUISpace.removeAll();
 		customUISpace.setVisible(false);
 		challengeActive = false;
+		state.endWildCardChallenge();
 	}
+
+	protected boolean verify() {
+		return GameUtils.verify(state, players, playerGoing, turnOrder,
+				getLastPlayed(), rules, uno, challengeActive, hands);
+		}
 	
 	void onEnd(String msg) {
 		JButton endButton = new JButton("Leave");
@@ -657,6 +677,192 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			unoButton.setVisible(false);
 			uno = true;
 		}
+		
+		state.doUno();
+	}
+	
+	private void removeFromHand(int turnPos, int cardType) {
+		Card toBeRemoved = findPlayerHand(turnPos).getCardByType(cardType);
+		if (toBeRemoved != null) {
+			removeFromHand(turnPos, toBeRemoved);
+		}
+	}
+	
+	private void discard(int cardType, int turnPos) {
+		Card toBeDiscarded = findPlayerHand(turnPos).getCardByType(cardType);
+		if (toBeDiscarded != null) {
+			discard(toBeDiscarded);
+		}
+	}
+	
+	void applyAction(Action a) {
+		int type = a.getType();
+		Object argument = a.getArgument();
+
+		if (type >= 1024) {
+			if (actionHandlers.containsKey(new Integer(type))) {
+				((Plugin)actionHandlers.get(new Integer(type))).handleAction(type, argument, this);
+			}
+			return;
+		}
+
+		switch (type) {
+			case Action.CALL_UNO:
+				if (isHandPlayer(0)) {
+					callUno(1);
+				} else {
+					callUno(0);
+				}
+				break;
+			case Action.SEND_CHALLENGE: {
+				int cardType = ((Integer)argument).intValue();
+				getLastPlayed().setType(cardType);
+				sendWildCardChallenge();
+				break;
+			}
+			case Action.WELCOME: {
+				if (a.getArgument().getClass() != Action.Welcome.class) {
+					break;
+				}
+				Action.Welcome hello = (Action.Welcome) a.getArgument();
+				int newPlayer = hello.getPlayer();
+				int newNumPlayers = hello.getNumPlayers();
+				String[] newNames = hello.getNames();
+				if (newPlayer < 0 || newPlayer >= 4 || newNumPlayers <= 0 || newNumPlayers > 4) {
+					break;
+				}
+
+				setPlayer(hello.getPlayer(), hello.getNumPlayers());
+				state.setPlayers(newNumPlayers);
+				if (getPlayer() == 0 && getPlayers() > 1) {
+					overlay.showStartButton();
+				}
+
+				if (newNames == null || newNames.length > 4) {
+					break;
+				}
+				names = newNames;
+				overlay.setPlayers(names);
+				break;
+			}
+			case Action.START: {
+				Action.State state = (Action.State)argument;
+				overlay.start(getPlayer(), getPlayers());
+				start(state);
+				break;
+			}
+			 case Action.SET_STATE: {
+				Action.State state = (Action.State) a.getArgument();
+				setState(state);
+				break;
+			}
+			case Action.DRAW_TO_HAND: {
+				int args[] = (int[]) argument;
+				drawToHand(args[0], args[1]);
+				break;
+			} case Action.REMOVE_FROM_HAND: {
+				int args[] = (int[]) argument;
+				removeFromHand(args[0], args[1]);
+				break;
+			} case Action.DISCARD: {
+				int args[] = (int[]) argument;
+				discard(args[1], args[0]);
+				break;
+			} case Action.REVERSE:
+				reverse();
+				break;
+			case Action.ROTATE_HANDS:
+				rotateHands();
+				break;
+			case Action.TURN: {
+				int cardType = ((Integer)argument).intValue();
+				getLastPlayed().setType(cardType);
+				onTurn();
+				break;
+			}
+			case Action.SWAP: {
+				int args[] = (int[])argument;
+				swapHands(args[0], args[1]);
+				break;
+			}
+			case Action.END_CHALLENGE:
+				endWildCardChallenge();
+				break;
+			case Action.SET_RULES:
+				setRuleSet((RuleSet)argument);
+				break;
+			default:
+				break;
+		}
+	}
+	
+	private void setState(Action.State state) {
+		GameState newState = state.getState();
+		Integer[][] newHands = newState.getHands();
+
+		for (int i = 0; i < getPlayers(); i++) {
+			hands[i].removeAll();
+			hands[i].setPlayable(false);
+			for (int j = 0; j < newHands[i].length; j++) {
+				new UICard(newHands[i][j].intValue(), hands[i]);
+			}
+		}
+
+		RNG.setSeed(state.getSeed());
+		setTurnOrder(newState.getTurnOrder());
+		setRuleSet(newState.getRules());
+		setUno(newState.getUno());
+		setChallengeActive(newState.getChallengeActive());
+		setPlayerGoing(newState.getPlayerGoing());
+		setHandPlayable(isHandPlayer(0));
+		overlay.setActivePlayer(playerGoing);
+		
+		// TODO: Put the last 2 cards played into the game state
+		new UICard(newState.getLastPlayed(), discardHand);
+		this.state = newState;
+		resizeHands();
+		
+		io.flush();
+	}
+	
+	public void registerAction(int type, Plugin handler) {
+		if (actionHandlers.containsKey(new Integer(type))) {
+			throw new IllegalArgumentException("!!! TWO PLUGINS ARE USING ACTION" + type + "!!!");
+		}
+		actionHandlers.put(new Integer(type), handler);
+	}
+	
+	public void unregisterAction(int type) {
+		if (!actionHandlers.containsKey(new Integer(type))) {
+			throw new IllegalArgumentException("ActionType " + type + "not in use!");
+		}
+		actionHandlers.remove(new Integer(type));
+	}
+	
+	public void sendAction(int type, Object arg) {
+		if (actionHandlers.containsKey(new Integer(type))) {
+			io.queue(new Action(type, arg, state));
+		} else {
+			throw new IllegalArgumentException("Action type " + type + " not registered");
+		}
+	}
+	
+	public void requestTrackingSlot(int cookie, int val) {
+		state.requestTrackingSlot(cookie, val);
+	}
+	
+	public void releaseTrackingSlot(int cookie) {
+		state.releaseTrackingSlot(cookie);
+	}
+	
+	public void updateSlot(int cookie, int val) {
+		if (state.getSlot(cookie) != val) {
+			state.updateSlot(cookie, val);
+		}
+	}
+	
+	public int getSlot(int cookie) {
+		return state.getSlot(cookie);
 	}
 	
 	protected void gameOver() {
@@ -679,7 +885,33 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		background = Util.bufferScaledImage(bgSource, backgroundBounds.width, backgroundBounds.height);
 
 		arcBounds = new Rectangle((int)(size.width / 4 - Util.scale(30)), (int)(size.height / 4 - Util.scale(30)), (int)(size.width / 2 + Util.scale(60)), (int)(size.height / 2 + Util.scale(60)));
+		overlay.setBounds(0, 0, size.width, size.height);
 		resizeHands();
+	}
+	
+	public void handleError(Exception e) {
+		if (!getEnded()) {
+			final String msg = (e.getMessage() == null) ? "A networking error occured." : e.getMessage();
+			try {
+				SwingUtilities.invokeAndWait(new Runnable() {
+					public void run() {
+						onEnd(msg);
+					}
+				});
+			} catch (Exception e2) {
+				ended = true;
+				e2.printStackTrace();
+			};
+
+			e.printStackTrace();
+
+			try {
+				io.close();
+			} catch (Exception e2) {};
+			
+			overlay.setVisible(false);
+			queueHandler.interrupt();
+		}
 	}
 
 	public void paintComponent(Graphics g) {
@@ -689,7 +921,7 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 		if (arcBounds.intersects(g.getClipBounds())) {
 			g.setColor(arcColor);
 			
-			if (turnOrder == CLOCKWISE) {
+			if (turnOrder == GameUtils.CLOCKWISE) {
 				double sin = 0;
 				double cos = 0;
 				for (int i = 0; i < 20; i++) {
@@ -732,6 +964,71 @@ class UIGame extends JLayeredPane implements ActionListener, Game {
 			}
 	
 			g.fillPolygon(arcX, arcY, 43);
+		}
+	}
+	
+	// TODO: Implement ack and keepalive
+	private class QueueHandler extends Thread {
+		public void run() {
+			while (true) {
+				Vector acts = new Vector();
+				Action a;
+
+				synchronized(io) {
+					try {
+						io.wait();
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
+				
+				while ((a = io.next()) != null) {
+					if (!a.check()) {
+						continue;
+					}
+					acts.addElement(a);
+				}
+
+				if (acts.size() == 0) {
+					continue;
+				}
+				
+				GameState oldState = state;
+				state = (GameState)state.clone();
+				for (int i = 0; i < acts.size(); i++) {
+					a = (Action)acts.elementAt(i);
+					if (a.getType() >= 1024) {
+						if (actionHandlers.get(new Integer(a.getType())) != null) {
+							((Plugin)actionHandlers.get(new Integer(a.getType()))).simulate(a.getType(), a.getArgument(), game);
+						}
+					} else {
+						state.applyAction(a);
+					}
+				}
+				
+				if (a.verify(state)) {
+					state = oldState;
+					for (int i = 0; i < acts.size(); i++) {
+						final Action act = (Action)acts.elementAt(i);
+						try {
+							SwingUtilities.invokeAndWait(new Runnable() {
+								public void run() {
+									applyAction(act);
+								}
+							});
+						} catch (Exception e) {};
+					}
+					if (!a.verify(state) || !verify()) {
+						io.flush();
+						io.queue(Action.getState());
+						io.send();
+					}
+				} else {
+					io.flush();
+					io.queue(Action.getState());
+					io.send();
+				}
+			}
 		}
 	}
 }

@@ -2,6 +2,8 @@ package com.loganius.Uno;
 
 import java.net.URL;
 
+import java.util.Random;
+
 import com.loganius.Uno.CardType.*;
 
 /* TODO: Add actually different images for the different change color results */
@@ -90,8 +92,8 @@ class Deck {
 		return new Deck(createBlankCards());
 	}
 	
-	int random() {
-		return weightedCards[(int)(Math.random() * weightedCards.length)];
+	int random(Random RNG) {
+		return weightedCards[(int)(RNG.nextDouble() * weightedCards.length)];
 	}
 	
 	CardType getCard(int type) {
@@ -148,6 +150,25 @@ class Deck {
 				weightedCards[currentWeight++] = i;
 			}
 		}
+	}
+	
+	static int toColor(int type, int color) {
+		if (type < 0) {
+			throw new IllegalArgumentException("Invalid type.");
+		}
+		if (color < 0 || color > 3) {
+			throw new IllegalArgumentException("Invalid color.");
+		}
+		if (type < 52) {
+			return (color * 13) + (type % 13);
+		}
+		if (type < 57) {
+			return RED_CHANGE_COLOR + color;
+		}
+		if (type < 62) {
+			return RED_DRAW4 + color;
+		}
+		throw new IllegalArgumentException("We don't know how to handle this type!");
 	}
 	
 	static CardType[] createDefaultCards() {

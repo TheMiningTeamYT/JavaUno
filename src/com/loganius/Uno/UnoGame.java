@@ -342,7 +342,8 @@ public class UnoGame implements GameHandler {
 					}
 
 					if (name != null && splitHost[0] != null && name.length() != 0 && splitHost[0].length() != 0) {
-						gameState = new NetworkGameClient(theme, unoGame, name, splitHost[0], port);
+						NetworkClientAdapter net = new NetworkClientAdapter(splitHost[0], port);
+						gameState = new NetworkGameClient(theme, name, unoGame, net);
 						parentContainer.remove(mainScreen);
 						parentContainer.add(gameState);
 						parentContainer.validate();
@@ -459,12 +460,13 @@ public class UnoGame implements GameHandler {
 					int portNum = Integer.parseInt(port.getText());
 					if (name != null && name.length() != 0) {
 						Vector rules = new Vector();
+						NetworkClientAdapter net = new NetworkClientAdapter("127.0.0.1", portNum);
 						try {
 							server = new UnoServer(portNum);
 						} catch (IOException e2) {
 							e2.printStackTrace();
 						}
-						gameState = new NetworkGameClient(theme, unoGame, player.getText(), "127.0.0.1", portNum);
+						gameState = new NetworkGameClient(theme, player.getText(), unoGame, net);
 						for (int i = 0; i < ruleFactories.size(); i++) {
 							if (ruleBoxes[i].isSelected()) {
 								rules.addElement(((RuleFactory)ruleFactories.elementAt(i)).create());

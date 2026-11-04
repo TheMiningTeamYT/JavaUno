@@ -5,10 +5,10 @@ import java.awt.*;
 import java.awt.event.*;
 
 // TODO: Add all the net game UI elements and methods.
-class NetGameUI extends JPanel implements ActionListener {
+class PlayerOverlay extends JPanel implements ActionListener {
 	private static Color inactivePlayerColor = new Color(240, 240, 240);
 	private static Color activePlayerColor = new Color(0, 208, 1);
-	private NetworkGameClient parent;
+	private UIGame parent;
 	private JLabel[] players = {
 			new JLabel("Player", SwingConstants.CENTER),
 			new JLabel("Waiting...", SwingConstants.LEFT),
@@ -20,7 +20,7 @@ class NetGameUI extends JPanel implements ActionListener {
 	private int numPlayers = 4;
 	private int activePlayer = 0;
 
-	NetGameUI(NetworkGameClient parent) {
+	PlayerOverlay(UIGame parent) {
 		this.parent = parent;
 		setLayout(null);
 		setOpaque(false);
@@ -65,14 +65,14 @@ class NetGameUI extends JPanel implements ActionListener {
 		if (numPlayers == 2) {
 			players[(player + 1) % numPlayers].setHorizontalAlignment(SwingConstants.CENTER);
 		} else {
-			if ((player + 1) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 1) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.LEFT);
+			if ((player + 1) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 1) % GameUtils.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.LEFT);
 			}
-			if ((player + 2) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 2) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.CENTER);
+			if ((player + 2) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 2) % GameUtils.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.CENTER);
 			}
-			if ((player + 3) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 3) % UIGame.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.RIGHT);
+			if ((player + 3) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 3) % GameUtils.MAX_PLAYERS].setHorizontalAlignment(SwingConstants.RIGHT);
 			}
 		}
 		startButton.setVisible(false);
@@ -100,14 +100,14 @@ class NetGameUI extends JPanel implements ActionListener {
 		if (numPlayers == 2) {
 			players[(player + 1) % numPlayers].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
 		} else {
-			if ((player + 1) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 1) % UIGame.MAX_PLAYERS].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
+			if ((player + 1) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 1) % GameUtils.MAX_PLAYERS].setBounds(cardHeight + (int)(Util.scale(10)), bounds.height / 2 - 50, bounds.width / 2, 100);
 			}
-			if ((player + 2) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 2) % UIGame.MAX_PLAYERS].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
+			if ((player + 2) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 2) % GameUtils.MAX_PLAYERS].setBounds(0, cardHeight + (int)(Util.scale(10)) - 50, bounds.width, 100);
 			}
-			if ((player + 3) % UIGame.MAX_PLAYERS < numPlayers) {
-				players[(player + 3) % UIGame.MAX_PLAYERS].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
+			if ((player + 3) % GameUtils.MAX_PLAYERS < numPlayers) {
+				players[(player + 3) % GameUtils.MAX_PLAYERS].setBounds(bounds.width - cardHeight - (int)(Util.scale(10)) - bounds.width / 2, bounds.height / 2 - 50, bounds.width / 2, 100);
 			}
 		}
 		if (startButton.isVisible()) {

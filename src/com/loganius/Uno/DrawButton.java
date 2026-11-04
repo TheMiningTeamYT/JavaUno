@@ -48,7 +48,7 @@ class DrawButton extends JComponent {
 	private class ClickListener extends MouseAdapter {
 		public void mouseClicked(MouseEvent e) {
 			if (!game.isInterrupted()) {
-				game.onDraw();
+				game.draw();
 			}
 		}
 		

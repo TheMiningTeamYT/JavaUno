@@ -8,8 +8,8 @@ import java.awt.event.*;
 public class JumpIn extends Rule implements Plugin {
 	private static final long serialVersionUID = 1L;
 
-	private static final int START_JUMP_IN = 1026;
-	private static final int END_JUMP_IN = 1027;
+	private static final int START_JUMP_IN = 1027;
+	private static final int END_JUMP_IN = 1028;
 	private static final int SLOT = 268482188;
 
 	private transient JLabel instruction;
@@ -18,26 +18,22 @@ public class JumpIn extends Rule implements Plugin {
 
 	// Defacto constructor.
 	public void bind(Game game) {
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			UIGame uiGame = (UIGame)game;
-			if (game instanceof NetworkGameClient) {
-				((NetworkGameClient)game).registerAction(START_JUMP_IN, this);
-				((NetworkGameClient)game).registerAction(END_JUMP_IN, this);
-			}
 			instruction = new JLabel("Jump In!", SwingConstants.CENTER);
 			instruction.setForeground(uiGame.getAccentColor());
 			instruction.setFont(Util.getLargeFont());
 			instruction.addComponentListener(Util.LargeResizeListener);
 		}
-		playableBefore = new boolean[UIGame.MAX_PLAYERS];
+		game.registerAction(START_JUMP_IN, this);
+		game.registerAction(END_JUMP_IN, this);
+		playableBefore = new boolean[GameUtils.MAX_PLAYERS];
 		active = new NetworkInt(game, SLOT, -1);
 	}
 	
 	public void unbind(Game game) {
-		if (game instanceof NetworkGameClient) {
-			((NetworkGameClient)game).unregisterAction(START_JUMP_IN);
-			((NetworkGameClient)game).unregisterAction(END_JUMP_IN);
-		}
+		game.unregisterAction(START_JUMP_IN);
+		game.unregisterAction(END_JUMP_IN);
 		active.release(game);
 		active = null;
 	}
@@ -63,7 +59,7 @@ public class JumpIn extends Rule implements Plugin {
 		boolean playerHasCard = false;
 		for (int i = 0; i < game.getPlayers(); i++) {
 			playableBefore[i] = game.getHandPlayable(i);
-			if (game.isHandPlayer(i)) {
+			if (game.isHandPlayer(i) || GameUtils.isServer(game)) {
 				game.setHandPlayable(false, i);
 				if (game.handContains(i, lastPlayed)) {
 					game.setTypePlayable(lastPlayed, true, i);
@@ -72,7 +68,7 @@ public class JumpIn extends Rule implements Plugin {
 			}
 		}
 
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 	
 			instruction.setText((playerHasCard) ? "Jump In!" : "Waiting...");
@@ -86,7 +82,7 @@ public class JumpIn extends Rule implements Plugin {
 	}
 	
 	private void finish(Game game) {
-		if (game instanceof UIGame) {
+		if (!GameUtils.isServer(game)) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 	
 			customUISpace.removeAll();
@@ -103,7 +99,7 @@ public class JumpIn extends Rule implements Plugin {
 	public void handleAction(int type, Object argument, Game game) {
 		switch (type) {
 			case START_JUMP_IN:
-				if (!(argument instanceof Integer)) {
+				if (argument.getClass() != Integer.class) {
 					break;
 				}
 				activate(game, ((Integer)argument).intValue());
@@ -119,13 +115,13 @@ public class JumpIn extends Rule implements Plugin {
 	public void simulate(int type, Object argument, Game game) {
 		switch (type) {
 			case START_JUMP_IN:
-				if (!(argument instanceof Integer)) {
+				if (argument.getClass() != Integer.class) {
 					break;
 				}
-				active.set(game, ((Integer)argument).intValue(), true);
+				active.set(game, ((Integer)argument).intValue());
 				break;
 			case END_JUMP_IN:
-				active.set(game, -1, true);
+				active.set(game, -1);
 				break;
 			default:
 				break;
@@ -142,13 +138,13 @@ public class JumpIn extends Rule implements Plugin {
 
 		void played(final Card parent) {
 			int type = parent.getType();
-			final UIGame game = (UIGame)parent.getGame();
+			final Game game = parent.getGame();
 			if (active.get(game) >= 0) {
 				int turnPos = game.findTurnPos(parent);
 				finish(game);
 				
-				if (game instanceof NetworkGameClient) {
-					((NetworkGameClient)game).sendAction(END_JUMP_IN, null);
+				if (GameUtils.isServer(game)) {
+					game.sendAction(END_JUMP_IN, null);
 				}
 
 				for (int i = 0; i < turnPos; i++) {
@@ -162,8 +158,8 @@ public class JumpIn extends Rule implements Plugin {
 								if (active.get(game) >= 0 && !game.getEnded()) {
 									finish(game);
 
-									if (game instanceof NetworkGameClient) {
-										((NetworkGameClient)game).sendAction(END_JUMP_IN, null);
+									if (GameUtils.isServer(game)) {
+										game.sendAction(END_JUMP_IN, null);
 									}
 
 									parentType.played(parent);
@@ -171,16 +167,17 @@ public class JumpIn extends Rule implements Plugin {
 							}
 						});
 						jumpInDelay.setRepeats(false);
-						jumpInDelay.start();
+						//jumpInDelay.start();
 
 						activate(game, type);
-						if (game instanceof NetworkGameClient) {
-							((NetworkGameClient)game).sendAction(START_JUMP_IN, new Integer(type));
+						if (GameUtils.isServer(game)) {
+							game.sendAction(START_JUMP_IN, new Integer(type));
 						}
 						return;
 					}
 				}
 			}
+			
 			parentType.played(parent);
 		}
 	}

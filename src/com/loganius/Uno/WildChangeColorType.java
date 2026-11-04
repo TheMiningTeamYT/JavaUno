@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 
-class WildChangeColorType extends CardType {
+class WildChangeColorType extends CardType implements InputHandler {
 	private JPanel buttonSpace = new JPanel();
 	private ComponentAdapter listener = new Util.Centering(buttonSpace);
 
@@ -21,7 +21,8 @@ class WildChangeColorType extends CardType {
 	}
 	
 	void played(Card parent) {
-		if (parent.getGame() instanceof UIGame) {
+		parent.getGame().listenForInput(this);
+		if (!GameUtils.isServer(parent.getGame())) {
 			UIGame game = (UIGame)parent.getGame();
 			JPanel customUISpace = game.getCustomUISpace();
 			Rectangle size = customUISpace.getBounds();
@@ -60,6 +61,10 @@ class WildChangeColorType extends CardType {
 			parent.getGame().setHandPlayable(false);
 		}
 	}
+	
+	public void handleUserInput(Game game, int value) {
+		cardAction(game.getLastPlayed(), value);
+	}
 
 	protected void cardAction(Card parent, int color) {
 		parent.setType(Deck.RED_CHANGE_COLOR + color);
@@ -81,14 +86,12 @@ class WildChangeColorType extends CardType {
 		}
 		
 		public void actionPerformed(ActionEvent e) {
-			if (parent.getGame() instanceof UIGame) {
-				UIGame game = (UIGame)parent.getGame();
-				JPanel customUISpace = game.getCustomUISpace();
-				customUISpace.removeAll();
-				customUISpace.removeComponentListener(listener);
-				customUISpace.setVisible(false);
-			}
-			cardAction(parent, color);
+			UIGame game = (UIGame)parent.getGame();
+			JPanel customUISpace = game.getCustomUISpace();
+			customUISpace.removeAll();
+			customUISpace.removeComponentListener(listener);
+			customUISpace.setVisible(false);
+			game.sendInput(color);
 		}
 	}
 }
