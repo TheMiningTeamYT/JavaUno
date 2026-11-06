@@ -2,16 +2,16 @@ package com.loganius.Uno;
 
 import java.awt.Image;
 
-class CardSkin {
+public class CardSkin {
 	private CachedImage[] face;
 	private CachedImage[] back;
 	
-	CardSkin(Image face, CachedImage[] back) {
+	public CardSkin(Image face, CachedImage[] back) {
 		this.face = generateImageList(face);
 		this.back = back;
 	}
 	
-	CardSkin(CardSkin parent, CachedImage[] face, CachedImage[] back) {
+	public CardSkin(CardSkin parent, CachedImage[] face, CachedImage[] back) {
 		this.face = (face == null) ? parent.face : face;
 		this.back = (back == null) ? parent.back : back;
 	}

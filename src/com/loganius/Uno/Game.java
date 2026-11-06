@@ -12,8 +12,10 @@ public interface Game extends ErrorHandler {
 	void callUno(int player);
 	Card drawToHand(int turnPos);
 	void startWildCardChallenge();
+	void setType(Card card, int type);
 	void swapHands(int target1, int target2);
 	void removeFromHand(int turnPos, Card card);
+	void setPlayable(Card card, boolean playable);
 
 	int getSlot(int cookie);
 	void sendInput(int value);
@@ -51,4 +53,6 @@ public interface Game extends ErrorHandler {
 	void setHandPlayable(boolean playable, int turnPos);
 	void setTypePlayable(int type, boolean playable);
 	void setTypePlayable(int type, boolean playable, int turnPos);
+	
+	boolean isClient();
 }

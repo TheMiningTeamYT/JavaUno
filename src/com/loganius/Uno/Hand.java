@@ -5,12 +5,13 @@ public interface Hand {
 	void remove(Card card);
 	boolean getPlayable();
 	void setPlayable(boolean playable);
-	Card getCardByType(int cardType);
 	void setTypePlayable(int cardType, boolean playable);
 	boolean contains(int cardType);
-	boolean containsColor(int color);
 	void removeAll();
+	int numCards();
+	Card getCardByType(int cardType);
+	Card getCardByID(int ID);
+	boolean containsColor(int color);
 	boolean canBePlayed();
 	Game getGame();
-	int numCards();
 }

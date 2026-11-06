@@ -1,13 +1,9 @@
 package com.loganius.Uno;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-
 // TODO: Figure out how to send a card type over the network in a way I'm happy with.
 // TODO: Pre-scale images for better performance?
-class CardType {
-	static final class Color {
+public class CardType {
+	public static final class Color {
 		static final int RED = 0;
 		static final int YELLOW = 1;
 		static final int GREEN = 2;
@@ -15,7 +11,7 @@ class CardType {
 		static final int WILD = 4;
 	}
 	
-	static final class Value {
+	public static final class Value {
 		static final int PLUS2 = -2;
 		static final int SKIP = -3;
 		static final int REVERSE = -4;
@@ -28,79 +24,86 @@ class CardType {
 	protected int value;
 	private int weight;
 
-	CardType(CardSkin skin, int color, int value, int weight) {
+	public CardType(CardSkin skin, int color, int value, int weight) {
 		this.skin = skin;
 		this.color = color;
 		this.value = value;
 		this.weight = weight;
 	}
 	
-	CardType(CardType parent) {
+	public CardType(CardType parent) {
 		skin = parent.skin;
 		color = parent.color;
 		value = parent.value;
 		weight = parent.weight;
 	}
 
-	int getColor() {
+	public int getColor() {
 		return color;
 	}
 	
-	int getValue() {
+	public int getValue() {
 		return value;
 	}
 	
-	int getWeight() {
+	public int getWeight() {
 		return weight;
 	}
 	
-	boolean canBeSkinned() {
+	public boolean canBeSkinned() {
 		return true;
 	}
 	
-	CardSkin getSkin() {
+	public CardSkin getSkin() {
 		return skin;
 	}
 
 	/**
 	 * Take an action when the card is played.
+	 * (Executed on the client)
 	 * @param parent
 	 * @return
 	 */
-	void played(Card parent) {
-		parent.getGame().onTurn();
-	};
+	void played(Card parent) {};
 	
-	static final class Skip extends CardType {
+	/**
+	 * Execute the logic that occurs when the card is played.
+	 * (Executed on the server)
+	 */
+	void run(Card parent) {
+		parent.getGame().onTurn();
+	}
+	
+	public static final class Skip extends CardType {
 		Skip(CardSkin skin, int color) {
 			super(skin, color, Value.SKIP, 2);
 		}
 		
-		void played(Card parent) {
+		void run(Card parent) {
 			// TODO: Maybe play an animation for skipping?
 			parent.getGame().onTurn();
 			parent.getGame().onTurn();
 		};
 	}
 	
-	static final class Reverse extends CardType {
+	public static final class Reverse extends CardType {
 		Reverse(CardSkin skin, int color) {
 			super(skin, color, Value.REVERSE, 2);
 		}
 		
-		void played(Card parent) {
+		void run(Card parent) {
 			// TODO: Maybe play an animation for reverse?
 			parent.getGame().reverse();
 			parent.getGame().onTurn();
 		};
 	}
 	
-	static final class DrawTwo extends CardType {
+	public static final class DrawTwo extends CardType {
 		DrawTwo(CardSkin skin, int color) {
 			super(skin, color, Value.PLUS2, 2);
 		}
 		
-		void played(Card parent) {
+		void run(Card parent) {
 			// TODO: Maybe play an animation for drawing?
 			Game game = parent.getGame();
 			game.drawToHand(1);
@@ -110,7 +113,7 @@ class CardType {
 		};
 	}
 	
-	static final class Skinned extends CardType {
+	public static final class Skinned extends CardType {
 		private CardType parent;
 
 		Skinned(CardType parent, CachedImage[] face, CachedImage back[]) {
@@ -127,6 +130,10 @@ class CardType {
 		
 		void played(Card parent) {
 			this.parent.played(parent);
+		}
+		
+		void run(Card parent) {
+			this.parent.run(parent);
 		}
 	}
 }

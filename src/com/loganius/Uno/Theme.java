@@ -19,7 +19,7 @@ public class Theme {
 	private Color gameText;
 	private Color gameAccent;
 	
-	Theme() {
+	public Theme() {
 		this.name = "Default";
 		this.unoButton = new CachedImage[] {
 				new CachedImage(Util.getImage(Util.getResource("Assets/uno.gif")), 0, 120, 120),
@@ -39,7 +39,7 @@ public class Theme {
 		this.gameAccent = new Color(105, 0, 204);
 	}
 	
-	Theme(Theme fallback, String name, Image[] unoButton, Image[] drawButton, Image logo,
+	public Theme(Theme fallback, String name, Image[] unoButton, Image[] drawButton, Image logo,
 			Image mainScreenBackground, Image gameBackground, Deck deck,
 			Color mainScreenText, Color mainScreenAccent, Color gameText,
 			Color gameAccent) {

@@ -9,14 +9,14 @@ import java.io.*;
  * TODO: Track playability
  */
 final class GameState implements Serializable {
-	private static final long serialVersionUID = 10L;
+	private static final long serialVersionUID = 11L;
 
 	// Array of int vectors (representing types of cards)
-	private Vector[] hands = {
-			new Vector(),
-			new Vector(),
-			new Vector(),
-			new Vector()
+	private SimpleHand[] hands = {
+			new SimpleHand(),
+			new SimpleHand(),
+			new SimpleHand(),
+			new SimpleHand(),
 	};
 	private Vector trackingCookies = new Vector();
 	private Hashtable tracking = new Hashtable();
@@ -27,7 +27,7 @@ final class GameState implements Serializable {
 	private int playerGoing = 0;
 	private boolean uno = false;
 	private boolean challengeActive = false;
-
+	
 	GameState() {};
 
 	GameState(GameState other) {
@@ -36,7 +36,7 @@ final class GameState implements Serializable {
 	
 	private void clone(GameState other) {
 		for (int i = 0; i < hands.length; i++) {
-			hands[i] = (Vector) other.hands[i].clone();
+			hands[i] = (SimpleHand) other.hands[i].clone();
 		}
 		trackingCookies = (Vector) other.trackingCookies.clone();
 		tracking = (Hashtable) other.tracking.clone();
@@ -56,34 +56,81 @@ final class GameState implements Serializable {
 	void setPlayers(int players) {
 		this.players = players;
 	}
-
-	void drawToHand(int turnPos, int card) {
-		uno = false;
-		findPlayerHand(turnPos).addElement(new Integer(card));
-	}
-
-	void removeFromHand(int turnPos, int card) {
-		if (turnPos >= 0) {
-			findPlayerHand(turnPos).removeElement(new Integer(card));
-		}
+	
+	GameState drawToHand(int turnPos, SimpleCard card) {
+		GameState result = new GameState(this);
+		result.doDrawToHand(turnPos, new BasicCard(card));
+		return result;
 	}
 	
-	void discard(int card, int hand) {
-		removeFromHand(hand, card);
-		lastPlayed = card;
+	private void doDrawToHand(int turnPos, int ID, int type) {
+		SimpleHand hand = findPlayerHand(turnPos);
+		BasicCard card = new BasicCard(ID, type, hand.getPlayable());
+		doDrawToHand(turnPos, card);
 	}
 
-	void reverse() {
+	private void doDrawToHand(int turnPos, BasicCard card) {
+		uno = false;
+		SimpleHand hand = findPlayerHand(turnPos);
+		hand.add(card);
+	}
+	
+	GameState removeFromHand(int turnPos, SimpleCard card) {
+		GameState result = new GameState(this);
+		result.doRemoveFromHand(turnPos, card);
+		return result;
+	}
+	
+	private void doRemoveFromHand(int turnPos, int ID) {
+		SimpleHand hand = findPlayerHand(turnPos);
+		SimpleCard cardToRemove = hand.getSimpleCardByID(ID);
+		if (cardToRemove != null) {
+			hand.remove(cardToRemove);
+		}
+	}
+
+	private void doRemoveFromHand(int turnPos, SimpleCard card) {
+		doRemoveFromHand(turnPos, card.getID());
+	}
+	
+	GameState discard(SimpleCard card, int hand) {
+		GameState result = new GameState(this);
+		result.doDiscard(card, hand);
+		return result;
+	}
+	
+	private void doDiscard(SimpleCard card, int hand) {
+		doDiscard(card.getType(), card.getID(), hand);
+	}
+	
+	private void doDiscard(int type, int ID, int hand) {
+		doRemoveFromHand(hand, ID);
+		lastPlayed = type;
+	}
+	
+	GameState reverse() {
+		GameState result = new GameState(this);
+		result.doReverse();
+		return result;
+	}
+
+	private void doReverse() {
 		if (turnOrder == GameUtils.CLOCKWISE) {
 			turnOrder = GameUtils.COUNTER_CLOCKWISE;
 		} else {
 			turnOrder = GameUtils.CLOCKWISE;
 		}
 	}
+	
+	GameState rotate() {
+		GameState result = new GameState(this);
+		result.doRotate();
+		return result;
+	}
 
-	void rotate() {
-		Vector temp1;
-		Vector temp2;
+	private void doRotate() {
+		SimpleHand temp1;
+		SimpleHand temp2;
 		if (turnOrder == GameUtils.CLOCKWISE) {
 			temp1 = hands[players - 1];
 			for (int i = 0; i < players; i++) {
@@ -101,18 +148,36 @@ final class GameState implements Serializable {
 		}
 	}
 	
-	void turn() {
+	GameState turn() {
+		GameState result = new GameState(this);
+		result.doTurn();
+		return result;
+	}
+	
+	private void doTurn() {
 		uno = false;
-		if (hands[playerGoing].size() > 0) {
+		if (hands[playerGoing].numCards() > 0) {
 			playerGoing = GameUtils.nextPlayer(turnOrder, players, playerGoing);
 		}
 	}
 	
-	void doUno() {
+	GameState uno() { 
+		GameState result = new GameState(this);
+		result.doUno();
+		return result;
+	}
+	
+	private void doUno() {
 		uno = true;
 	}
 	
-	void setRuleSet(RuleSet rules) {
+	GameState setRuleSet(RuleSet rules) {
+		GameState result = new GameState(this);
+		result.doSetRuleSet(rules);
+		return result;
+	}
+	
+	private void doSetRuleSet(RuleSet rules) {
 		this.rules = rules;
 	}
 	
@@ -120,24 +185,48 @@ final class GameState implements Serializable {
 		return rules;
 	}
 	
-	void swapHands(int turnPos1, int turnPos2) {
+	GameState swapHands(int turnPos1, int turnPos2) {
+		GameState result = new GameState(this);
+		result.doSwapHands(turnPos1, turnPos2);
+		return result;
+	}
+	
+	private void doSwapHands(int turnPos1, int turnPos2) {
 		int hand1 = findPlayer(turnPos1);
 		int hand2 = findPlayer(turnPos2);
-		Vector temp = hands[hand1];
+		SimpleHand temp = hands[hand1];
 		hands[hand1] = hands[hand2];
 		hands[hand2] = temp;
 	}
 	
-	void sendWildCardChallenge(int lastPlayed) {
+	GameState sendWildCardChallenge(int lastPlayed) {
+		GameState result = new GameState(this);
+		result.doSendChallenge(lastPlayed);
+		return result;
+	}
+	
+	private void doSendChallenge(int lastPlayed) {
 		this.lastPlayed = lastPlayed;
 		challengeActive = true;
 	}
 	
-	void endWildCardChallenge() {
+	GameState endWildCardChallenge() {
+		GameState result = new GameState(this);
+		result.doEndChallenge();
+		return result;
+	}
+	
+	private void doEndChallenge() {
 		challengeActive = false;
 	}
 	
-	void requestTrackingSlot(int cookie, int val) {
+	GameState requestTrackingSlot(int cookie, int val) {
+		GameState result = new GameState(this);
+		result.doRequestSlot(cookie, val);
+		return result;
+	}
+	
+	private void doRequestSlot(int cookie, int val) {
 		boolean added = false;
 		if (tracking.containsKey(new Integer(cookie))) {
 			System.err.println("Warning! Cookie " + cookie + " already in use!");
@@ -159,7 +248,13 @@ final class GameState implements Serializable {
 		tracking.put(new Integer(cookie), new Integer(val));
 	}
 	
-	void releaseTrackingSlot(int cookie) {
+	GameState releaseTrackingSlot(int cookie) {
+		GameState result = new GameState(this);
+		result.doReleaseSlot(cookie);
+		return result;
+	}
+	
+	private void doReleaseSlot(int cookie) {
 		if (!tracking.containsKey(new Integer(cookie))) {
 			throw new IllegalArgumentException("Cookie " + cookie + " not in use!");
 		}
@@ -167,7 +262,13 @@ final class GameState implements Serializable {
 		tracking.remove(new Integer(cookie));
 	}
 	
-	void updateSlot(int cookie, int val) {
+	GameState updateSlot(int cookie, int val) {
+		GameState result = new GameState(this);
+		result.doUpdateSlot(cookie, val);
+		return result;
+	}
+	
+	private void doUpdateSlot(int cookie, int val) {
 		if (!tracking.containsKey(new Integer(cookie))) {
 			throw new IllegalArgumentException("Cookie " + cookie + " already not found!");
 		}
@@ -181,70 +282,88 @@ final class GameState implements Serializable {
 		return ((Integer)tracking.get(new Integer(cookie))).intValue();
 	}
 	
-	void applyAction(Action a) {
-		if (!a.check()) {
-			return;
+	boolean getHandPlayable(int turnPos) {
+		return hands[findPlayer(turnPos)].getPlayable();
+	}
+	
+	boolean compareHands(StandardHand hands[]) {
+		for (int i = 0; i < players; i++) {
+			if (!hands[i].equals(this.hands[i])) {
+				return false;
+			}
 		}
+		
+		return true;
+	}
+	
+	GameState applyAction(Action a) {
+		if (!a.check()) {
+			return this;
+		}
+		
+		GameState result = new GameState(this);
 
 		Object argument = a.getArgument();
+		// TODO: Fix card-based action types.
 		switch (a.getType()) {
 			case Action.DRAW_TO_HAND: {
 				int args[] = (int[])argument;
-				drawToHand(args[0], args[1]);
+				result.doDrawToHand(args[0], args[1], args[2]);
 				break;
 			}
 			case Action.REMOVE_FROM_HAND: {
 				int args[] = (int[]) argument;
-				removeFromHand(args[0], args[1]);
+				result.doRemoveFromHand(args[0], args[1]);
 				break;
 			}
 			case Action.DISCARD: {
 				int args[] = (int[]) argument;
-				discard(args[1], args[0]);
+				result.doDiscard(args[1], args[2], args[0]);
 				break;
 			}
 			case Action.REVERSE:
-				reverse();
+				result.doReverse();
 				break;
 			case Action.ROTATE_HANDS:
-				rotate();
+				result.doRotate();
 				break;
 			case Action.TURN: {
 				int val = ((Integer)argument).intValue();
 				lastPlayed = val;
-				turn();
+				result.doTurn();
 				break;
 			}
 			case Action.SET_STATE: 
 			case Action.START: {
 				Action.State state = (Action.State)argument;
 				if (state.check()) {
-					clone(state.getState());
+					return state.getState();
 				}
 				break;
 			}
 			case Action.CALL_UNO:
-				uno = true;
+				result.doUno();
 				break;
 			case Action.SWAP: {
 				int args[] = (int[]) argument;
-				swapHands(args[0], args[1]);
+				result.doSwapHands(args[0], args[1]);
 				break;
 			}
 			case Action.SET_RULES:
-				setRuleSet((RuleSet)argument);
+				result.doSetRuleSet((RuleSet)argument);
 				break;
 			case Action.SEND_CHALLENGE: {
 				int val = ((Integer) argument).intValue();
-				sendWildCardChallenge(val);
+				result.sendWildCardChallenge(val);
 				break;
 			}
 			case Action.END_CHALLENGE:
-				endWildCardChallenge();
+				result.endWildCardChallenge();
 				break;
 			default:
 				break;
 		}
+		return result;
 	}
 	
 	private int findPlayer(int turnPos) {
@@ -255,16 +374,16 @@ final class GameState implements Serializable {
 		}
 	}
 	
-	private Vector findPlayerHand(int turnPos) {
+	private SimpleHand findPlayerHand(int turnPos) {
 		return hands[findPlayer(turnPos)];
 	}
 	
-	Integer[][] getHands() {
-		Integer[][] rawHands = new Integer[][] {
-			new Integer[hands[0].size()],
-			new Integer[hands[1].size()],
-			new Integer[hands[2].size()],
-			new Integer[hands[3].size()],
+	SimpleCard[][] getHands() {
+		SimpleCard[][] rawHands = new SimpleCard[][] {
+			new SimpleCard[hands[0].numCards()],
+			new SimpleCard[hands[1].numCards()],
+			new SimpleCard[hands[2].numCards()],
+			new SimpleCard[hands[3].numCards()],
 		};
 		for (int i = 0; i < hands.length; i++) {
 			hands[i].copyInto(rawHands[i]);
@@ -276,16 +395,8 @@ final class GameState implements Serializable {
 		return lastPlayed;
 	}
 	
-	void setLastPlayed(int card) {
-		lastPlayed = card;
-	}
-	
 	int getTurnOrder() { 
 		return turnOrder;
-	}
-	
-	void setTurnOrder(int order) {
-		turnOrder = order;
 	}
 	
 	int getPlayers() {
@@ -296,24 +407,12 @@ final class GameState implements Serializable {
 		return playerGoing;
 	}
 	
-	void setPlayerGoing(int player) {
-		playerGoing = player;
-	}
-	
 	boolean getUno() {
 		return uno;
 	}
 	
-	void setUno(boolean uno) {
-		this.uno = uno;
-	}
-	
 	boolean getChallengeActive() {
 		return challengeActive;
-	}
-	
-	void setChallengeActive(boolean active) {
-		challengeActive = active;
 	}
 	
 	boolean check() {
@@ -344,19 +443,7 @@ final class GameState implements Serializable {
 			if (hands[i] == null) {
 				return false;
 			}
-			for (int j = 0; j < hands[i].size(); j++) {
-				int card;
-				if (hands[i].elementAt(j) == null || hands[i].elementAt(j).getClass() != Integer.class) {
-					return false;
-				}
-				card = ((Integer)hands[i].elementAt(j)).intValue();
-				
-				// TODO: find a way to figure out how many cards should be in
-				// the deck.
-				if (card < 0) {
-					return false;
-				}
-			}
+			hands[i].check();
 		}
 		
 		if (rules == null) {
@@ -417,12 +504,14 @@ final class GameState implements Serializable {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		CRC32 sum = new CRC32();
 		DataOutputStream out = new DataOutputStream(bos);
-		Integer[][] hands = getHands();
+		SimpleCard[][] hands = getHands();
 		byte[] raw;
 		
-		for (int i = 0; i < players; i++) {
+		for (int i = 0; i < hands.length; i++) {
+			out.writeBoolean(this.hands[i].getPlayable());
 			for (int j = 0; j < hands[i].length; j++) {
-				out.writeInt(hands[i][j].intValue());
+				out.writeInt(hands[i][j].getType());
+				out.writeBoolean(hands[i][j].getPlayable());
 			}
 			// Canary value to prevent 2 valid game states from producing the same serialized output.
 			out.writeByte(-1);

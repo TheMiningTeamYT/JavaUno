@@ -1,6 +1,6 @@
 package com.loganius.Uno;
 
-public interface ProtocolInterface {
+interface ProtocolInterface {
 	void open(ErrorHandler errorHandler);
 	void close() throws Exception;
 	Action next();

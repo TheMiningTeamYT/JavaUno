@@ -28,6 +28,7 @@ public final class ServerGame implements Game {
 	private int players = 1;
 	private int player = 0;
 	private int playerGoing = 0;
+	private int nextCard = 0;
 	private Random RNG = new Random();
 	private boolean started = false;
 	private boolean drew = false;
@@ -41,15 +42,15 @@ public final class ServerGame implements Game {
 	ServerGame(GameHandler handler, ProtocolInterface net, GameState state) {
 		this.handler = handler;
 		this.net = net;
+		this.state = state;
 		
 		net.open(this);
 		deck.reset();
 		rules.bind(this);
-		this.state = state;
 	}
 	
-	public void start() {
-		StandardCard first = new StandardCard(deck.random(RNG), discardHand);
+	void start() {
+		StandardCard first = new StandardCard(nextCard++, deck.random(RNG), discardHand);
 		first.transfer(discardHand);
 
 		for (int i = 0; i < players; i++) {
@@ -59,7 +60,7 @@ public final class ServerGame implements Game {
 		}
 
 		hands[0].setPlayable(true);
-		state.setLastPlayed(first.getType());
+		state.setLastPlayed(first);
 		net.flush();
 	}
 	
@@ -205,10 +206,9 @@ public final class ServerGame implements Game {
 
 	public Card drawToHand(int turnPos, int type) {
 		uno = false;
-		state.drawToHand(turnPos, type);
 		checkUno();
 		net.queue(Action.drawToHand(turnPos, type, state));
-		return (lastDrawn = new StandardCard(type, findPlayerHand(turnPos)));
+		return (lastDrawn = new StandardCard(nextCard++, type, findPlayerHand(turnPos)));
 	}
 	
 	public Card getLastDrawn() {
@@ -218,7 +218,6 @@ public final class ServerGame implements Game {
 	public void removeFromHand(int turnPos, Card card) {
 		int type = card.getType();
 		findPlayerHand(turnPos).remove(card);
-		state.removeFromHand(turnPos, type);
 		net.queue(Action.removeFromHand(turnPos, type, state));
 	}
 	
@@ -227,7 +226,7 @@ public final class ServerGame implements Game {
 			int turnPos = findTurnPos(card);
 			int type = card.getType();
 			card.transfer(discardHand);
-			state.discard(card.getType(), turnPos);
+			state.discard(card);
 			net.queue(Action.discard(turnPos, type, state));
 			card.played();
 		}
@@ -402,6 +401,10 @@ public final class ServerGame implements Game {
 		inHandler = handler;
 	}
 	
+	public boolean isClient() {
+		return false;
+	}
+	
 	private void applyAction(Action a) {
 		int type = a.getType();
 		Object argument = a.getArgument();
@@ -458,10 +461,9 @@ public final class ServerGame implements Game {
 		}
 	}
 	
-	boolean dispatch(int forPlayer, Random RNG) {
+	boolean dispatch(int forPlayer) {
 		Action a = null;
 		player = forPlayer;
-		this.RNG = RNG;
 
 		while ((a = net.next()) != null) {
 			if (!a.check()) {
@@ -484,7 +486,7 @@ public final class ServerGame implements Game {
 	}
 	
 	void setState(GameState state) {
-		Integer[][] newHands = state.getHands();
+		SimpleCard[][] newHands = state.getHands();
 
 		turnOrder = state.getTurnOrder();
 		rules = state.getRules();
@@ -493,7 +495,7 @@ public final class ServerGame implements Game {
 			hands[i].removeAll();
 			hands[i].setPlayable(false);
 			for (int j = 0; j < newHands[i].length; j++) {
-				new StandardCard(newHands[i][j].intValue(), hands[i]);
+				new StandardCard(newHands[i][j], hands[i]);
 			}
 		}
 
@@ -505,6 +507,7 @@ public final class ServerGame implements Game {
 		// TODO: Put the last 2 cards played into the game state
 		new StandardCard(state.getLastPlayed(), discardHand);
 		this.state = state;
+		state.bind(hands);
 
 		if (!verify()) {
 			throw new RuntimeException("Failed to set state.");

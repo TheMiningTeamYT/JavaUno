@@ -7,71 +7,71 @@ import java.util.Random;
 import com.loganius.Uno.CardType.*;
 
 /* TODO: Add actually different images for the different change color results */
-class Deck {
-	static final int NUM_CARDS = 62;
+public class Deck {
+	public static final int NUM_CARDS = 62;
 
-	static final int RED_0 = 0;
-	static final int RED_1 = 1;
-	static final int RED_2 = 2;
-	static final int RED_3 = 3;
-	static final int RED_4 = 4;
-	static final int RED_5 = 5;
-	static final int RED_6 = 6;
-	static final int RED_7 = 7;
-	static final int RED_8 = 8;
-	static final int RED_9 = 9;
-	static final int RED_PLUS2 = 10;
-	static final int RED_SKIP = 11;
-	static final int RED_REVERSE = 12;
-	static final int YELLOW_0 = 13;
-	static final int YELLOW_1 = 14;
-	static final int YELLOW_2 = 15;
-	static final int YELLOW_3 = 16;
-	static final int YELLOW_4 = 17;
-	static final int YELLOW_5 = 18;
-	static final int YELLOW_6 = 19;
-	static final int YELLOW_7 = 20;
-	static final int YELLOW_8 = 21;
-	static final int YELLOW_9 = 22;
-	static final int YELLOW_PLUS2 = 23;
-	static final int YELLOW_SKIP = 24;
-	static final int YELLOW_REVERSE = 25;
-	static final int GREEN_0 = 26;
-	static final int GREEN_1 = 27;
-	static final int GREEN_2 = 28;
-	static final int GREEN_3 = 29;
-	static final int GREEN_4 = 30;
-	static final int GREEN_5 = 31;
-	static final int GREEN_6 = 32;
-	static final int GREEN_7 = 33;
-	static final int GREEN_8 = 34;
-	static final int GREEN_9 = 35;
-	static final int GREEN_PLUS2 = 36;
-	static final int GREEN_SKIP = 37;
-	static final int GREEN_REVERSE = 38;
-	static final int BLUE_0 = 39;
-	static final int BLUE_1 = 40;
-	static final int BLUE_2 = 41;
-	static final int BLUE_3 = 42;
-	static final int BLUE_4 = 43;
-	static final int BLUE_5 = 44;
-	static final int BLUE_6 = 45;
-	static final int BLUE_7 = 46;
-	static final int BLUE_8 = 47;
-	static final int BLUE_9 = 48;
-	static final int BLUE_PLUS2 = 49;
-	static final int BLUE_SKIP = 50;
-	static final int BLUE_REVERSE = 51;
-	static final int WILD_CHANGE_COLOR = 52;
-	static final int RED_CHANGE_COLOR = 53;
-	static final int YELLOW_CHANGE_COLOR = 54;
-	static final int GREEN_CHANGE_COLOR = 55;
-	static final int BLUE_CHANGE_COLOR = 56;
-	static final int WILD_DRAW4 = 57;
-	static final int RED_DRAW4 = 58;
-	static final int YELLOW_DRAW4 = 59;
-	static final int GREEN_DRAW4 = 60;
-	static final int BLUE_DRAW4 = 61;
+	public static final int RED_0 = 0;
+	public static final int RED_1 = 1;
+	public static final int RED_2 = 2;
+	public static final int RED_3 = 3;
+	public static final int RED_4 = 4;
+	public static final int RED_5 = 5;
+	public static final int RED_6 = 6;
+	public static final int RED_7 = 7;
+	public static final int RED_8 = 8;
+	public static final int RED_9 = 9;
+	public static final int RED_PLUS2 = 10;
+	public static final int RED_SKIP = 11;
+	public static final int RED_REVERSE = 12;
+	public static final int YELLOW_0 = 13;
+	public static final int YELLOW_1 = 14;
+	public static final int YELLOW_2 = 15;
+	public static final int YELLOW_3 = 16;
+	public static final int YELLOW_4 = 17;
+	public static final int YELLOW_5 = 18;
+	public static final int YELLOW_6 = 19;
+	public static final int YELLOW_7 = 20;
+	public static final int YELLOW_8 = 21;
+	public static final int YELLOW_9 = 22;
+	public static final int YELLOW_PLUS2 = 23;
+	public static final int YELLOW_SKIP = 24;
+	public static final int YELLOW_REVERSE = 25;
+	public static final int GREEN_0 = 26;
+	public static final int GREEN_1 = 27;
+	public static final int GREEN_2 = 28;
+	public static final int GREEN_3 = 29;
+	public static final int GREEN_4 = 30;
+	public static final int GREEN_5 = 31;
+	public static final int GREEN_6 = 32;
+	public static final int GREEN_7 = 33;
+	public static final int GREEN_8 = 34;
+	public static final int GREEN_9 = 35;
+	public static final int GREEN_PLUS2 = 36;
+	public static final int GREEN_SKIP = 37;
+	public static final int GREEN_REVERSE = 38;
+	public static final int BLUE_0 = 39;
+	public static final int BLUE_1 = 40;
+	public static final int BLUE_2 = 41;
+	public static final int BLUE_3 = 42;
+	public static final int BLUE_4 = 43;
+	public static final int BLUE_5 = 44;
+	public static final int BLUE_6 = 45;
+	public static final int BLUE_7 = 46;
+	public static final int BLUE_8 = 47;
+	public static final int BLUE_9 = 48;
+	public static final int BLUE_PLUS2 = 49;
+	public static final int BLUE_SKIP = 50;
+	public static final int BLUE_REVERSE = 51;
+	public static final int WILD_CHANGE_COLOR = 52;
+	public static final int RED_CHANGE_COLOR = 53;
+	public static final int YELLOW_CHANGE_COLOR = 54;
+	public static final int GREEN_CHANGE_COLOR = 55;
+	public static final int BLUE_CHANGE_COLOR = 56;
+	public static final int WILD_DRAW4 = 57;
+	public static final int RED_DRAW4 = 58;
+	public static final int YELLOW_DRAW4 = 59;
+	public static final int GREEN_DRAW4 = 60;
+	public static final int BLUE_DRAW4 = 61;
 
 	protected CardType[] cards;
 	protected CardType[] originalDeck;
@@ -101,10 +101,10 @@ class Deck {
 	}
 	
 	CardType[] getCards() {
-		return (CardType[]) originalDeck.clone();
+		return (CardType[]) cards.clone();
 	}
 	
-	int addCard(CardType newCard) {
+	public int addCard(CardType newCard) {
 		CardType[] oldCards = cards;
 		cards = new CardType[cards.length + 1];
 		System.arraycopy(cards, 0, oldCards, 0, oldCards.length);
@@ -114,14 +114,14 @@ class Deck {
 		return cards.length - 1;
 	}
 	
-	void overrideCard(int index, CardType override) {
+	public void overrideCard(int index, CardType override) {
 		if (index >= 0 && index < cards.length) {
 			cards[index] = override;
 		}
 		updateWeights();
 	}
 	
-	void resetCard(int index) {
+	public void resetCard(int index) {
 		if (index >= 0 && index < originalDeck.length) {
 			cards[index] = originalDeck[index];
 		}
@@ -133,11 +133,11 @@ class Deck {
 		updateWeights();
 	}
 	
-	int getLength() {
+	public int getLength() {
 		return cards.length;
 	}
 	
-	void updateWeights() {
+	private void updateWeights() {
 		int totalWeight = 0;
 		int currentWeight = 0;
 		for (int i = 0; i < cards.length; i++) {
@@ -152,7 +152,7 @@ class Deck {
 		}
 	}
 	
-	static int toColor(int type, int color) {
+	public static int toColor(int type, int color) {
 		if (type < 0) {
 			throw new IllegalArgumentException("Invalid type.");
 		}

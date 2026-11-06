@@ -4,7 +4,6 @@ class DrawToMatch extends Rule {
 	private static final long serialVersionUID = 1L;
 
 	int onDraw(Game game) {
-		Card card;
 		game.setHandPlayable(false);
 		do {
 			drawToHand(0, game);
@@ -13,7 +12,7 @@ class DrawToMatch extends Rule {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} while (!game.isLegal((card = game.getLastDrawn())));
+		} while (!game.isLegal(game.getLastDrawn()));
 		game.checkUno();
 		return PREVENT_FALLBACK;
 	}
@@ -22,7 +21,7 @@ class DrawToMatch extends Rule {
 		if (!game.isLegal(game.getLastDrawn())) {
 			System.err.println("CHEATER!!!");
 		}
-		game.getLastDrawn().setPlayable(true);
+		game.setPlayable(game.getLastDrawn(), true);
 		return ALLOW;
 	}
 	

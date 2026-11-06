@@ -35,7 +35,7 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 	private Deck deck;
 	private UICard lastDrawn = null;
 	private QueueHandler queueHandler = new QueueHandler();
-	private volatile GameState state = new GameState();
+	private volatile GameState state;
 	private Random RNG = new Random();
 	private Hashtable actionHandlers = new Hashtable();
 	private int turnOrder = GameUtils.CLOCKWISE;
@@ -65,9 +65,7 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 	private int frame = 0;
 	
 	UIGame(Theme theme, String name, GameHandler handler, ProtocolInterface io) {
-		super();
-		Rectangle bounds = getBounds();
-
+		this.state = new GameState(hands);
 		this.theme = theme;
 		this.handler = handler;
 		this.io = io;
@@ -387,9 +385,8 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 		return drawToHand(turnPos, deck.random(RNG));
 	}
 
-	public Card drawToHand(int turnPos, int type) {
+	private Card drawToHand(int turnPos, int type) {
 		lastDrawn = new UICard(type, findPlayerHand(turnPos));
-		state.drawToHand(turnPos, type);
 		checkUno();
 		if (drawing) {
 			io.queue(Action.draw(state));
@@ -406,16 +403,13 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 		if (!(card instanceof UICard)) {
 			throw new IllegalArgumentException("Card is not a UICard!");
 		}
-		state.removeFromHand(turnPos, card.getType());
 		findPlayerHand(turnPos).remove(card);
 		remove((UICard)card);
 	}
 	
 	private void discard(Card card) {
-		int turnPos = findTurnPos(card);
-		int type = card.getType();
 		card.transfer(discardHand);
-		state.discard(type, turnPos);
+		state.discard(card);
 	}
 	
 	public void play(Card card) {
@@ -615,6 +609,10 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 		}
 	}
 	
+	public boolean isClient() {
+		return true;
+	}
+	
 	protected void endWildCardChallenge() {
 		customUISpace.removeAll();
 		customUISpace.setVisible(false);
@@ -798,13 +796,13 @@ public class UIGame extends JLayeredPane implements ActionListener, Game {
 	
 	private void setState(Action.State state) {
 		GameState newState = state.getState();
-		Integer[][] newHands = newState.getHands();
+		SimpleCard[][] newHands = newState.getHands();
 
 		for (int i = 0; i < getPlayers(); i++) {
 			hands[i].removeAll();
 			hands[i].setPlayable(false);
 			for (int j = 0; j < newHands[i].length; j++) {
-				new UICard(newHands[i][j].intValue(), hands[i]);
+				new UICard(newHands[i][j], hands[i]);
 			}
 		}
 

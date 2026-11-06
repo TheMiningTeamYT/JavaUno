@@ -10,9 +10,9 @@ class ForcePlay extends Rule {
 		}
 		game.setHandPlayable(false);
 		if (game.checkUno()) {
-			drawn.setPlayable(true);
+			game.setPlayable(drawn, true);
 		} else {
-			drawn.played();
+			game.play(drawn);
 		}
 		return PREVENT_FALLBACK;
 	}

@@ -25,7 +25,7 @@ class Stacking extends Rule implements Plugin {
 
 	// Defacto constructor.
 	public void bind(Game game) {
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			cardsToDrawLabel = new JLabel("", SwingConstants.CENTER);
 			cardsToDrawLabel.setForeground(((UIGame)game).getAccentColor());
 			cardsToDrawLabel.setFont(Util.getLargeFont());
@@ -93,7 +93,7 @@ class Stacking extends Rule implements Plugin {
 			return;
 		}
 		stack(game, args[0]);
-		if (GameUtils.isServer(game)) {
+		if (!game.isClient()) {
 			game.sendAction(STACK, args);
 		}
 		setTypesPlayable(game, args);
@@ -106,7 +106,7 @@ class Stacking extends Rule implements Plugin {
 			draw(game, args[0], args[0]);
 		} else {
 			stack(game, args[0]);
-			if (GameUtils.isServer(game)) {
+			if (!game.isClient()) {
 				game.sendAction(STACK, args);
 			}
 			draw(game, cardsToDraw.get(game), args[0]);
@@ -114,7 +114,7 @@ class Stacking extends Rule implements Plugin {
 	}
 	
 	private void start(Game game) {
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 
 			customUISpace.setLayout(new GridLayout(1, 1));
@@ -126,7 +126,7 @@ class Stacking extends Rule implements Plugin {
 	private void stack(Game game, int value) {
 		cardsToDraw.set(game, cardsToDraw.get(game) + value);
 
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			cardsToDrawLabel.setText("+" + cardsToDraw.get(game));
 		}
 
@@ -157,7 +157,7 @@ class Stacking extends Rule implements Plugin {
 			Timer drawDelayTimer = new Timer(1000, new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					finish(game);
-					if (GameUtils.isServer(game)) {
+					if (!game.isClient()) {
 						game.sendAction(FINISH_STACK, null);
 					}
 					drawCards(game, numCards);
@@ -169,7 +169,7 @@ class Stacking extends Rule implements Plugin {
 	}
 	
 	private void finish(Game game) {
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 			customUISpace.removeAll();
 			customUISpace.setVisible(false);
@@ -261,7 +261,7 @@ class Stacking extends Rule implements Plugin {
 		
 		void played(Card parent) {
 			Game game = parent.getGame();
-			if (!GameUtils.isServer(game)) {
+			if (game.isClient()) {
 				((UIGame)game).getCustomUISpace().removeAll();
 			}
 			super.played(parent);

@@ -1,70 +1,26 @@
 package com.loganius.Uno;
 
-import java.util.Vector;
-
-public class StandardHand implements Hand {
-	protected Vector cards = new Vector();
-	protected boolean playable = false;
+public class StandardHand extends SimpleHand implements Hand {
 	protected Game game;
 	
 	public StandardHand(Game game) {
 		this.game = game;
 	}
 	
-	/**
-	 * Add a card to the hand.
-	 * @param card
-	 */
 	public void add(Card card) {
-		cards.addElement(card);
+		super.add(card);
 	}
-
-	/**
-	 * Remove a card from the hand.
-	 * @param card
-	 */
+	
 	public void remove(Card card) {
-		cards.removeElement(card);
-	}
-
-	public boolean getPlayable() {
-		return playable;
-	}
-
-	public void setPlayable(boolean playable) {
-		this.playable = playable;
-		for (int i = 0; i < cards.size(); i++) {
-			((Card)cards.elementAt(i)).setPlayable(playable);
-		}
+		super.remove(card);
 	}
 
 	public Card getCardByType(int cardType) {
-		for (int i = 0; i < cards.size(); i++) {
-			Card card = (Card)cards.elementAt(i);
-			if (card.getType() == cardType) {
-				return card;
-			}
-		}
-		return null;
+		return (Card)super.getSimpleCardByType(cardType);
 	}
-
-	public void setTypePlayable(int cardType, boolean playable) {
-		for (int i = 0; i < cards.size(); i++) {
-			Card card = (Card)cards.elementAt(i);
-			if (card.getType() == cardType) {
-				card.setPlayable(playable);
-			}
-		}
-	}
-
-	public boolean contains(int cardType) {
-		for (int i = 0; i < cards.size(); i++) {
-			Card card = (Card)cards.elementAt(i);
-			if (card.getType() == cardType) {
-				return true;
-			}
-		}
-		return false;
+	
+	public Card getCardByID(int ID) {
+		return (Card)super.getSimpleCardByID(ID);
 	}
 
 	public boolean containsColor(int color) {
@@ -76,9 +32,13 @@ public class StandardHand implements Hand {
 		}
 		return false;
 	}
-
+	
+	public void setPlayable(boolean playable) {
+		super.setPlayable(playable);
+	}
+	
 	public void removeAll() {
-		cards.removeAllElements();
+		super.removeAll();
 	}
 	
 	/**
@@ -96,9 +56,5 @@ public class StandardHand implements Hand {
 
 	public Game getGame() {
 		return game;
-	}
-
-	public int numCards() {
-		return cards.size();
 	}
 }

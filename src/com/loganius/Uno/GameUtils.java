@@ -86,39 +86,16 @@ public class GameUtils {
 	
 	static boolean verify(GameState state, int players, int playerGoing, 
 		int turnOrder, Card lastPlayed, RuleSet ruleSet, boolean uno,
-		boolean challengeActive, Hand[] hands) {
+		boolean challengeActive, StandardHand[] hands) {
 
 		if (state.getPlayers() != players || state.getPlayerGoing() != playerGoing || 
 			state.getTurnOrder() != turnOrder ||
 			(lastPlayed != null && state.getLastPlayed() != lastPlayed.getType()) ||
 			!state.getRules().equals(ruleSet) || state.getUno() != uno || 
-			state.getChallengeActive() != challengeActive) {
+			state.getChallengeActive() != challengeActive || !state.compareHands(hands)) {
 			return false;
 		}
 
-		Integer[][] stateHands = state.getHands();
-		for (int i = 0; i < players; i++) {
-			if (stateHands[i].length != hands[i].numCards()) {
-				return false;
-			}
-			for (int j = 0; j < stateHands[i].length; j++) {
-				if (!hands[i].contains(stateHands[i][j].intValue())) {
-					return false;
-				}
-			}
-		}
 		return true;
-	}
-	
-	public static void setLastPlayedColor(Card lastPlayed, int color, GameState state) {
-		try {
-			int type = Deck.toColor(lastPlayed.getType(), color);
-			lastPlayed.setType(type);
-			state.setLastPlayed(type);
-		} catch (IllegalArgumentException e) {}
-	}
-	
-	public static boolean isServer(Game game) {
-		return (game instanceof ServerGame);
 	}
 }

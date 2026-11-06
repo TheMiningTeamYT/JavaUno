@@ -1,45 +1,34 @@
 package com.loganius.Uno;
 
-class StandardCard implements Card {
-	private int type;
+class StandardCard extends BasicCard implements Card {
 	private Hand parent;
 	private Hand oldParent = null;
-	private boolean playable;
 	
-	public StandardCard(int type, Hand parent) {
-		this.type = type;
+	public StandardCard(int ID, int type, Hand parent) {
+		super(ID, type, parent.getPlayable());
 		this.parent = parent;
-		playable = parent.getPlayable();
-
+		parent.add(this);
+	}
+	
+	public StandardCard(SimpleCard card, Hand parent) {
+		super(card);
 		parent.add(this);
 	}
 	
 	public void transfer(Hand destination) {
 		oldParent = parent;
 		parent.remove(this);
-		playable = destination.getPlayable();
+		setPlayable(destination.getPlayable());
 		destination.add(this);
 		parent = destination;
 	}
 	
-	public int getType() {
-		return type;
-	}
-	
-	public CardType getCardType() {
-		return getGame().getDeck().getCard(type);
-	}
-	
 	public void setType(int type) {
-		this.type = type;
+		super.setType(type);
 	}
 	
-	public boolean getPlayable() {
-		return playable;
-	}
-
-	public void setPlayable(boolean playable) {
-		this.playable = playable;
+	CardType getCardType() {
+		return getGame().getDeck().getCard(getType());
 	}
 	
 	public Game getGame() {
@@ -63,10 +52,22 @@ class StandardCard implements Card {
 		}
 	}
 	
+	public void setPlayable(boolean playable) {
+		super.setPlayable(playable);
+	}
+	
+	public int getColor() {
+		return getCardType().getColor();
+	}
+	
+	public int getValue() {
+		return getCardType().getValue();
+	}
+
 	public int compareTo(Card other) {
-		if (other.getCardType().getColor() != getCardType().getColor()) {
-			return other.getCardType().getColor() - getCardType().getColor();
+		if (other.getColor() != getColor()) {
+			return other.getColor() - getColor();
 		}
-		return other.getCardType().getValue() - getCardType().getValue();
+		return other.getValue() - getValue();
 	}
 }

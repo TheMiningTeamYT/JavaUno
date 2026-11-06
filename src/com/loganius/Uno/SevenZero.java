@@ -11,7 +11,7 @@ public class SevenZero extends Rule {
 	
 	// Defacto constructor.
 	void bind(Game game) {
-		if (game instanceof UIGame) {
+		if (game.isClient()) {
 			instruction = new JLabel("Choose player to swap with", SwingConstants.CENTER);
 			instruction.setForeground(((UIGame)game).getTheme().getGameText());
 			instruction.setFont(Util.getScaledFont());
@@ -36,66 +36,69 @@ public class SevenZero extends Rule {
 		}
 
 		void played(Card parent) {
-			parent.getGame().listenForInput(this);
-			if (!GameUtils.isServer(parent.getGame())) {
-				UIGame game = (UIGame)parent.getGame();
-				JPanel customUISpace = game.getCustomUISpace();
-				GridBagConstraints c = new GridBagConstraints();
-				SelectorTriangle[] triangles = new SelectorTriangle[GameUtils.MAX_PLAYERS - 1];
-				int player = game.getPlayer();
-				int players = game.getPlayers();
-				
-				if (players == 2) {
-					triangles[0] = new SelectorTriangle(1.570796327 * 2, 60, 1, game);
-				} else {
-					for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
-						triangles[i] = new SelectorTriangle(1.570796327 * i, 60, i + 1, game);
-					}
+			UIGame game = (UIGame)parent.getGame();
+			JPanel customUISpace = game.getCustomUISpace();
+			GridBagConstraints c = new GridBagConstraints();
+			SelectorTriangle[] triangles = new SelectorTriangle[GameUtils.MAX_PLAYERS - 1];
+			int player = game.getPlayer();
+			int players = game.getPlayers();
+
+			if (players == 2) {
+				triangles[0] = new SelectorTriangle(1.570796327 * 2, 60, 1, game);
+			} else {
+				for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
+					triangles[i] = new SelectorTriangle(1.570796327 * i, 60, i + 1, game);
 				}
-	
-				customUISpace.setLayout(new GridBagLayout());
-				
-				c.gridx = 0;
-				c.gridy = 0;
-				c.gridwidth = 1;
-				c.gridheight = 1;
-				c.fill = GridBagConstraints.NONE;
-				c.weightx = 0;
-				c.weighty = 0;
-				c.insets = new Insets(10, 10, 10, 10);
-				if (players == 2) {
-					customUISpace.add(triangles[0], c);
-					c.gridy++;
-				} else {
-					if ((player + 2) % GameUtils.MAX_PLAYERS < players) {
-						c.gridwidth = 3;
-						customUISpace.add(triangles[1], c);
-						c.gridy++;
-						c.gridwidth = 1;
-					}
-					if ((player + 1) % GameUtils.MAX_PLAYERS < players) {
-						customUISpace.add(triangles[0], c);
-						c.gridx++;
-					}
-				}
-				customUISpace.add(instruction, c);
-	
-				if (players != 2 && (player + 3) % GameUtils.MAX_PLAYERS < players) {
-					c.gridx++;
-					customUISpace.add(triangles[2], c);
-				}
-				
-				if (players == 2) {
-					triangles[0].calculatePoints();
-				} else {
-					for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
-						triangles[i].calculatePoints();
-					}
-				}
-	
-				customUISpace.setVisible(true);
-				game.setHandPlayable(false);
 			}
+
+			customUISpace.setLayout(new GridBagLayout());
+			
+			c.gridx = 0;
+			c.gridy = 0;
+			c.gridwidth = 1;
+			c.gridheight = 1;
+			c.fill = GridBagConstraints.NONE;
+			c.weightx = 0;
+			c.weighty = 0;
+			c.insets = new Insets(10, 10, 10, 10);
+			if (players == 2) {
+				customUISpace.add(triangles[0], c);
+				c.gridy++;
+			} else {
+				if ((player + 2) % GameUtils.MAX_PLAYERS < players) {
+					c.gridwidth = 3;
+					customUISpace.add(triangles[1], c);
+					c.gridy++;
+					c.gridwidth = 1;
+				}
+				if ((player + 1) % GameUtils.MAX_PLAYERS < players) {
+					customUISpace.add(triangles[0], c);
+					c.gridx++;
+				}
+			}
+			customUISpace.add(instruction, c);
+
+			if (players != 2 && (player + 3) % GameUtils.MAX_PLAYERS < players) {
+				c.gridx++;
+				customUISpace.add(triangles[2], c);
+			}
+			
+			if (players == 2) {
+				triangles[0].calculatePoints();
+			} else {
+				for (int i = 0; i < GameUtils.MAX_PLAYERS - 1; i++) {
+					triangles[i].calculatePoints();
+				}
+			}
+
+			customUISpace.setVisible(true);
+			game.setHandPlayable(false);
+		}
+		
+		void run(Card parent) {
+			Game game = parent.getGame();
+			game.listenForInput(this);
+			game.setHandPlayable(false);
 		}
 		
 		public void handleUserInput(Game game, int value) {

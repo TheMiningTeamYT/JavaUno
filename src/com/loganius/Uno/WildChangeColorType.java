@@ -22,7 +22,7 @@ class WildChangeColorType extends CardType implements InputHandler {
 	
 	void played(Card parent) {
 		parent.getGame().listenForInput(this);
-		if (!GameUtils.isServer(parent.getGame())) {
+		if (parent.getGame().isClient()) {
 			UIGame game = (UIGame)parent.getGame();
 			JPanel customUISpace = game.getCustomUISpace();
 			Rectangle size = customUISpace.getBounds();

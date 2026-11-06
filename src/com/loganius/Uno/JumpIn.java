@@ -18,7 +18,7 @@ public class JumpIn extends Rule implements Plugin {
 
 	// Defacto constructor.
 	public void bind(Game game) {
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			UIGame uiGame = (UIGame)game;
 			instruction = new JLabel("Jump In!", SwingConstants.CENTER);
 			instruction.setForeground(uiGame.getAccentColor());
@@ -59,7 +59,7 @@ public class JumpIn extends Rule implements Plugin {
 		boolean playerHasCard = false;
 		for (int i = 0; i < game.getPlayers(); i++) {
 			playableBefore[i] = game.getHandPlayable(i);
-			if (game.isHandPlayer(i) || GameUtils.isServer(game)) {
+			if (game.isHandPlayer(i) || !game.isClient()) {
 				game.setHandPlayable(false, i);
 				if (game.handContains(i, lastPlayed)) {
 					game.setTypePlayable(lastPlayed, true, i);
@@ -68,7 +68,7 @@ public class JumpIn extends Rule implements Plugin {
 			}
 		}
 
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 	
 			instruction.setText((playerHasCard) ? "Jump In!" : "Waiting...");
@@ -82,7 +82,7 @@ public class JumpIn extends Rule implements Plugin {
 	}
 	
 	private void finish(Game game) {
-		if (!GameUtils.isServer(game)) {
+		if (game.isClient()) {
 			JPanel customUISpace = ((UIGame)game).getCustomUISpace();
 	
 			customUISpace.removeAll();
@@ -143,7 +143,7 @@ public class JumpIn extends Rule implements Plugin {
 				int turnPos = game.findTurnPos(parent);
 				finish(game);
 				
-				if (GameUtils.isServer(game)) {
+				if (!game.isClient()) {
 					game.sendAction(END_JUMP_IN, null);
 				}
 
@@ -158,7 +158,7 @@ public class JumpIn extends Rule implements Plugin {
 								if (active.get(game) >= 0 && !game.getEnded()) {
 									finish(game);
 
-									if (GameUtils.isServer(game)) {
+									if (!game.isClient()) {
 										game.sendAction(END_JUMP_IN, null);
 									}
 
@@ -170,7 +170,7 @@ public class JumpIn extends Rule implements Plugin {
 						//jumpInDelay.start();
 
 						activate(game, type);
-						if (GameUtils.isServer(game)) {
+						if (!game.isClient()) {
 							game.sendAction(START_JUMP_IN, new Integer(type));
 						}
 						return;

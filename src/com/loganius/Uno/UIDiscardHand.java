@@ -29,6 +29,8 @@ class UIDiscardHand extends DiscardHand implements UIHand {
 		return 0;
 	}
 	
+	public void setUp(boolean up) {}
+	
 	public boolean getUp() {
 		return true;
 	}

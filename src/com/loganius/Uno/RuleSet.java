@@ -45,7 +45,7 @@ abstract class RuleSet implements Serializable {
 	void finishDraw(Game game) {
 		Card card = game.getLastDrawn();
 		if (game.isLegal(card)) {
-			card.setPlayable(true);
+			game.setPlayable(card, true);
 		}
 		if (game.canBePlayed(0)) {
 			game.checkUno();
@@ -77,10 +77,10 @@ abstract class RuleSet implements Serializable {
 
 		boolean isLegal(Card card, Game game) {
 			Card lastPlayed = game.getLastPlayed();
-			return (card.getCardType().getColor() == CardType.Color.WILD ||
-				card.getCardType().getColor() == lastPlayed.getCardType().getColor() ||
-				(lastPlayed.getCardType().getValue() != -1 &&
-				card.getCardType().getValue() == lastPlayed.getCardType().getValue()));
+			return (card.getColor() == CardType.Color.WILD ||
+				card.getColor() == lastPlayed.getColor() ||
+				(lastPlayed.getValue() != -1 &&
+				card.getValue() == lastPlayed.getValue()));
 		}
 
 		protected void draw(Game game) {

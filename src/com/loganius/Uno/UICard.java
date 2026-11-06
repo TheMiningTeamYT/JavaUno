@@ -9,6 +9,7 @@ import javax.swing.*;
  */
 class UICard extends JComponent implements Card {
 	private int type;
+	private int ID;
 	private UIHand parent;
 	private UIHand oldParent = null;
 	private static int width = 80;
@@ -42,8 +43,8 @@ class UICard extends JComponent implements Card {
 		UICard.height = height;
 	}
 
-	public UICard(int type, UIHand parent) {
-		super();
+	public UICard(int ID, int type, UIHand parent) {
+		this.ID = ID;
 		this.type = type;
 		this.parent = parent;
 		playable = parent.getPlayable();
@@ -55,6 +56,11 @@ class UICard extends JComponent implements Card {
 		addMouseMotionListener(listener);
 
 		parent.add(this);
+	}
+	
+	public UICard(SimpleCard card, UIHand parent) {
+		this(card.getID(), card.getType(), parent);
+		this.playable = card.getPlayable();
 	}
 
 	public void transfer(Hand destination) {
@@ -120,13 +126,32 @@ class UICard extends JComponent implements Card {
 		}
 	}
 	
-	public int compareTo(Card other) {
-		if (other.getCardType().getColor() != getCardType().getColor()) {
-			return other.getCardType().getColor() - getCardType().getColor();
-		}
-		return other.getCardType().getValue() - getCardType().getValue();
+	public int getColor() {
+		return getCardType().getColor();
 	}
 	
+	public int getValue() {
+		return getCardType().getValue();
+	}
+	
+	public int compareTo(Card other) {
+		return compareTo(other.getType());
+	}
+	
+	public int compareTo(int otherType) {
+		Deck deck = getGame().getDeck();
+		CardType thisType = deck.getCard(type);
+		CardType other = deck.getCard(otherType);
+		if (thisType.getColor() != other.getColor()) {
+			return thisType.getColor() - other.getColor();
+		}
+		return thisType.getValue() - other.getValue();
+	}
+	
+	public int getID() {
+		return ID;
+	}
+
 	private void usingImages() {
 		if (dirty) {
 			CardSkin skin = getCardType().getSkin();
